@@ -6,9 +6,11 @@ import asyncio
 import json
 import os
 import random
+import logging
 
 app = FastAPI()
-
+logger = logging.getLogger(__name__)
+logging.basicConfig(filename='server.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -31,7 +33,7 @@ MAX_ROUNDS = 5
 
 timeouts = {
     "countdown": 3,
-    "answer_time": 15,
+    "answer_time": 15, 
     "pause_between_rounds": 3
 }
 
@@ -52,7 +54,7 @@ distance_answer_deadline = None
 
 @app.get("/", response_class=HTMLResponse)
 async def get_index():
-    return FileResponse("static/client_with_ready_and_countdown.html")
+    return FileResponse("static/index.html")
 
 @app.get("/admin", response_class=HTMLResponse)
 async def get_admin():
@@ -96,7 +98,13 @@ async def websocket_endpoint(websocket: WebSocket):
     ready_status[player_id] = False
     scores[player_id] = 0
     await broadcast_player_list()
-
+    await broadcast_json({
+            "type": "view_config",
+            "countdown": timeouts["countdown"],
+            "answer_time": timeouts["answer_time"], 
+            "pause_between_rounds":   timeouts["pause_between_rounds"],
+            "max_rounds": MAX_ROUNDS
+        })
     try:
         while True:
             data = await websocket.receive_text()
@@ -124,6 +132,7 @@ async def handle_message(player_id, msg):
 
 async def handle_guess(player_id, data):
     global distance_answers
+    logger.info(f"Received guess from {names[player_id]}: {data} km. (game is {'active' if game_active else 'inactive'})")
     if game_active:
         try:
             guess = int(data)
@@ -135,6 +144,7 @@ async def handle_guess(player_id, data):
             }))
             if len(distance_answers) >= len(clients):
                 if distance_answer_deadline and not distance_answer_deadline.done():
+                    logger.info("Cancelling distance answer deadline")
                     distance_answer_deadline.cancel()
                 await evaluate_distance_answers()
         except ValueError:
@@ -166,12 +176,15 @@ async def start_countdown():
         await asyncio.sleep(1)
     await broadcast_json({"type": "countdown", "value": 0})
     await broadcast_json({"type": "game_start"})
+    
+
     await start_game()
 
 async def start_game():
     global current_round, game_active
     current_round = 0
     game_active = True
+    
     await next_round()
 
 async def next_round():
@@ -192,20 +205,23 @@ async def next_round():
         "type": "new_question",
         "round": current_round,
         "max_rounds": MAX_ROUNDS,
+        "cities": cities,
         "question": f"Wie weit ist es von {cities[0]} nach {cities[1]}? (in km)"
     })
-
+    logger.info(f"New question: {cities[0]} to {cities[1]}, correct distance: {correct_distance} km")
     distance_answer_deadline = asyncio.create_task(distance_answer_timeout())
 
 async def distance_answer_timeout():
-    await asyncio.sleep(timeouts["answer_time"])
-    await evaluate_distance_answers()
+        for i in range(timeouts["answer_time"], 0, -1):
+            await broadcast_json({"type": "countdown_round", "value": i})
+            await asyncio.sleep(1)
+        await broadcast_json({"type": "countdown_round", "value": 0})
+        await evaluate_distance_answers()
 
 async def evaluate_distance_answers():
     global game_active
     if not game_active:
         return
-    game_active = False
 
     cities, correct = distance_question
     await broadcast(f"Richtige Entfernung zwischen {cities[0]} und {cities[1]}: {correct} km")
