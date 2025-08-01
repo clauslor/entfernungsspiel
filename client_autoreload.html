@@ -1,11 +1,17 @@
 
+
 <!DOCTYPE html>
 <html>
 <head>
     <title>Entfernungsspiel</title>
     <style>
         body { font-family: Arial; padding: 20px; }
-        #messages { border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: scroll; margin-bottom: 10px; }
+        #messages, #players, #countdownDisplay {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        #messages { height: 150px; overflow-y: scroll; }
         input, button, select { margin: 5px; }
     </style>
 </head>
@@ -17,10 +23,17 @@
         <input type="text" id="playerName" placeholder="Name eingeben">
         <button onclick="setPlayerName()">Hinzufügen / Ändern</button>
         <button onclick="removePlayer()">Entfernen</button>
+        <button onclick="setReady()">Bereit</button>
     </div>
 
-    <div>
-        <button onclick="startCountdown()">Countdown starten</button>
+    <div id="players">
+        <h3>Spielerliste</h3>
+        <ul id="playerList"></ul>
+    </div>
+
+    <div id="countdownDisplay">
+        <h3>Countdown</h3>
+        <p id="countdownText">Warte auf Start...</p>
     </div>
 
     <div>
@@ -45,11 +58,6 @@
                     handleJsonMessage(msg);
                 } catch {
                     appendMessage(data);
-                    if (data.includes("Spiel beendet")) {
-                        setTimeout(() => {
-                            location.reload();
-                        }, 5000); // reload after 5 seconds
-                    }
                 }
             };
 
@@ -67,7 +75,23 @@
                 appendMessage(`✅ ${msg.player} hat geantwortet: ${msg.guess} km`);
             } else if (msg.type === "score_update") {
                 appendMessage(`🏆 Punktestand: ${JSON.stringify(msg.scores)} | Highscore: ${msg.high_score}`);
+            } else if (msg.type === "player_list") {
+                updatePlayerList(msg.players);
+            } else if (msg.type === "countdown") {
+                document.getElementById("countdownText").textContent = `Spiel startet in ${msg.value}...`;
+            } else if (msg.type === "game_start") {
+                document.getElementById("countdownText").textContent = "Los geht's!";
             }
+        }
+
+        function updatePlayerList(players) {
+            const list = document.getElementById("playerList");
+            list.innerHTML = "";
+            players.forEach(p => {
+                const item = document.createElement("li");
+                item.textContent = `${p.name} (${p.ready ? "bereit" : "nicht bereit"})`;
+                list.appendChild(item);
+            });
         }
 
         function appendMessage(text) {
@@ -87,18 +111,18 @@
             }
         }
 
+        function setReady() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "set_ready" }));
+            }
+        }
+
         function removePlayer() {
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ type: "remove_player" }));
                 ws.close();
             }
             appendMessage("Spieler entfernt.");
-        }
-
-        function startCountdown() {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: "start_countdown" }));
-            }
         }
 
         function sendGuess() {
