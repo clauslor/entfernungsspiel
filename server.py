@@ -1,10 +1,11 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, Form
+from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
 import asyncio
 import json
+import os
 import random
-from typing import Dict
 
 app = FastAPI()
 
@@ -16,18 +17,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+if not os.path.exists("static"):
+    os.makedirs("static")
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 clients = {}
-scores = {}
 names = {}
-high_score = 0
-current_game = "game3"
+ready_status = {}
+scores = {}
 game_active = False
-
-# Spielkonfiguration
-MAX_ROUNDS = 5
 current_round = 0
+MAX_ROUNDS = 5
 
-# Entfernungsspiel
+timeouts = {
+    "countdown": 3,
+    "answer_time": 15,
+    "pause_between_rounds": 3
+}
+
 city_distances = {
     ("Berlin", "Hamburg"): 289,
     ("München", "Frankfurt"): 393,
@@ -40,47 +47,84 @@ city_distances = {
 }
 
 distance_question = None
-distance_answers: Dict[str, int] = {}
+distance_answers = {}
 distance_answer_deadline = None
+
+@app.get("/", response_class=HTMLResponse)
+async def get_index():
+    return FileResponse("static/client_with_ready_and_countdown.html")
+
+@app.get("/admin", response_class=HTMLResponse)
+async def get_admin():
+    return HTMLResponse(f"""
+    <html>
+    <body>
+        <h2>Admin Timeout Configuration</h2>
+        <form action="/admin" method="post">
+            Countdown (seconds): <input type="number" name="countdown" value="{timeouts['countdown']}"><br>
+            Answer Time (seconds): <input type="number" name="answer_time" value="{timeouts['answer_time']}"><br>
+            Pause Between Rounds (seconds): <input type="number" name="pause_between_rounds" value="{timeouts['pause_between_rounds']}"><br>
+            <input type="submit" value="Update">
+        </form>
+    </body>
+    </html>
+    """)
+
+@app.post("/admin", response_class=HTMLResponse)
+async def post_admin(countdown: int = Form(...), answer_time: int = Form(...), pause_between_rounds: int = Form(...)):
+    timeouts["countdown"] = countdown
+    timeouts["answer_time"] = answer_time
+    timeouts["pause_between_rounds"] = pause_between_rounds
+    return HTMLResponse(f"""
+    <html>
+    <body>
+        <h2>Updated Timeouts</h2>
+        <p>Countdown: {countdown} seconds</p>
+        <p>Answer Time: {answer_time} seconds</p>
+        <p>Pause Between Rounds: {pause_between_rounds} seconds</p>
+        <a href="/admin">Back</a>
+    </body>
+    </html>
+    """)
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     player_id = str(id(websocket))
     clients[player_id] = websocket
-    scores[player_id] = 0
     names[player_id] = f"Spieler_{player_id[-4:]}"
-    await broadcast(f"{names[player_id]} ist beigetreten.")
+    ready_status[player_id] = False
+    scores[player_id] = 0
+    await broadcast_player_list()
 
     try:
         while True:
             data = await websocket.receive_text()
             try:
                 msg = json.loads(data)
-                await handle_message(player_id, msg)
+                if isinstance(msg, dict) and "type" in msg:
+                    await handle_message(player_id, msg)
+                else:
+                    await handle_guess(player_id, data)
             except json.JSONDecodeError:
                 await handle_guess(player_id, data)
     except WebSocketDisconnect:
         await remove_player(player_id)
 
 async def handle_message(player_id, msg):
-    global current_game, game_active
-
+    global game_active
     if msg["type"] == "set_name":
         names[player_id] = msg["name"]
-        await broadcast(f"{names[player_id]} heißt jetzt {msg['name']}.")
-    elif msg["type"] == "remove_player":
-        await remove_player(player_id)
-    elif msg["type"] == "select_game":
-        current_game = msg["game"]
-        await broadcast(f"{names[player_id]} hat das Spiel auf '{current_game}' gesetzt.")
-    elif msg["type"] == "start_countdown":
-        await countdown()
-        await start_game()
+        await broadcast_player_list()
+    elif msg["type"] == "set_ready":
+        ready_status[player_id] = True
+        await broadcast_player_list()
+        if all(ready_status.values()) and len(ready_status) >= 1:
+            await start_countdown()
 
 async def handle_guess(player_id, data):
     global distance_answers
-    if current_game == "game3" and game_active:
+    if game_active:
         try:
             guess = int(data)
             distance_answers[player_id] = guess
@@ -90,59 +134,57 @@ async def handle_guess(player_id, data):
                 "guess": guess
             }))
             if len(distance_answers) >= len(clients):
-                distance_answer_deadline.cancel()
+                if distance_answer_deadline and not distance_answer_deadline.done():
+                    distance_answer_deadline.cancel()
                 await evaluate_distance_answers()
         except ValueError:
             await clients[player_id].send_text("Ungültige Eingabe. Bitte gib eine Zahl ein.")
 
 async def remove_player(player_id):
     if player_id in clients:
-        await broadcast(f"{names[player_id]} wurde entfernt.")
         del clients[player_id]
-        del scores[player_id]
         del names[player_id]
+        del ready_status[player_id]
+        del scores[player_id]
+        await broadcast_player_list()
 
-async def broadcast(message: str):
-    for ws in clients.values():
-        await ws.send_text(message)
+async def broadcast_player_list():
+    player_list = [{"name": names[pid], "ready": ready_status[pid]} for pid in clients]
+    await broadcast_json({"type": "player_list", "players": player_list})
 
 async def broadcast_json(payload: dict):
     for ws in clients.values():
         await ws.send_text(json.dumps(payload))
 
-async def update_scores():
-    global high_score
-    high_score = max(high_score, max(scores.values(), default=0))
-    score_board = {names[pid]: score for pid, score in scores.items()}
-    await broadcast_json({
-        "type": "score_update",
-        "scores": score_board,
-        "high_score": high_score
-    })
+async def broadcast(message: str):
+    for ws in clients.values():
+        await ws.send_text(message)
 
-async def countdown():
-    for i in range(3, 0, -1):
-        await broadcast(f"Spiel startet in {i}...")
+async def start_countdown():
+    for i in range(timeouts["countdown"], 0, -1):
+        await broadcast_json({"type": "countdown", "value": i})
         await asyncio.sleep(1)
-    await broadcast("Los geht's!")
+    await broadcast_json({"type": "countdown", "value": 0})
+    await broadcast_json({"type": "game_start"})
+    await start_game()
 
 async def start_game():
-    global current_round
+    global current_round, game_active
     current_round = 0
+    game_active = True
     await next_round()
 
 async def next_round():
-    global current_round, game_active, distance_question, distance_answers, distance_answer_deadline
+    global current_round, distance_question, distance_answers, distance_answer_deadline, game_active
 
     if current_round >= MAX_ROUNDS:
         await broadcast("🎉 Spiel beendet!")
-        await update_scores()
+        await broadcast_json({"type": "game_end"})
+        await reset_game()
         return
 
     current_round += 1
-    game_active = True
     distance_answers = {}
-
     distance_question = random.choice(list(city_distances.items()))
     cities, correct_distance = distance_question
 
@@ -156,11 +198,13 @@ async def next_round():
     distance_answer_deadline = asyncio.create_task(distance_answer_timeout())
 
 async def distance_answer_timeout():
-    await asyncio.sleep(15)
+    await asyncio.sleep(timeouts["answer_time"])
     await evaluate_distance_answers()
 
 async def evaluate_distance_answers():
     global game_active
+    if not game_active:
+        return
     game_active = False
 
     cities, correct = distance_question
@@ -168,20 +212,38 @@ async def evaluate_distance_answers():
 
     if len(distance_answers) < 1:
         await broadcast("Keine gültigen Antworten erhalten.")
-        await next_round()
+        await pause_and_continue()
         return
-    diffs = {
-        pid: abs(guess - correct)
-        for pid, guess in distance_answers.items()
-    }
 
+    diffs = {pid: abs(guess - correct) for pid, guess in distance_answers.items()}
     winner_id = min(diffs, key=diffs.get)
     scores[winner_id] += 1
 
     await broadcast(f"{names[winner_id]} war am nächsten dran und bekommt einen Punkt!")
     await update_scores()
-    await asyncio.sleep(3)
+    await pause_and_continue()
+
+async def pause_and_continue():
+    await broadcast_json({"type": "pause", "seconds": timeouts["pause_between_rounds"]})
+    await asyncio.sleep(timeouts["pause_between_rounds"])
     await next_round()
 
+async def update_scores():
+    score_board = {names[pid]: score for pid, score in scores.items()}
+    await broadcast_json({
+        "type": "score_update",
+        "scores": score_board,
+        "high_score": max(scores.values(), default=0)
+    })
+
+async def reset_game():
+    global ready_status, scores, game_active, current_round
+    ready_status = {pid: False for pid in clients}
+    scores = {pid: 0 for pid in clients}
+    game_active = False
+    current_round = 0
+    await broadcast_player_list()
+
 if __name__ == "__main__":
+    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
