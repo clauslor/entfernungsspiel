@@ -3,16 +3,36 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Entfernungsspiel</title>
     <style>
         body { font-family: Arial; padding: 20px; }
-        #messages, #players, #countdownDisplay {
+        #messages, #players, #countdownDisplay, #rulesDisplay {
             border: 1px solid #ccc;
             padding: 10px;
             margin-bottom: 10px;
         }
         #messages { height: 150px; overflow-y: scroll; }
         input, button, select { margin: 5px; }
+        #city1, #city2 {
+            font-family: Arial; 
+            font-size: 2em;
+            color: blueviolet;
+            font-weight: bold;
+        }
+        #countdown {
+            width: 200px;
+            height: 40px;
+            text-align: center;
+            line-height: 40px;
+            font-weight: bold;
+            color: white;
+            font-size: 1.5em;
+            background-color: hsl(120, 100%, 50%); /* Startfarbe: Grün */
+            transition: background-color 0.5s ease;
+        }
+
     </style>
 </head>
 <body>
@@ -30,12 +50,23 @@
         <h3>Spielerliste</h3>
         <ul id="playerList"></ul>
     </div>
+    </div>
+        <div id="rulesDisplay">
+        <h3>Einstellungen</h3>
+        <p id="rulesText">Warte auf Empfang der Regeln...</p>
+    </div>
 
     <div id="countdownDisplay">
         <h3>Countdown</h3>
         <p id="countdownText">Warte auf Start...</p>
+        <p id="countdown"></p>
+
     </div>
 
+    <div id="questionDisplay">
+        <h3>Frage:</h3>
+        <p>Wie weit ist es zwischen <div id="city1"></div> und <div id="city2"></div></p>
+    </div>
     <div>
         <label>Antwort (km):</label>
         <input type="number" id="guessInput">
@@ -47,7 +78,7 @@
     <script>
         let ws;
         let playerName = "";
-
+        let totalTime;
         function connect() {
             ws = new WebSocket("ws://localhost:8000/ws");
 
@@ -71,6 +102,12 @@
         function handleJsonMessage(msg) {
             if (msg.type === "new_question") {
                 appendMessage(`🟡 Runde ${msg.round}/${msg.max_rounds}: ${msg.question}`);
+                document.getElementById("city1").textContent = `${msg.cities[0]}`;
+                document.getElementById("city2").textContent = `${msg.cities[1]}`;
+                
+            } else if (msg.type === "view_config") {
+                document.getElementById("rulesText").textContent = `Einstellungen Wir spielen: ${JSON.stringify(msg.max_rounds)} Runden | Je Runde habt ihr habt ${msg.answer_time} Sekunden Zeit zu antworten.`;
+                totalTime = msg.answer_time;
             } else if (msg.type === "answer_received") {
                 appendMessage(`✅ ${msg.player} hat geantwortet: ${msg.guess} km`);
             } else if (msg.type === "score_update") {
@@ -79,9 +116,21 @@
                 updatePlayerList(msg.players);
             } else if (msg.type === "countdown") {
                 document.getElementById("countdownText").textContent = `Spiel startet in ${msg.value}...`;
+            }else if (msg.type === "countdown_round") {
+                document.getElementById("countdownText").textContent = `Verbleibende Zeit zu antworten ${msg.value} Sekunden...`;
+                document.getElementById("countdown").textContent = `${msg.value}`;
+
+                timeLeft = msg.value;
+
+                // Farbe berechnen: von Grün (120°) zu Rot (0°)
+                const hue = (timeLeft / totalTime) * 120;
+                document.getElementById('countdown').style.backgroundColor = `hsl(${hue}, 100%, 50%)`;
+
             } else if (msg.type === "game_start") {
                 document.getElementById("countdownText").textContent = "Los geht's!";
             }
+                            
+
         }
 
         function updatePlayerList(players) {
