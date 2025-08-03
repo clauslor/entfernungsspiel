@@ -1,0 +1,45 @@
+body { font-family: Arial; padding: 20px; }
+#messages, #players, #countdownDisplay, #rulesDisplay {
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+#messages { height: 150px; overflow-y: scroll; }
+input, button, select { margin: 5px; }
+#city1, #city2 {
+    font-family: Arial; 
+    font-size: 2em;
+    color: blueviolet;
+    font-weight: bold;
+}
+#countdown {
+    width: 200px;
+    height: 40px;
+    text-align: center;
+    line-height: 40px;
+    font-weight: bold;
+    color: white;
+    font-size: 1.5em;
+    background-color: hsl(120, 100%, 50%); /* Startfarbe: Grün */
+    transition: background-color 0.5s ease;
+}
+button {
+    padding: 10px 20px;
+    font-size: 1em;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #ddd;
+}  
+#btn_playername {
+    background-color: gray; /* Grün */
+}
+#btn_exit {
+    background-color: #f44336; /* Rot */
+}
+#btn_start {
+    background-color: green; /* Dunkelgrün */
+}

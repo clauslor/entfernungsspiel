@@ -22,6 +22,7 @@ app.add_middleware(
 if not os.path.exists("static"):
     os.makedirs("static")
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/css", StaticFiles(directory="css"), name="css")
 
 clients = {}
 names = {}
@@ -63,9 +64,10 @@ async def get_admin():
     <body>
         <h2>Admin Timeout Configuration</h2>
         <form action="/admin" method="post">
-            Countdown (seconds): <input type="number" name="countdown" value="{timeouts['countdown']}"><br>
-            Answer Time (seconds): <input type="number" name="answer_time" value="{timeouts['answer_time']}"><br>
-            Pause Between Rounds (seconds): <input type="number" name="pause_between_rounds" value="{timeouts['pause_between_rounds']}"><br>
+            Max Rounds: <input type="number" name="max_rounds1" value="{MAX_ROUNDS}"><br>
+            Initaler Start Countdown (seconds): <input type="number" name="countdown" value="{timeouts['countdown']}"><br>
+            Antwort Zeit (seconds): <input type="number" name="answer_time" value="{timeouts['answer_time']}"><br>
+            Pause zwischen den Runden (seconds): <input type="number" name="pause_between_rounds" value="{timeouts['pause_between_rounds']}"><br>
             <input type="submit" value="Update">
         </form>
     </body>
@@ -73,21 +75,33 @@ async def get_admin():
     """)
 
 @app.post("/admin", response_class=HTMLResponse)
-async def post_admin(countdown: int = Form(...), answer_time: int = Form(...), pause_between_rounds: int = Form(...)):
-    timeouts["countdown"] = countdown
-    timeouts["answer_time"] = answer_time
-    timeouts["pause_between_rounds"] = pause_between_rounds
-    return HTMLResponse(f"""
-    <html>
-    <body>
-        <h2>Updated Timeouts</h2>
-        <p>Countdown: {countdown} seconds</p>
-        <p>Answer Time: {answer_time} seconds</p>
-        <p>Pause Between Rounds: {pause_between_rounds} seconds</p>
-        <a href="/admin">Back</a>
-    </body>
-    </html>
-    """)
+async def post_admin(countdown: int = Form(...), answer_time: int = Form(...), pause_between_rounds: int = Form(...), max_rounds1: int = Form(...)):
+    if game_active is False:
+        timeouts["countdown"] = countdown
+        timeouts["answer_time"] = answer_time
+        timeouts["pause_between_rounds"] = pause_between_rounds
+        MAX_ROUNDS = max_rounds1
+        return HTMLResponse(f"""
+        <html>
+        <body>
+            <h2>Spiel läuft gerade. Keine Änderungen möglich</h2>
+            <a href="/admin">Back</a>
+        </body>
+        </html>
+        """)
+    else:
+        return HTMLResponse(f"""
+        <html>
+        <body>
+            <h2>Spiel läuft gerade. Keine Änderungen möglich</h2>
+            <p>Max Rounds: {max_rounds1} rounds</p>
+            <p>Countdown: {countdown} seconds</p>
+            <p>Answer Time: {answer_time} seconds</p>
+            <p>Pause Between Rounds: {pause_between_rounds} seconds</p>
+            <a href="/admin">Back</a>
+        </body>
+        </html>
+        """)
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -144,7 +158,7 @@ async def handle_guess(player_id, data):
             }))
             if len(distance_answers) >= len(clients):
                 if distance_answer_deadline and not distance_answer_deadline.done():
-                    logger.info("Cancelling distance answer deadline")
+                    logger.info("All players submitted an answer. Cancelling distance answer deadline")
                     distance_answer_deadline.cancel()
                 await evaluate_distance_answers()
         except ValueError:
@@ -235,7 +249,7 @@ async def evaluate_distance_answers():
     winner_id = min(diffs, key=diffs.get)
     scores[winner_id] += 1
 
-    await broadcast(f"{names[winner_id]} war am nächsten dran und bekommt einen Punkt!")
+    await broadcast(f"{names[winner_id]} war mit {distance_answers[winner_id]} km also einer einer Diffenrenz von {round((float)(1-(distance_answers[winner_id]/correct))*100, 4)} % am nächsten dran und bekommt den Punkt!")
     await update_scores()
     await pause_and_continue()
 
@@ -262,4 +276,4 @@ async def reset_game():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8080)
