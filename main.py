@@ -209,7 +209,6 @@ async def add_city_pair_api(
         logger.error(f"Error adding city pair: {e}")
         raise HTTPException(status_code=400, detail="Error adding city pair")
 
-@app.websocket("/ws")
 @app.websocket(config.ROOT_PATH + "/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time game communication"""
