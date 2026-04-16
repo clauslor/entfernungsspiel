@@ -22,7 +22,7 @@ function connect() {
 
   ws.onopen = () => {
     isConnected = true;
-    appendMessage("✅ Connected to server");
+    appendMessage("✅ Connected to server `wss://${window.location.host}${base}/ws");
   };
 
   ws.onclose = () => {
