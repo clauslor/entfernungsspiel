@@ -83,9 +83,9 @@ def authenticate_admin(credentials: HTTPBasicCredentials = Depends(security)):
 
 
 @app.get("/", response_class=HTMLResponse)
-async def get_index():
+async def get_index(request: Request):
     """Serve the main game page"""
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request, "index.html")
 
 
 @app.get("/admin", response_class=HTMLResponse)
