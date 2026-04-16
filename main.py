@@ -239,6 +239,7 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
+    logger.info(f"Starting server on {config.HOST}:{config.PORT} with debug={config.DEBUG}")
     uvicorn.run(
         "main:app",
         host=config.HOST,
