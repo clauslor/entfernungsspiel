@@ -132,15 +132,13 @@ def init_default_city_pairs(db):
     """Initialize database with default city pairs"""
     if db.query(DBCityPair).count() == 0:
         default_pairs = [
-            ("Berlin", "Hamburg", 289),
-            ("München", "Frankfurt", 393),
-            ("Köln", "Stuttgart", 357),
-            ("Dresden", "Leipzig", 121),
-            ("Hannover", "Dortmund", 207),
-            ("Bremen", "Nürnberg", 540),
-            ("Essen", "Düsseldorf", 35),
-            ("Mainz", "Erfurt", 280),
+            ("Berlin",	"Hamburg",	280,	52.52,	13.405,	53.5511,	9.9937),
+            ("Berlin",	"München",	600,	52.52,	13.405,	48.1351,	11.582),
+            ("Hamburg",	"München",	780,	53.5511,	9.9937,	48.1351,	11.582),
+            ("Köln",	"Frankfurt",	180,	50.9375,	6.9603,	50.1109,	8.6821),
+            ("Stuttgart",	"Dresden",	530,	48.7758,	9.1829,	51.0504,	13.7373),
+            ("Leipzig",	"Nürnberg",	270,	51.3397,	12.3731,	49.4521,	11.0767)
         ]
 
-        for city1, city2, distance in default_pairs:
-            add_city_pair(db, city1, city2, distance)
+        for city1, city2, distance, lat1, lon1, lat2, lon2 in default_pairs:
+            add_city_pair(db, city1, city2, distance, lat1, lon1, lat2, lon2)
