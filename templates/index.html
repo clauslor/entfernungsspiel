@@ -192,7 +192,7 @@
         let isConnected = false;
 
         function connect() {
-            ws = new WebSocket(`ws://${window.location.host}/ws`);
+            ws = new WebSocket(`wss://${window.location.host}/ws`);
 
             ws.onmessage = (event) => {
                 const data = event.data;
