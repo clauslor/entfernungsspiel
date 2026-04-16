@@ -207,6 +207,7 @@ class WebSocketHandler:
 
     async def handle_set_name(self, player_id: str, data: Dict[str, Any]):
         """Handle player name change"""
+        logger.info(f"handle_set_name called for player_id: {player_id} with data: {data}")
         try:
             name_msg = SetNameMessage.parse_obj(data)
             if player_id in self.game_room.players:
