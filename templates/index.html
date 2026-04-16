@@ -192,7 +192,8 @@
         let isConnected = false;
 
         function connect() {
-            ws = new WebSocket(`wss://${window.location.host}/ws`);
+            const base = window.location.pathname.replace(/\/$/, ""); // trailing slash entfernen
+            const ws = new WebSocket(`wss://${window.location.host}${base}/ws`);
 
             ws.onmessage = (event) => {
                 const data = event.data;
