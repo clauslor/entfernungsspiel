@@ -35,7 +35,8 @@ with next(get_db()) as db:
 app = FastAPI(
     title="Entfernungsspiel API",
     description="A multiplayer distance guessing game",
-    version="2.0.0"
+    version="2.0.0",
+    root_path = config.ROOT_PATH  # Set root path for reverse proxy
 )
 
 # Configure CORS
