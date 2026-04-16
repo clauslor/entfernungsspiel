@@ -213,6 +213,7 @@ async def add_city_pair_api(
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time game communication"""
+    logger.info("New WebSocket connection")
     player_id = await ws_handler.connect(websocket)
 
     try:
