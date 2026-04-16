@@ -1,86 +1,105 @@
 
 
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Entfernungsspiel</title>
-    <style>
-        body { font-family: Arial; padding: 20px; }
-        #messages, #players, #countdownDisplay, #rulesDisplay {
-            border: 1px solid #ccc;
-            padding: 10px;
-            margin-bottom: 10px;
-        }
-        #messages { height: 150px; overflow-y: scroll; }
-        input, button, select { margin: 5px; }
-        #city1, #city2 {
-            font-family: Arial; 
-            font-size: 2em;
-            color: blueviolet;
-            font-weight: bold;
-        }
-        #countdown {
-            width: 200px;
-            height: 40px;
-            text-align: center;
-            line-height: 40px;
-            font-weight: bold;
-            color: white;
-            font-size: 1.5em;
-            background-color: hsl(120, 100%, 50%); /* Startfarbe: Grün */
-            transition: background-color 0.5s ease;
-        }
-
-    </style>
+    <title>Entfernungsspiel - Guess the Distance Game</title>
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-    <h1>Entfernungsspiel</h1>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1 class="title">🌍 Entfernungsspiel</h1>
+                <p class="subtitle">Guess the distance between two cities!</p>
+            </div>
+        </header>
 
-    <div>
-        <label>Spielername:</label>
-        <input type="text" id="playerName" placeholder="Name eingeben">
-        <button onclick="setPlayerName()">Hinzufügen / Ändern</button>
-        <button onclick="removePlayer()">Entfernen</button>
-        <button onclick="setReady()">Bereit</button>
-    </div>
+        <!-- Main Game Container -->
+        <main class="game-layout">
+            <!-- Left Column: Player Setup & Game Question -->
+            <div class="game-column">
+                <!-- Player Setup Card -->
+                <section class="card player-setup">
+                    <h2 class="card-title">👤 Player Setup</h2>
+                    <div class="input-group">
+                        <input type="text" id="playerName" class="input-field" placeholder="Enter your name">
+                        <button onclick="setPlayerName()" class="btn btn-primary">Join Game</button>
+                    </div>
+                    <div class="button-group">
+                        <button onclick="setReady()" class="btn btn-success">✓ Ready</button>
+                        <button onclick="removePlayer()" class="btn btn-danger">✕ Leave</button>
+                    </div>
+                </section>
 
-    <div id="players">
-        <h3>Spielerliste</h3>
-        <ul id="playerList"></ul>
-    </div>
-    </div>
-        <div id="rulesDisplay">
-        <h3>Einstellungen</h3>
-        <p id="rulesText">Warte auf Empfang der Regeln...</p>
-    </div>
+                <!-- Question Card -->
+                <section class="card question-card">
+                    <h2 class="card-title">❓ Current Question</h2>
+                    <div class="question-content">
+                        <p class="question-text">What is the distance between:</p>
+                        <div class="cities-container">
+                            <div class="city city-from">
+                                <div id="city1" class="city-name">-</div>
+                            </div>
+                            <div class="city-separator">↔</div>
+                            <div class="city city-to">
+                                <div id="city2" class="city-name">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
-    <div id="countdownDisplay">
-        <h3>Countdown</h3>
-        <p id="countdownText">Warte auf Start...</p>
-        <p id="countdown"></p>
+                <!-- Answer Input Card -->
+                <section class="card answer-card">
+                    <h2 class="card-title">📍 Your Answer</h2>
+                    <div class="input-group">
+                        <input type="number" id="guessInput" class="input-field" placeholder="Distance in km" min="0">
+                        <button onclick="sendGuess()" class="btn btn-primary">Submit Answer</button>
+                    </div>
+                </section>
+            </div>
 
-    </div>
+            <!-- Right Column: Game Info & Messages -->
+            <div class="info-column">
+                <!-- Countdown Card -->
+                <section class="card countdown-card">
+                    <h2 class="card-title">⏱️ Game Status</h2>
+                    <div id="countdownDisplay" class="status-display">
+                        <p id="countdownText" class="status-text">Waiting to start...</p>
+                        <div id="countdown" class="countdown-timer"></div>
+                    </div>
+                </section>
 
-    <div id="questionDisplay">
-        <h3>Frage:</h3>
-        <p>Wie weit ist es zwischen <div id="city1"></div> und <div id="city2"></div></p>
-    </div>
-    <div>
-        <label>Antwort (km):</label>
-        <input type="number" id="guessInput">
-        <button onclick="sendGuess()">Antwort senden</button>
-    </div>
+                <!-- Rules Card -->
+                <section class="card rules-card">
+                    <h2 class="card-title">⚙️ Settings</h2>
+                    <p id="rulesText" class="settings-text">Waiting for game settings...</p>
+                </section>
 
-    <div id="messages"></div>
+                <!-- Players Card -->
+                <section class="card players-card">
+                    <h2 class="card-title">👥 Players Online</h2>
+                    <ul id="playerList" class="player-list"></ul>
+                </section>
+
+                <!-- Messages Card -->
+                <section class="card messages-card">
+                    <h2 class="card-title">💬 Game Chat</h2>
+                    <div id="messages" class="messages-container"></div>
+                </section>
+            </div>
+        </main>
+    </div>
 
     <script>
         let ws;
         let playerName = "";
         let totalTime;
         function connect() {
-            ws = new WebSocket("ws://localhost:8000/ws");
+            ws = new WebSocket(`ws://${window.location.host}/ws`);
 
             ws.onmessage = (event) => {
                 const data = event.data;

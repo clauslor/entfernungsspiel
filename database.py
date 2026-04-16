@@ -1,0 +1,146 @@
+from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, relationship
+from datetime import datetime
+from typing import List, Optional
+from config import config
+
+Base = declarative_base()
+engine = create_engine(config.DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+class DBCityPair(Base):
+    __tablename__ = "city_pairs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    city1 = Column(String, index=True)
+    city2 = Column(String, index=True)
+    distance = Column(Integer)
+    lat1 = Column(Float)
+    lon1 = Column(Float)
+    lat2 = Column(Float)
+    lon2 = Column(Float)
+
+
+class DBGameResult(Base):
+    __tablename__ = "game_results"
+
+    id = Column(Integer, primary_key=True, index=True)
+    game_id = Column(String, index=True)
+    player_name = Column(String, index=True)
+    guess = Column(Integer)
+    correct_distance = Column(Integer)
+    accuracy_percentage = Column(Float)
+    city1 = Column(String)
+    city2 = Column(String)
+    round_number = Column(Integer)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+
+class DBHighScore(Base):
+    __tablename__ = "high_scores"
+
+    id = Column(Integer, primary_key=True, index=True)
+    player_name = Column(String, index=True)
+    score = Column(Integer)
+    total_rounds = Column(Integer)
+    average_accuracy = Column(Float)
+    games_played = Column(Integer)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+
+def init_db():
+    """Initialize database tables"""
+    Base.metadata.create_all(bind=engine)
+
+
+def get_db():
+    """Get database session"""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def get_city_pairs(db) -> List[DBCityPair]:
+    """Get all city pairs from database"""
+    return db.query(DBCityPair).all()
+
+
+def add_city_pair(db, city1: str, city2: str, distance: int, lat1: float, lon1: float, lat2: float, lon2: float) -> DBCityPair:
+    """Add a new city pair to database"""
+    city_pair = DBCityPair(city1=city1, city2=city2, distance=distance, lat1=lat1, lon1=lon1, lat2=lat2, lon2=lon2)
+    db.add(city_pair)
+    db.commit()
+    db.refresh(city_pair)
+    return city_pair
+
+
+def save_game_result(db, result_data: dict):
+    """Save game result to database"""
+    result = DBGameResult(**result_data)
+    db.add(result)
+    db.commit()
+    db.refresh(result)
+    return result
+
+
+def get_high_scores(db, limit: int = 10) -> List[DBHighScore]:
+    """Get top high scores"""
+    return db.query(DBHighScore).order_by(DBHighScore.score.desc()).limit(limit).all()
+
+
+def save_high_score(db, player_name: str, score: int, total_rounds: int, average_accuracy: float):
+    """Save or update high score"""
+    # Check if player already has a high score
+    existing = db.query(DBHighScore).filter(DBHighScore.player_name == player_name).first()
+
+    if existing:
+        # Update if better score
+        if score > existing.score:
+            existing.score = score
+            existing.total_rounds = total_rounds
+            existing.average_accuracy = average_accuracy
+            existing.games_played += 1
+            existing.timestamp = datetime.utcnow()
+    else:
+        # Create new high score
+        high_score = DBHighScore(
+            player_name=player_name,
+            score=score,
+            total_rounds=total_rounds,
+            average_accuracy=average_accuracy,
+            games_played=1
+        )
+        db.add(high_score)
+
+    db.commit()
+
+
+def get_game_history(db, player_name: Optional[str] = None, limit: int = 50) -> List[DBGameResult]:
+    """Get game history"""
+    query = db.query(DBGameResult)
+    if player_name:
+        query = query.filter(DBGameResult.player_name == player_name)
+    return query.order_by(DBGameResult.timestamp.desc()).limit(limit).all()
+
+
+# Initialize default city pairs if database is empty
+def init_default_city_pairs(db):
+    """Initialize database with default city pairs"""
+    if db.query(DBCityPair).count() == 0:
+        default_pairs = [
+            ("Berlin", "Hamburg", 289),
+            ("München", "Frankfurt", 393),
+            ("Köln", "Stuttgart", 357),
+            ("Dresden", "Leipzig", 121),
+            ("Hannover", "Dortmund", 207),
+            ("Bremen", "Nürnberg", 540),
+            ("Essen", "Düsseldorf", 35),
+            ("Mainz", "Erfurt", 280),
+        ]
+
+        for city1, city2, distance in default_pairs:
+            add_city_pair(db, city1, city2, distance)

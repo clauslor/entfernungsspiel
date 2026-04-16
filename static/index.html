@@ -1,63 +1,196 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Entfernungsspiel</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
+    <title>Entfernungsspiel - Guess the Distance Game</title>
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 
 <body>
-    <h1>Entfernungsspiel <i class="fa fa-car" style="font-size:60px;color:red;"></i></h1>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1 class="title">🌍 Entfernungsspiel</h1>
+                <p class="subtitle">Guess the distance between two cities!</p>
+            </div>
+        </header>
 
-    <div>
-        <label>Spielername:</label>
-        <input type="text" id="playerName" placeholder="Name eingeben">
-        <button id="btn_playername" onclick="setPlayerName()">Name ändern</button>
-        <button id="btn_exit" onclick="removePlayer()">Beenden</button>
-        <button id="btn_start" onclick="setReady()">Start</button>
+        <!-- Main Game Container -->
+        <main class="game-layout">
+            <!-- Left Column: Player Setup & Game Question -->
+            <div class="game-column">
+
+                <!-- Answer Input Card -->
+                <section class="card answer-card">
+                    <h2 class="card-title">📍 Your Answer</h2>
+                    <div class="input-group">
+                        <input type="number" id="guessInput" class="input-field" placeholder="Distance in km" min="0">
+                        <button onclick="sendGuess()" class="btn btn-primary">Submit Answer</button>
+                    </div>
+
+                    <!-- Answer Feedback Card (shown after submission) -->
+                    <div id="answerFeedback"
+                        style="display: none; margin-top: 15px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+                        <h3 style="margin-top: 0;">📊 Your Answer Feedback</h3>
+                        <p><strong>Your Guess:</strong> <span id="feedbackGuess">-</span> km</p>
+                    </div>
+                </section>
+
+                <!-- Question Card -->
+                <section class="card question-card">
+                    <h2 class="card-title">❓ Current Question</h2>
+                    <div class="question-content">
+                        <p class="question-text">What is the distance between:</p>
+                        <div class="cities-container">
+                            <div class="city city-from">
+                                <div id="city1" class="city-name">-</div>
+                            </div>
+                            <div class="city-separator">↔</div>
+                            <div class="city city-to">
+                                <div id="city2" class="city-name">-</div>
+                            </div>
+                        </div>
+                        <div class="map-container" id="mapContainer" style="margin-top: 20px; text-align: center;">
+                            <!-- SVG map will be inserted here -->
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Right Column: Game Info & Messages -->
+            <div class="info-column">
+                <!-- Player Setup Card -->
+                <section class="card player-setup">
+                    <h2 class="card-title">👤 Player Setup</h2>
+                    <div id="setupPhase">
+                        <div class="input-group">
+                            <input type="text" id="playerName" class="input-field" placeholder="Enter your name">
+                            <button onclick="setPlayerName()" class="btn btn-primary">Set Name</button>
+                        </div>
+                    </div>
+                    <div id="gamePhase" style="display: none;">
+                        <p class="player-info">Player: <strong id="currentPlayerName"></strong></p>
+                        <div class="button-group">
+                            <button onclick="createGame()" class="btn btn-primary">➕ Create Game</button>
+                            <button onclick="showJoinGame()" class="btn btn-secondary">🔗 Join Game</button>
+                        </div>
+                        <div id="joinGameForm" style="display: none;">
+                            <div class="input-group">
+                                <input type="text" id="gameIdInput" class="input-field" placeholder="Enter game ID">
+                                <button onclick="joinGame()" class="btn btn-primary">Join</button>
+                                <button onclick="hideJoinGame()" class="btn btn-secondary">Cancel</button>
+                            </div>
+                        </div>
+                        <!-- Game Info Section -->
+                        <div id="gameInfo"
+                            style="display: none; background: #f0f9ff; border: 2px solid #3b82f6; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                            <p style="margin: 0 0 10px 0; font-size: 0.9em; color: #64748b;">📌 Game Code:</p>
+                            <p style="margin: 0 0 15px 0; font-size: 1.3em; font-weight: 700; color: #1e293b; text-align: center; font-family: monospace;"
+                                id="gameIdDisplay">-</p>
+                            <p style="margin: 0 0 10px 0; font-size: 0.9em; color: #64748b;">👥 Players (<span
+                                    id="playerCount">0</span>):</p>
+                            <ul id="inGamePlayerList" style="margin: 0; padding-left: 20px; color: #2d3748;">
+                            </ul>
+                        </div>
+                        <div class="button-group" id="inGameButtons" style="display: none;">
+                            <button onclick="setReady()" class="btn btn-success">✓ Ready</button>
+                            <button onclick="leaveGame()" class="btn btn-danger">✕ Leave</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Countdown Card -->
+                <section class="card countdown-card">
+                    <h2 class="card-title">⏱️ Game Status</h2>
+                    <div id="countdownDisplay" class="status-display">
+                        <p id="countdownText" class="status-text">Waiting to start...</p>
+                        <div id="countdown" class="countdown-timer"></div>
+                    </div>
+                </section>
+
+                <!-- Rules Card -->
+                <section class="card rules-card">
+                    <h2 class="card-title">⚙️ Settings</h2>
+                    <p id="rulesText" class="settings-text">Waiting for game settings...</p>
+                </section>
+
+                <!-- Players Card -->
+                <section class="card players-card">
+                    <h2 class="card-title">👥 Players Online</h2>
+                    <ul id="playerList" class="player-list"></ul>
+                </section>
+
+                <!-- Messages Card -->
+                <section class="card messages-card">
+                    <h2 class="card-title">💬 Game Chat</h2>
+                    <div id="messages" class="messages-container"></div>
+                </section>
+            </div>
+        </main>
     </div>
 
-    <button onclick="openFullscreen();">Open Fullscreen</button>
-    <button onclick="closeFullscreen();">Close Fullscreen</button>
+    <!-- Game Finished Modal -->
+    <div id="gameFinishedModal"
+        style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); z-index: 1000; align-items: center; justify-content: center;">
+        <div
+            style="background: white; border-radius: 16px; padding: 40px; max-width: 600px; width: 90%; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); text-align: center;">
+            <!-- Celebration -->
+            <div style="font-size: 3em; margin-bottom: 20px;">🎉🎉🎉</div>
 
-    <div id="players">
-        <h3>Spielerliste</h3>
-        <ul id="playerList"></ul>
-    </div>
-    </div>
-    <div id="rulesDisplay">
-        <h3>Einstellungen</h3>
-        <p id="rulesText">Warte auf Empfang der Regeln...</p>
-    </div>
+            <!-- Game End Title -->
+            <h1 style="font-size: 2.5em; margin-bottom: 10px; color: #2d3748;">Game Finished!</h1>
 
-    <div id="countdownDisplay">
-        <h3>Countdown</h3>
-        <p id="countdownText">Warte auf Start...</p>
-        <p id="countdown"></p>
+            <!-- Winner Section -->
+            <div
+                style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 25px;">
+                <p style="font-size: 0.9em; margin-bottom: 8px; opacity: 0.9;">🏆 Champion</p>
+                <h2 style="font-size: 2em; margin: 0;" id="winnerName">-</h2>
+            </div>
 
-    </div>
+            <!-- Final Scores Table -->
+            <div style="margin-bottom: 25px;">
+                <h3 style="font-size: 1.2em; margin-bottom: 15px; color: #2d3748; text-align: left;">📊 Final Scores
+                </h3>
+                <table id="scoresTable" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f7fafc; border-bottom: 2px solid #e2e8f0;">
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #2d3748;">Player</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #2d3748;">Points</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #2d3748;">Accuracy
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="scoresTableBody">
+                    </tbody>
+                </table>
+            </div>
 
-    <div id="questionDisplay">
-        <h3>Frage:</h3>
-        <p>Wie weit ist es zwischen
-        <div id="city1"></div> und <div id="city2"></div>
-        </p>
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 12px; justify-content: center;">
+                <button onclick="playAgain()"
+                    style="background: #6366f1; color: white; border: none; padding: 12px 30px; font-size: 1em; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
+                    ➕ New Game
+                </button>
+                <button onclick="backToLobby()"
+                    style="background: #e2e8f0; color: #2d3748; border: none; padding: 12px 30px; font-size: 1em; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
+                    🔗 Back to Lobby
+                </button>
+            </div>
+        </div>
     </div>
-    <div>
-        <label>Antwort (km):</label>
-        <input type="number" id="guessInput">
-        <button onclick="sendGuess()">Antwort senden</button>
-    </div>
-
-    <div id="messages"></div>
 
     <script>
         let ws;
         let playerName = "";
+        let currentGameId = "";
+        let currentPlayerId = "";
+        let currentPlayers = [];
         let totalTime;
+        let isConnected = false;
+
         function connect() {
             ws = new WebSocket(`ws://${window.location.host}/ws`);
 
@@ -72,118 +205,379 @@
             };
 
             ws.onopen = () => {
-                if (playerName) {
-                    ws.send(JSON.stringify({ type: "set_name", name: playerName }));
-                }
+                isConnected = true;
+                appendMessage("✅ Connected to server");
+            };
+
+            ws.onclose = () => {
+                isConnected = false;
+                appendMessage("❌ Disconnected from server");
+                setTimeout(connect, 2000); // Reconnect after 2 seconds
+            };
+
+            ws.onerror = (error) => {
+                appendMessage("❌ Connection error");
+                console.error("WebSocket error:", error);
             };
         }
 
         function handleJsonMessage(msg) {
-            if (msg.type === "new_question") {
-                appendMessage(`🟡 Runde ${msg.round}/${msg.max_rounds}: ${msg.question}`);
+            console.log("Message received:", msg);
+
+            if (msg.type === "lobby_info") {
+                appendMessage(`📋 Lobby info received. Active games: ${msg.active_games.length}`);
+                if (msg.active_games.length > 0) {
+                    appendMessage("Available games:\n");
+                    msg.active_games.forEach(game => {
+                        appendMessage(`  - Game ${game.id} (${game.player_count} players)`);
+                    });
+                }
+            } else if (msg.type === "game_created") {
+                currentGameId = msg.game_id;
+                currentPlayers = [{ id: currentPlayerId, name: playerName, ready: false, score: 0, is_host: true }];
+                document.getElementById("gameIdDisplay").textContent = msg.game_id;
+                document.getElementById("gameInfo").style.display = "block";
+                document.getElementById("inGameButtons").style.display = "block";
+                document.getElementById("inGamePlayerList").innerHTML = `<li>⏳ ${playerName} (you)</li>`;
+                document.getElementById("playerCount").textContent = "1";
+                appendMessage(`✅ Game created! Game ID: ${msg.game_id}`);
+            } else if (msg.type === "game_joined") {
+                currentGameId = msg.game_id;
+                document.getElementById("gameIdDisplay").textContent = msg.game_id;
+                document.getElementById("gameInfo").style.display = "block";
+                appendMessage(`✅ Joined game ${msg.game_id}`);
+                document.getElementById("inGameButtons").style.display = "block";
+            } else if (msg.type === "game_info") {
+                currentGameId = msg.game_id;
+                currentPlayers = msg.players;
+                document.getElementById("gameIdDisplay").textContent = msg.game_id;
+                document.getElementById("gameInfo").style.display = "block";
+                appendMessage(`📊 Game info - Status: ${msg.game_id}, Players: ${msg.players.length}`);
+                updateGameList(msg.game_id, msg.players);
+                updateGameSettings(msg.game_id, msg.config)
+                document.getElementById("inGameButtons").style.display = "block";
+            } else if (msg.type === "game_starting") {
+                appendMessage(`⏳ Game starting in ${msg.countdown} seconds...`);
+            } else if (msg.type === "game_started") {
+                appendMessage(`🎮 Game started!`);
+                if (msg.config) {
+                    document.getElementById("rulesText").textContent = `Max Rounds: ${msg.config.max_rounds}, Answer Time: ${msg.config.answer_time_seconds}s, Pause: ${msg.config.pause_between_rounds_seconds}s`;
+                }
+
+            } else if (msg.type === "new_question") {
+                appendMessage(`🟡 Round ${msg.round}/${msg.max_rounds}: ${msg.question}`);
                 document.getElementById("city1").textContent = `${msg.cities[0]}`;
                 document.getElementById("city2").textContent = `${msg.cities[1]}`;
-
-            } else if (msg.type === "view_config") {
-                document.getElementById("rulesText").textContent = `Einstellungen Wir spielen: ${JSON.stringify(msg.max_rounds)} Runden | Je Runde habt ihr habt ${msg.answer_time} Sekunden Zeit zu antworten.`;
-                totalTime = msg.answer_time;
+                document.getElementById("guessInput").value = "";
+                document.getElementById("guessInput").focus();
+                // Update map
+                if (msg.map_svg) {
+                    document.getElementById("mapContainer").innerHTML = msg.map_svg;
+                }
+                set_countdown(msg.time_limit)
+            } else if (msg.type === "game_status") {
+                appendMessage(`📈 Status: ${msg.status}`);
             } else if (msg.type === "answer_received") {
-                appendMessage(`✅ ${msg.player} hat geantwortet: ${msg.guess} km`);
-            } else if (msg.type === "score_update") {
-                appendMessage(`🏆 Punktestand: ${JSON.stringify(msg.scores)} | Highscore: ${msg.high_score}`);
-            } else if (msg.type === "player_list") {
-                updatePlayerList(msg.players);
+                // const guess = msg.guess;
+                // const correct = msg.correct_distance;
+                // const diff = msg.difference;
+                // const accuracy = msg.accuracy_percent;
+
+                // // Display feedback
+                // document.getElementById("feedbackGuess").textContent = guess;
+                // document.getElementById("feedbackCorrect").textContent = correct;
+                // document.getElementById("feedbackDiff").textContent = diff;
+                // document.getElementById("feedbackAccuracy").textContent = accuracy;
+                // document.getElementById("answerFeedback").style.display = "block";
+
+                // // Disable submit button momentarily
+                // document.getElementById("guessInput").disabled = true;
+                // const originalText = document.querySelector('.answer-card .btn-primary').textContent;
+                // document.querySelector('.answer-card .btn-primary').disabled = true;
+
+                appendMessage(`✅ Your answer received: ${guess} km (Correct: ${correct} km, Difference: ${diff} km)`);
             } else if (msg.type === "countdown") {
-                document.getElementById("countdownText").textContent = `Spiel startet in ${msg.value}...`;
-            } else if (msg.type === "countdown_round") {
-                document.getElementById("countdownText").textContent = `Verbleibende Zeit zu antworten ${msg.value} Sekunden...`;
-                document.getElementById("countdown").textContent = `${msg.value}`;
+                const val = msg.value || "...";
+                document.getElementById("countdownText").textContent = `Countdown: ${val}`;
+            } else if (msg.type === "player_joined") {
+                // Note: Player joined message doesn't include full player data, so we'll wait for game_info update
+                appendMessage(`👋 ${msg.player} joined the game`);
+            } else if (msg.type === "player_left") {
+                // Remove player from local state
+                currentPlayers = currentPlayers.filter(p => p.id !== msg.player_id);
+                // Re-render player lists
+                updateGameList(currentGameId, currentPlayers);
+                appendMessage(`👋 Player left the game`);
+            } else if (msg.type === "player_ready_changed") {
+                // Update local player state
+                const playerIndex = currentPlayers.findIndex(p => p.id === msg.player_id);
+                if (playerIndex !== -1) {
+                    currentPlayers[playerIndex].ready = msg.ready;
+                    // Re-render player lists
+                    updateGameList(currentGameId, currentPlayers);
+                }
+                appendMessage(`${msg.ready ? "✓" : "✕"} Player is ${msg.ready ? "ready" : "not ready"}`);
+            } else if (msg.type === "error") {
+                appendMessage(`❌ Error: ${msg.message}`);
+            } else if (msg.type === "game_finished") {
+                // Show game finished modal with results
+                document.getElementById("winnerName").textContent = msg.winner || "Unknown";
 
-                timeLeft = msg.value;
+                const scoresTableBody = document.getElementById("scoresTableBody");
+                scoresTableBody.innerHTML = "";
 
-                // Farbe berechnen: von Grün (120°) zu Rot (0°)
-                const hue = (timeLeft / totalTime) * 120;
-                document.getElementById('countdown').style.backgroundColor = `hsl(${hue}, 100%, 50%)`;
+                if (msg.final_scores && Object.keys(msg.final_scores).length > 0) {
+                    let scoreIndex = 1;
+                    const sortedScores = Object.entries(msg.final_scores).sort((a, b) => b[1].score - a[1].score);
 
-            } else if (msg.type === "game_start") {
-                document.getElementById("countdownText").textContent = "Los geht's!";
+                    sortedScores.forEach(([playerName, stats]) => {
+                        const row = document.createElement("tr");
+                        const medal = scoreIndex === 1 ? "🥇" : scoreIndex === 2 ? "🥈" : scoreIndex === 3 ? "🥉" : "•";
+                        row.style.borderBottom = "1px solid #e2e8f0";
+                        row.style.backgroundColor = scoreIndex === 1 ? "#fffaeb" : "transparent";
+                        row.innerHTML = `
+                            <td style="padding: 12px; text-align: left; color: #2d3748;"><strong>${medal} ${playerName}</strong></td>
+                            <td style="padding: 12px; text-align: center; color: #4f46e5; font-weight: 600;">${stats.score}</td>
+                            <td style="padding: 12px; text-align: center; color: #22c55e; font-weight: 600;">${stats.avg_accuracy}%</td>
+                        `;
+                        scoresTableBody.appendChild(row);
+                        scoreIndex++;
+                    });
+                }
+
+                // Show the modal
+                const modal = document.getElementById("gameFinishedModal");
+                modal.style.display = "flex";
+
+                // Still log to messages for reference
+                appendMessage(`🎉 Game finished! Winner: ${msg.winner}`);
+                document.getElementById("inGameButtons").style.display = "none";
+                document.getElementById("gameInfo").style.display = "none";
+            } else if (msg.type === "name_set") {
+                currentPlayerId = msg.player_id;
+                appendMessage(`✅ Your name set to: ${msg.name}`);
+            }
+        }
+        function set_countdown(countdownLimitSeconds) {
+            // Calculate the target end time
+            const endTime = Date.now() + countdownLimitSeconds * 1000;
+
+            // Function to update the countdown display
+            function updateCountdown() {
+                const now = Date.now();
+                let remaining = Math.floor((endTime - now) / 1000);
+
+                // If time is up
+                if (remaining <= 0) {
+                    document.getElementById("countdown").textContent = "Time's up!";
+                    clearInterval(timerInterval);
+                    return;
+                }
+
+                // Calculate minutes and seconds
+                const minutes = Math.floor(remaining / 60);
+                const seconds = remaining % 60;
+
+                // Display with leading zeros
+                document.getElementById("countdown").textContent =
+                    `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
             }
 
+            // Initial call to display immediately
+            updateCountdown();
 
+            // Update every second
+            const timerInterval = setInterval(updateCountdown, 1000);
         }
-
-        function updatePlayerList(players) {
+        function updateGameSettings(game_id, config) {
+            if (config) {
+                document.getElementById("rulesText").textContent = `Max Rounds: ${config.max_rounds}, Answer Time: ${config.answer_time_seconds}s, Pause: ${config.pause_between_rounds_seconds}s`;
+            }
+        }
+        function updateGameList(game_id, players) {
+            // Update right sidebar player list
             const list = document.getElementById("playerList");
             list.innerHTML = "";
+            const ul = document.createElement("ul");
+            const gameli = document.createElement("li");
+            gameli.textContent = `${game_id}`;
+            list.appendChild(gameli);
+            const ulp = document.createElement("ul");
+            gameli.appendChild(ulp);
             players.forEach(p => {
+                const status = p.ready ? "✓ Ready" : "⏳ Waiting";
                 const item = document.createElement("li");
-                item.textContent = `${p.name} (${p.ready ? "bereit" : "nicht bereit"})`;
-                list.appendChild(item);
+                item.textContent = `${p.name} - ${status} (Score: ${p.score || 0})`;
+                ulp.appendChild(item);
+            });
+
+            // Update in-game player list in game info section
+            const inGameList = document.getElementById("inGamePlayerList");
+            inGameList.innerHTML = "";
+            document.getElementById("playerCount").textContent = players.length;
+            players.forEach(p => {
+                const status = p.ready ? "✓" : "⏳";
+                const item = document.createElement("li");
+                item.textContent = `${status} ${p.name}`;
+                inGameList.appendChild(item);
             });
         }
 
         function appendMessage(text) {
             const msg = document.createElement("p");
             msg.textContent = text;
-            document.getElementById("messages").appendChild(msg);
+            const messagesDiv = document.getElementById("messages");
+            messagesDiv.appendChild(msg);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
         function setPlayerName() {
             const nameInput = document.getElementById("playerName").value.trim();
-            if (!nameInput) return alert("Name darf nicht leer sein.");
+            if (!nameInput) return alert("Name cannot be empty.");
             playerName = nameInput;
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: "set_name", name: playerName }));
-            } else {
+
+            if (!isConnected) {
                 connect();
+                setTimeout(() => {
+                    sendMessage({ type: "set_name", data: { name: playerName } });
+                }, 500);
+            } else {
+                sendMessage({ type: "set_name", data: { name: playerName } });
             }
+
+            // Show game phase UI
+            document.getElementById("setupPhase").style.display = "none";
+            document.getElementById("gamePhase").style.display = "block";
+            document.getElementById("currentPlayerName").textContent = playerName;
+        }
+
+        function createGame() {
+            const message = {
+                type: "create_game",
+                data: {
+                    config: {
+                        max_rounds: 5,
+                        countdown_seconds: 3,
+                        answer_time_seconds: 15,
+                        pause_between_rounds_seconds: 3
+                    }
+                }
+            };
+            sendMessage(message);
+            appendMessage("Creating new game...");
+        }
+
+        function showJoinGame() {
+            document.getElementById("joinGameForm").style.display = "block";
+        }
+
+        function hideJoinGame() {
+
+            document.getElementById("setupPhase").style.display = "none";
+            document.getElementById("gameIdInput").value = "";
+        }
+
+        function joinGame() {
+            const gameId = document.getElementById("gameIdInput").value.trim();
+            if (!gameId) return alert("Please enter a game ID.");
+
+            const message = {
+                type: "join_game",
+                data: { game_id: gameId }
+            };
+            sendMessage(message);
+            appendMessage(`Joining game ${gameId}...`);
+            hideJoinGame();
         }
 
         function setReady() {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: "set_ready" }));
+            const message = { type: "set_ready", data: { ready: true } };
+            sendMessage(message);
+            // Update local state immediately for better UX
+            const playerIndex = currentPlayers.findIndex(p => p.id === currentPlayerId);
+            if (playerIndex !== -1) {
+                currentPlayers[playerIndex].ready = true;
+                updateGameList(currentGameId, currentPlayers);
             }
+            appendMessage("You are now ready!");
         }
 
-        function removePlayer() {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: "remove_player" }));
-                ws.close();
-            }
-            appendMessage("Spieler entfernt.");
+        function leaveGame() {
+            const message = { type: "leave_game", data: {} };
+            sendMessage(message);
+            currentGameId = "";
+            document.getElementById("inGameButtons").style.display = "none";
+            document.getElementById("gameInfo").style.display = "none";
+            appendMessage("You left the game.");
+        }
+
+        function playAgain() {
+            // Close modal
+            document.getElementById("gameFinishedModal").style.display = "none";
+            // Create new game
+            createGame();
+        }
+
+        function backToLobby() {
+            // Close modal
+            document.getElementById("gameFinishedModal").style.display = "none";
+            // Reset UI to show setup phase
+            document.getElementById("setupPhase").style.display = "none";
+            document.getElementById("gamePhase").style.display = "block";
+            document.getElementById("inGameButtons").style.display = "none";
+            document.getElementById("gameInfo").style.display = "none";
+            currentGameId = "";
+            appendMessage("Back to lobby. Ready to create or join a new game!");
         }
 
         function sendGuess() {
-            const guess = document.getElementById("guessInput").value;
-            if (ws && ws.readyState === WebSocket.OPEN && guess) {
-                ws.send(guess);
+            const guess = document.getElementById("guessInput").value.trim();
+            if (!guess) return alert("Please enter a distance.");
+
+            const guessNum = parseInt(guess);
+            if (isNaN(guessNum) || guessNum < 0) return alert("Please enter a valid number.");
+
+            const message = { type: "submit_answer", data: { guess: guessNum } };
+            sendMessage(message);
+            var div = document.querySelector(".answer-card");
+            var btn = document.querySelector(".send-guess-btn");
+            btn.addEventListener("submit", function () {
+                div.classList.add("answerFeedback");
+                setTimeout(function () { div.classList.remove("answerFeedback"); }, 1000);
+            });
+            // TODO: fade in out feedback card 
+        }
+
+        function updateAnswer() {
+            // Show the input field again and clear feedback
+            document.getElementById("answerFeedback").style.display = "none";
+            document.getElementById("guessInput").disabled = false;
+            document.getElementById("guessInput").value = "";
+            document.getElementById("guessInput").focus();
+            document.querySelector('.answer-card .btn-primary').disabled = false;
+            appendMessage("📝 You can now update your answer");
+        }
+
+        function keepAnswer() {
+            // Hide feedback, move to next round
+            document.getElementById("answerFeedback").style.display = "none";
+            document.getElementById("guessInput").disabled = false;
+            document.getElementById("guessInput").value = "";
+            document.querySelector('.answer-card .btn-primary').disabled = false;
+            appendMessage("✅ Answer locked in! Waiting for other players...");
+        }
+
+        function sendMessage(msg) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(msg));
+            } else {
+                appendMessage("❌ Not connected to server");
             }
         }
 
-        window.onload = connect;
-    </script>
-
-    <script>
-        var elem = document.documentElement;
-        function openFullscreen() {
-            if (elem.requestFullscreen) {
-                elem.requestFullscreen();
-            } else if (elem.webkitRequestFullscreen) { /* Safari */
-                elem.webkitRequestFullscreen();
-            } else if (elem.msRequestFullscreen) { /* IE11 */
-                elem.msRequestFullscreen();
-            }
-        }
-
-        function closeFullscreen() {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            } else if (document.webkitExitFullscreen) { /* Safari */
-                document.webkitExitFullscreen();
-            } else if (document.msExitFullscreen) { /* IE11 */
-                document.msExitFullscreen();
-            }
-        }
+        window.onload = () => {
+            connect();
+        };
     </script>
 </body>
 
