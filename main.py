@@ -1,3 +1,5 @@
+from urllib import request
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, Form, HTTPException, Depends
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -53,6 +55,7 @@ if not os.path.exists("static"):
     os.makedirs("static")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/css", StaticFiles(directory="css"), name="css")
+app.mount("/templates", StaticFiles(directory="css"), name="css")
 
 templates = Jinja2Templates(directory="templates")
 
@@ -82,7 +85,7 @@ def authenticate_admin(credentials: HTTPBasicCredentials = Depends(security)):
 @app.get("/", response_class=HTMLResponse)
 async def get_index():
     """Serve the main game page"""
-    return FileResponse("static/index.html")
+    return templates.TemplateResponse("index.html", {"request": request})
 
 
 @app.get("/admin", response_class=HTMLResponse)
