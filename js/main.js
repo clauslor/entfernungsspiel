@@ -243,19 +243,14 @@ function translateServerMessage(rawMessage) {
 function isMapContainerReady(container) {
   if (!container) return false;
 
-  // Ensure element is in DOM and not explicitly hidden.
-  if (!document.body.contains(container)) {
-    return false;
-  }
-
-  const styles = window.getComputedStyle(container);
-  if (styles.display === "none" || styles.visibility === "hidden") {
+  // Check if element is actually in DOM and visible
+  if (!container.offsetParent && container.style.display !== "block") {
     return false;
   }
 
   const rect = container.getBoundingClientRect();
-  // Keep threshold permissive so small/transitioning layouts do not block map startup.
-  return rect.width >= 40 && rect.height >= 40;
+  // Lower threshold: 80x80 instead of 100x100 for faster initialization on small screens
+  return rect.width >= 80 && rect.height >= 80;
 }
 
 function queueMapPreparation(attempt = 0) {
@@ -925,8 +920,6 @@ function handleJsonMessage(msg) {
       pendingQuestionCoordinates = msg.coordinates;
       // START MAP PREPARATION IMMEDIATELY (do not wait for updateUILayout)
       queueMapPreparation();
-      // Try immediate render as fast path; queueMapPreparation remains fallback.
-      renderQuestionMap(msg.coordinates);
     }
 
     // Generate localized question text
