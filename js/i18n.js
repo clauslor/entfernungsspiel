@@ -10,17 +10,26 @@ let translations = {};
  * Detect browser language and load appropriate translation file
  */
 async function initializeI18n() {
-  // Determine user language preference
-  const browserLanguage = navigator.language || navigator.userLanguage;
+  // Check if user has previously selected a language
+  const storedLanguage = localStorage.getItem("entfernungsspiel.language");
   
-  // Extract language code (e.g., "de-DE" -> "de", "en-US" -> "en")
-  const languageCode = browserLanguage.split("-")[0].toLowerCase();
-  
-  // Supported languages: "de" or "en"
-  const supportedLanguages = ["de", "en"];
-  currentLanguage = supportedLanguages.includes(languageCode) ? languageCode : "de";
-  
-  console.log(`[i18n] Detected language: ${browserLanguage}, using: ${currentLanguage}`);
+  if (storedLanguage) {
+    // Use stored language preference
+    currentLanguage = storedLanguage;
+    console.log(`[i18n] Using stored language preference: ${currentLanguage}`);
+  } else {
+    // Determine user language preference from browser
+    const browserLanguage = navigator.language || navigator.userLanguage;
+    
+    // Extract language code (e.g., "de-DE" -> "de", "en-US" -> "en")
+    const languageCode = browserLanguage.split("-")[0].toLowerCase();
+    
+    // Supported languages: "de" or "en"
+    const supportedLanguages = ["de", "en"];
+    currentLanguage = supportedLanguages.includes(languageCode) ? languageCode : "de";
+    
+    console.log(`[i18n] Detected language: ${browserLanguage}, using: ${currentLanguage}`);
+  }
   
   // Load translation file
   try {
@@ -126,4 +135,12 @@ function updateUILanguage() {
     const key = el.getAttribute("data-i18n-html");
     el.innerHTML = t(key);
   });
+  
+  // Update language button states
+  const langDE = document.getElementById("langDE");
+  const langEN = document.getElementById("langEN");
+  if (langDE && langEN) {
+    langDE.classList.toggle("lang-btn-active", currentLanguage === "de");
+    langEN.classList.toggle("lang-btn-active", currentLanguage === "en");
+  }
 }

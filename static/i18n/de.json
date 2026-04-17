@@ -1,10 +1,10 @@
 {
   "common": {
     "title": "🌍 Entfernungsspiel",
-    "subtitle": "Guess the distance between two cities!",
+    "subtitle": "Errate die Entfernung zwischen zwei Städten!",
     "ok": "OK",
-    "cancel": "Cancel",
-    "loading": "Laden..."
+    "cancel": "Abbrechen",
+    "loading": "Lädt..."
   },
   "header": {
     "startedGames": "Gestartete Spiele"
@@ -18,92 +18,93 @@
     "distanceTemplate": "Wie weit ist es von {city1} nach {city2}? (in km)"
   },
   "answer": {
-    "title": "📍 Your Answer",
-    "submit": "Submit Answer",
-    "shortcut": "Shortcut: press G to jump here, Enter to submit.",
+    "title": "📍 Deine Antwort",
+    "submit": "Antwort absenden",
+    "shortcut": "Shortcut: Drücke G um hier zu springen, Enter zum Absenden.",
     "km": "km"
   },
   "playerSetup": {
-    "title": "👤 Player Setup",
-    "nameHint": "Shortcut: press N to focus your name field.",
-    "enterName": "Enter your name",
-    "setName": "Set Name",
-    "player": "Player"
+    "title": "👤 Spieler Setup",
+    "nameHint": "Shortcut: Drücke N um das Namensfeld zu fokussieren.",
+    "enterName": "Gib deinen Namen ein",
+    "setName": "Namen setzen",
+    "player": "Spieler"
   },
   "lobbyControls": {
-    "create": "➕ Create Game",
-    "join": "🔗 Join Game",
-    "openGames": "Open games (countdown not started):",
-    "gameIdHint": "Shortcut: press J to focus the game code field.",
-    "gameIdPlaceholder": "Enter game ID",
-    "joinButton": "Join",
-    "cancelButton": "Cancel"
+    "create": "➕ Spiel erstellen",
+    "join": "🔗 Spiel beitreten",
+    "openGames": "Offene Spiele (Countdown noch nicht gestartet):",
+    "gameIdHint": "Shortcut: Drücke J um das Spiel-ID-Feld zu fokussieren.",
+    "gameIdPlaceholder": "Spiel-ID eingeben",
+    "joinButton": "Beitreten",
+    "cancelButton": "Abbrechen"
   },
   "matchControls": {
-    "gameCode": "📌 Game Code:",
-    "players": "👥 Players",
-    "ready": "✓ Ready",
+    "gameCode": "📌 Spiel-Code:",
+    "players": "👥 Spieler",
+    "ready": "✓ Bereit",
     "warmup": "🔥 Warmup",
-    "lockSettings": "🔒 Lock Settings",
-    "leave": "✕ Leave"
+    "lockSettings": "🔒 Einstellungen sperren",
+    "leave": "✕ Verlassen"
   },
   "countdown": {
-    "title": "⏱️ Game Status",
-    "waiting": "Waiting to start...",
-    "startingIn": "Game starts in",
-    "answerTimeRemaining": "Answer time remaining",
+    "title": "⏱️ Spiel-Status",
+    "waiting": "Warte auf Start...",
+    "startingIn": "Spiel startet in",
+    "answerTimeRemaining": "Verbleibende Antwortzeit",
     "countdownLabel": "Countdown",
-    "paused": "Paused - waiting for reconnect",
-    "timesUp": "Time's up!"
+    "paused": "Pausiert - warte auf Reconnect",
+    "timesUp": "Zeit abgelaufen!"
   },
   "settings": {
-    "title": "⚙️ Settings",
-    "waiting": "Waiting for game settings..."
+    "title": "⚙️ Einstellungen",
+    "waiting": "Warte auf Spiel-Einstellungen..."
   },
   "players": {
-    "title": "👥 Players Online"
+    "title": "👥 Online Spieler"
   },
   "messages": {
-    "title": "💬 Game Chat",
-    "ready": "✅ Ready to play!",
-    "disconnected": "❌ Disconnected from server",
-    "connectionError": "❌ Connection error",
-    "gameCreated": "✅ Game created! Game ID:",
-    "gameJoined": "✅ Joined game",
-    "countdownStarting": "⏳ Game starting in seconds...",
-    "gameStarted": "🎮 Game started!",
-    "roundUpdate": "🟡 Round",
-    "of": "of",
+    "title": "💬 Spiel-Chat",
+    "ready": "✅ Bereit zum Spielen!",
+    "disconnected": "❌ Vom Server getrennt",
+    "connectionError": "❌ Verbindungsfehler",
+    "gameCreated": "✅ Spiel erstellt! Spiel-ID:",
+    "gameJoined": "✅ Spiel beigetreten",
+    "countdownStarting": "⏳ Spiel startet in Sekunden...",
+    "gameStarted": "🎮 Spiel gestartet!",
+    "roundUpdate": "🟡 Runde",
+    "of": "von",
     "status": "📈 Status:",
-    "availableGames": "Available games:",
-    "gameInfo": "- Game",
-    "players": "players",
+    "availableGames": "Verfügbare Spiele:",
+    "gameInfo": "- Spiel",
+    "players": "Spieler",
     "warmupStarted": "🔥 Warmup gestartet",
     "warmupEnded": "🔥 Warmup beendet:",
     "roundResumed": "▶️ Runde fortgesetzt",
-    "answerReceived": "📤 Answer received from",
-    "answerEvaluated": "✅ Answer evaluated"
+    "answerReceived": "📤 Antwort erhalten von",
+    "answerEvaluated": "✅ Antwort ausgewertet"
   },
   "gameEnd": {
-    "title": "Game Finished!",
-    "champion": "🏆 Champion",
-    "finalScores": "📊 Final Scores",
-    "playerColumn": "Player",
-    "pointsColumn": "Points",
-    "accuracyColumn": "Accuracy",
+    "title": "Spiel beendet!",
+    "champion": "🏆 Gewinner",
+    "finalScores": "📊 Endergebnisse",
+    "playerColumn": "Spieler",
+    "pointsColumn": "Punkte",
+    "accuracyColumn": "Genauigkeit",
     "questionsAndAnswers": "🗺️ Fragen und empfangene Antworten",
-    "newGame": "➕ New Game",
-    "backToLobby": "🔗 Back to Lobby",
+    "newGame": "➕ Neues Spiel",
+    "backToLobby": "🔗 Zurück zur Lobby",
     "round": "Runde",
-    "solution": "Loesung",
+    "solution": "Lösung",
     "km": "km",
     "winner": "Gewinner",
-    "noDetailsAvailable": "Keine Rundendetails verfuegbar.",
-    "noValidAnswer": "Keine gueltige Antwort eingegangen.",
+    "noDetailsAvailable": "Keine Rundendetails verfügbar.",
+    "noValidAnswer": "Keine gültige Antwort eingegangen.",
     "scored": "Gewertet wurde:",
     "at": "um",
     "noAnswersSent": "Keine Antworten gesendet.",
     "sortOrder": "Sortierung"
   },
-  "mapPlaceholder": "Die Karte erscheint mit der naechsten Frage."
+  "mapPlaceholder": "Die Karte erscheint mit der nächsten Frage."
 }
+

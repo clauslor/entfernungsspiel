@@ -1159,6 +1159,15 @@ function setReady() {
   appendMessage("You are now ready!");
 }
 
+function changeLanguage(langCode) {
+  localStorage.setItem("entfernungsspiel.language", langCode);
+  setLanguage(langCode);
+  
+  // Update language button states
+  document.getElementById("langDE").classList.toggle("lang-btn-active", langCode === "de");
+  document.getElementById("langEN").classList.toggle("lang-btn-active", langCode === "en");
+}
+
 function leaveGame() {
   // Cleanup game resources first
   cleanupGameResources();
