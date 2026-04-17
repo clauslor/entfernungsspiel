@@ -1575,3 +1575,233 @@ main.game-layout.lobby-mode .game-column {
         font-size: 16px;
     }
 }
+
+/* ========================================
+   PHASE-BASED HUD REDESIGN
+   ======================================== */
+
+main.game-layout {
+    grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr);
+    align-items: start;
+    gap: 18px;
+}
+
+.game-column {
+    display: grid;
+    gap: 16px;
+    align-content: start;
+}
+
+.info-column {
+    display: grid;
+    gap: 14px;
+    align-content: start;
+}
+
+.card {
+    border-radius: 14px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+.card-title {
+    font-size: 1.08rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.question-card {
+    border-left: none;
+    border-top: 5px solid #7c3aed;
+}
+
+.answer-card {
+    border-left: none;
+    border-top: 5px solid #22c55e;
+}
+
+.countdown-card {
+    border-left: none;
+    border-top: 5px solid #f59e0b;
+}
+
+.players-card {
+    border-left: none;
+    border-top: 5px solid #3b82f6;
+}
+
+.messages-card {
+    border-left: none;
+    border-top: 5px solid #06b6d4;
+}
+
+main.game-layout.lobby-mode,
+main.game-layout.pre-round {
+    grid-template-columns: 1fr;
+}
+
+main.game-layout.lobby-mode .info-column,
+main.game-layout.pre-round .info-column {
+    max-width: 980px;
+    width: 100%;
+    margin: 0 auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+main.game-layout.lobby-mode .player-setup,
+main.game-layout.pre-round .player-setup,
+main.game-layout.lobby-mode .messages-card,
+main.game-layout.pre-round .messages-card {
+    grid-column: 1 / -1;
+}
+
+main.game-layout.lobby-mode .game-column,
+main.game-layout.pre-round .game-column {
+    display: none;
+}
+
+main.game-layout.round-active .game-column {
+    display: grid;
+}
+
+main.game-layout.round-active .info-column {
+    grid-template-columns: 1fr;
+}
+
+main.game-layout.round-active .messages-card {
+    min-height: 240px;
+}
+
+main.game-layout.round-active .messages-container {
+    height: 220px;
+}
+
+@media (max-width: 1024px) {
+    main.game-layout,
+    main.game-layout.pre-round,
+    main.game-layout.round-active {
+        grid-template-columns: 1fr;
+    }
+
+    main.game-layout .info-column,
+    main.game-layout.pre-round .info-column,
+    main.game-layout.round-active .info-column {
+        max-width: 100%;
+        margin: 0;
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 12px;
+    }
+
+    header.header {
+        padding: 22px 14px 16px;
+        border-radius: 10px;
+        margin-bottom: 14px;
+    }
+
+    .header-content h1.title {
+        font-size: 1.45rem;
+        line-height: 1.2;
+    }
+
+    .header-content p.subtitle {
+        font-size: 0.9rem;
+        margin-top: 4px;
+    }
+
+    .header-stats {
+        margin-top: 10px;
+    }
+
+    .header-stat-pill {
+        width: 100%;
+        justify-content: center;
+        padding: 8px 10px;
+    }
+
+    .language-switcher {
+        position: static;
+        justify-content: center;
+        margin-top: 10px;
+    }
+
+    .card {
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+
+    .card-title {
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+    }
+
+    .question-text {
+        font-size: 0.92rem;
+        margin-bottom: 10px;
+    }
+
+    .cities-container {
+        gap: 8px;
+        padding: 8px 0;
+    }
+
+    .city {
+        max-width: none;
+        width: 100%;
+        padding: 10px;
+    }
+
+    .city-name {
+        font-size: 1.05rem;
+    }
+
+    .city-separator {
+        font-size: 1.2rem;
+    }
+
+    #mapContainer {
+        height: 180px;
+    }
+
+    .answer-card .input-group {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .guess-input,
+    .btn,
+    .input-field {
+        font-size: 16px;
+    }
+
+    .messages-container {
+        height: 180px;
+        padding: 10px;
+    }
+
+    main.game-layout.round-active .messages-card {
+        display: none;
+    }
+
+    .button-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .button-group .btn {
+        width: 100%;
+        padding: 10px 8px;
+    }
+
+    #inGameButtons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+}

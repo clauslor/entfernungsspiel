@@ -83,15 +83,22 @@ function connect() {
 function updateUILayout() {
   const layout = document.querySelector("main.game-layout");
   const inGame = Boolean(currentGameId);
+  const roundActiveStatuses = new Set(["active", "playing", "warmup"]);
+  const roundActive = inGame && roundActiveStatuses.has((currentGameStatus || "").toLowerCase());
 
   const lobbyControls = document.getElementById("lobbyControls");
   const matchControls = document.getElementById("matchControls");
   const countdownCard = document.getElementById("countdownCard");
   const rulesCard = document.getElementById("rulesCard");
   const playersCard = document.getElementById("playersCard");
+  const answerCard = document.getElementById("answerCard");
+  const questionCard = document.getElementById("questionCard");
 
   if (layout) {
     layout.classList.toggle("lobby-mode", !inGame);
+    layout.classList.toggle("in-game", inGame);
+    layout.classList.toggle("round-active", roundActive);
+    layout.classList.toggle("pre-round", inGame && !roundActive);
   }
 
   if (lobbyControls) {
@@ -105,13 +112,21 @@ function updateUILayout() {
     countdownCard.style.display = inGame ? "block" : "none";
   }
   if (rulesCard) {
-    rulesCard.style.display = inGame ? "block" : "none";
+    rulesCard.style.display = inGame && !roundActive ? "block" : "none";
   }
   if (playersCard) {
     playersCard.style.display = inGame ? "block" : "none";
   }
 
-  if (inGame) {
+  if (answerCard) {
+    answerCard.style.display = roundActive ? "block" : "none";
+  }
+
+  if (questionCard) {
+    questionCard.style.display = roundActive ? "block" : "none";
+  }
+
+  if (roundActive) {
     setTimeout(() => focusAndSelect("guessInput"), 0);
     queueMapPreparation();
   }
