@@ -18,6 +18,11 @@ let answerHintTimerId = null;
 let guessSubmissionPending = false;
 let guessLockedForRound = false;
 
+const DEFAULT_MAP_VIEW = {
+  center: [51.1657, 10.4515],
+  zoom: 4,
+};
+
 const STORAGE_KEYS = {
   PLAYER_NAME: "entfernungsspiel.playerName",
   PLAYER_ID: "entfernungsspiel.playerId",
@@ -98,8 +103,26 @@ function updateUILayout() {
 
   if (inGame) {
     setTimeout(() => focusAndSelect("guessInput"), 0);
+    prepareMapForGameplay();
     scheduleLeafletResize();
   }
+}
+
+function prepareMapForGameplay() {
+  const map = ensureLeafletMap();
+  if (!map) return;
+
+  if (!leafletLayerGroup) {
+    leafletLayerGroup = L.featureGroup().addTo(map);
+  }
+
+  if (leafletLayerGroup.getLayers().length === 0) {
+    map.setView(DEFAULT_MAP_VIEW.center, DEFAULT_MAP_VIEW.zoom, {
+      animate: false,
+    });
+  }
+
+  scheduleLeafletResize();
 }
 
 function scheduleLeafletResize() {
@@ -332,14 +355,20 @@ function ensureLeafletMap() {
     leafletMap = L.map(container, {
       zoomControl: true,
       attributionControl: true,
+      fadeAnimation: false,
+      zoomAnimation: false,
     });
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 18,
       attribution: "&copy; OpenStreetMap contributors",
+      keepBuffer: 4,
     }).addTo(leafletMap);
 
     leafletLayerGroup = L.featureGroup().addTo(leafletMap);
+    leafletMap.setView(DEFAULT_MAP_VIEW.center, DEFAULT_MAP_VIEW.zoom, {
+      animate: false,
+    });
   }
 
   container.classList.add("has-map");
@@ -380,12 +409,20 @@ function renderQuestionMap(coordinates) {
   leafletLayerGroup.addLayer(line);
 
   const bounds = L.latLngBounds([fromPoint, toPoint]);
-  map.fitBounds(bounds.pad(0.45));
+  map.flyToBounds(bounds.pad(0.45), {
+    animate: false,
+    duration: 0,
+    padding: [24, 24],
+  });
   scheduleLeafletResize();
 
   setTimeout(() => {
     map.invalidateSize();
-    map.fitBounds(bounds.pad(0.45));
+    map.flyToBounds(bounds.pad(0.45), {
+      animate: false,
+      duration: 0,
+      padding: [24, 24],
+    });
   }, 50);
 }
 
