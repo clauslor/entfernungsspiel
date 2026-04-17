@@ -236,6 +236,7 @@ class GameLogic:
             
             question = game.current_question
             data = {
+                "game_id": game_id,
                 "question_id": str(question.question_id),
                 "round": game.current_round,
                 "max_rounds": game.config.max_rounds,

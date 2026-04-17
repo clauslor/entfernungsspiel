@@ -914,6 +914,17 @@ function handleJsonMessage(msg) {
     updateUILayout();
   } else if (msg.type === "new_question") {
     // Ensure gameplay panels are visible for every fresh round (including new game sessions)
+    const inferredGameId =
+      currentGameId
+      || msg.game_id
+      || restorePendingJoinGameId
+      || localStorage.getItem(STORAGE_KEYS.GAME_ID)
+      || "";
+    if (inferredGameId && inferredGameId !== currentGameId) {
+      currentGameId = inferredGameId;
+      saveSessionToStorage();
+    }
+
     currentGameStatus = "active";
     currentRoundNumber = msg.round || currentRoundNumber;
     currentMaxRounds = msg.max_rounds || currentMaxRounds;
