@@ -16,11 +16,11 @@
         <!-- Header -->
         <header class="header">
             <div class="header-content">
-                <h1 class="title">🌍 Entfernungsspiel</h1>
-                <p class="subtitle">Guess the distance between two cities!</p>
+                <h1 class="title" data-i18n="common.title">🌍 Entfernungsspiel</h1>
+                <p class="subtitle" data-i18n="common.subtitle">Guess the distance between two cities!</p>
                 <div class="header-stats" aria-live="polite">
                     <div class="header-stat-pill">
-                        <span class="header-stat-label">Gestartete Spiele</span>
+                        <span class="header-stat-label" data-i18n="header.startedGames">Gestartete Spiele</span>
                         <strong id="startedGamesCounter" class="header-stat-value">0</strong>
                     </div>
                 </div>
@@ -34,20 +34,20 @@
 
                 <!-- Answer Input Card -->
                 <section class="card answer-card" id="answerCard">
-                    <h2 class="card-title">📍 Your Answer</h2>
-                    <p class="input-hint">Shortcut: press <strong>G</strong> to jump here, <strong>Enter</strong> to submit.</p>
+                    <h2 class="card-title" data-i18n="answer.title">📍 Your Answer</h2>
+                    <p class="input-hint" data-i18n="answer.shortcut">Shortcut: press <strong>G</strong> to jump here, <strong>Enter</strong> to submit.</p>
                     <div class="input-group">
-                        <input type="number" id="guessInput" class="input-field guess-input" placeholder="Distance in km" min="0" inputmode="numeric" autocomplete="off">
-                        <button onclick="sendGuess()" class="btn btn-primary" id="submitGuessBtn">Submit Answer</button>
+                        <input type="number" id="guessInput" class="input-field guess-input" data-i18n="question.placeholder" placeholder="Distance in km" min="0" inputmode="numeric" autocomplete="off">
+                        <button onclick="sendGuess()" class="btn btn-primary" id="submitGuessBtn" data-i18n="answer.submit">Submit Answer</button>
                     </div>
                     <div id="answerSubmissionHint" class="answer-submission-hint" aria-live="polite"></div>
                 </section>
 
                 <!-- Question Card -->
                 <section class="card question-card" id="questionCard">
-                    <h2 class="card-title">❓ Current Question</h2>
+                    <h2 class="card-title" data-i18n="question.title">❓ Current Question</h2>
                     <div class="question-content">
-                        <p class="question-text">What is the distance between:</p>
+                        <p class="question-text" data-i18n="question.askDistance">What is the distance between:</p>
                         <div class="cities-container">
                             <div class="city city-from">
                                 <div id="city1" class="city-name">-</div>
@@ -58,7 +58,7 @@
                             </div>
                         </div>
                         <div class="map-container" id="mapContainer">
-                            <div id="mapPlaceholder" class="map-placeholder">Die Karte erscheint mit der naechsten Frage.</div>
+                            <div id="mapPlaceholder" class="map-placeholder" data-i18n="mapPlaceholder">Die Karte erscheint mit der naechsten Frage.</div>
                         </div>
                     </div>
                 </section>
@@ -68,50 +68,50 @@
             <div class="info-column">
                 <!-- Player Setup Card -->
                 <section class="card player-setup">
-                    <h2 class="card-title">👤 Player Setup</h2>
+                    <h2 class="card-title" data-i18n="playerSetup.title">👤 Player Setup</h2>
                     <div id="setupPhase">
-                        <p class="input-hint">Shortcut: press <strong>N</strong> to focus your name field.</p>
+                        <p class="input-hint" data-i18n="playerSetup.nameHint">Shortcut: press <strong>N</strong> to focus your name field.</p>
                         <div class="input-group">
-                            <input type="text" id="playerName" class="input-field" placeholder="Enter your name">
-                            <button onclick="setPlayerName()" class="btn btn-primary">Set Name</button>
+                            <input type="text" id="playerName" class="input-field" data-i18n="playerSetup.enterName" placeholder="Enter your name">
+                            <button onclick="setPlayerName()" class="btn btn-primary" data-i18n="playerSetup.setName">Set Name</button>
                         </div>
                     </div>
                     <div id="gamePhase">
-                        <p class="player-info">Player: <strong id="currentPlayerName"></strong></p>
+                        <p class="player-info"><span data-i18n="playerSetup.player">Player</span>: <strong id="currentPlayerName"></strong></p>
                         <div id="lobbyControls">
                         <div class="button-group">
-                            <button onclick="createGame()" class="btn btn-primary">➕ Create Game</button>
-                            <button onclick="showJoinGame()" class="btn btn-secondary">🔗 Join Game</button>
+                            <button onclick="createGame()" class="btn btn-primary" data-i18n="lobbyControls.create">➕ Create Game</button>
+                            <button onclick="showJoinGame()" class="btn btn-secondary" data-i18n="lobbyControls.join">🔗 Join Game</button>
                         </div>
                         <div id="joinGameForm">
-                            <p class="input-hint">Shortcut: press <strong>J</strong> to focus the game code field.</p>
+                            <p class="input-hint" data-i18n="lobbyControls.gameIdHint">Shortcut: press <strong>J</strong> to focus the game code field.</p>
                             <div class="input-group">
-                                <input type="text" id="gameIdInput" class="input-field" placeholder="Enter game ID">
-                                <button onclick="joinGame()" class="btn btn-primary">Join</button>
-                                <button onclick="hideJoinGame()" class="btn btn-secondary">Cancel</button>
+                                <input type="text" id="gameIdInput" class="input-field" data-i18n="lobbyControls.gameIdPlaceholder" placeholder="Enter game ID">
+                                <button onclick="joinGame()" class="btn btn-primary" data-i18n="lobbyControls.joinButton">Join</button>
+                                <button onclick="hideJoinGame()" class="btn btn-secondary" data-i18n="lobbyControls.cancelButton">Cancel</button>
                             </div>
                         </div>
                         <div id="lobbyGames">
-                            <p class="lobby-games-title">Open games (countdown not started):</p>
+                            <p class="lobby-games-title" data-i18n="lobbyControls.openGames">Open games (countdown not started):</p>
                             <ul id="lobbyGamesList"></ul>
                         </div>
                         </div>
                         <div id="matchControls">
                         <!-- Game Info Section -->
                         <div id="gameInfo">
-                            <p class="game-info-label">📌 Game Code:</p>
+                            <p class="game-info-label" data-i18n="matchControls.gameCode">📌 Game Code:</p>
                             <p class="game-id-display"
                                 id="gameIdDisplay">-</p>
-                            <p class="game-info-label">👥 Players (<span
+                            <p class="game-info-label"><span data-i18n="matchControls.players">👥 Players</span> (<span
                                     id="playerCount">0</span>):</p>
                             <ul id="inGamePlayerList">
                             </ul>
                         </div>
                         <div class="button-group" id="inGameButtons">
-                            <button onclick="setReady()" class="btn btn-success">✓ Ready</button>
-                            <button id="warmupBtn" onclick="startWarmup()" class="btn btn-secondary">🔥 Warmup</button>
-                            <button id="lockSettingsBtn" onclick="toggleLockSettings()" class="btn btn-secondary">🔒 Lock Settings</button>
-                            <button onclick="leaveGame()" class="btn btn-danger">✕ Leave</button>
+                            <button onclick="setReady()" class="btn btn-success" data-i18n="matchControls.ready">✓ Ready</button>
+                            <button id="warmupBtn" onclick="startWarmup()" class="btn btn-secondary" data-i18n="matchControls.warmup">🔥 Warmup</button>
+                            <button id="lockSettingsBtn" onclick="toggleLockSettings()" class="btn btn-secondary" data-i18n="matchControls.lockSettings">🔒 Lock Settings</button>
+                            <button onclick="leaveGame()" class="btn btn-danger" data-i18n="matchControls.leave">✕ Leave</button>
                         </div>
                         </div>
                     </div>
@@ -119,28 +119,28 @@
 
                 <!-- Countdown Card -->
                 <section class="card countdown-card" id="countdownCard">
-                    <h2 class="card-title">⏱️ Game Status</h2>
+                    <h2 class="card-title" data-i18n="countdown.title">⏱️ Game Status</h2>
                     <div id="countdownDisplay" class="status-display">
-                        <p id="countdownText" class="status-text">Waiting to start...</p>
+                        <p id="countdownText" class="status-text" data-i18n="countdown.waiting">Waiting to start...</p>
                         <div id="countdown" class="countdown-timer"></div>
                     </div>
                 </section>
 
                 <!-- Rules Card -->
                 <section class="card rules-card" id="rulesCard">
-                    <h2 class="card-title">⚙️ Settings</h2>
-                    <p id="rulesText" class="settings-text">Waiting for game settings...</p>
+                    <h2 class="card-title" data-i18n="settings.title">⚙️ Settings</h2>
+                    <p id="rulesText" class="settings-text" data-i18n="settings.waiting">Waiting for game settings...</p>
                 </section>
 
                 <!-- Players Card -->
                 <section class="card players-card" id="playersCard">
-                    <h2 class="card-title">👥 Players Online</h2>
+                    <h2 class="card-title" data-i18n="players.title">👥 Players Online</h2>
                     <ul id="playerList" class="player-list"></ul>
                 </section>
 
                 <!-- Messages Card -->
                 <section class="card messages-card">
-                    <h2 class="card-title">💬 Game Chat</h2>
+                    <h2 class="card-title" data-i18n="messages.title">💬 Game Chat</h2>
                     <div id="messages" class="messages-container"></div>
                 </section>
             </div>
@@ -154,24 +154,24 @@
             <div class="game-finished-celebration">🎉🎉🎉</div>
 
             <!-- Game End Title -->
-            <h1 class="game-finished-title">Game Finished!</h1>
+            <h1 class="game-finished-title" data-i18n="gameEnd.title">Game Finished!</h1>
 
             <!-- Winner Section -->
             <div class="winner-section">
-                <p class="winner-label">🏆 Champion</p>
+                <p class="winner-label" data-i18n="gameEnd.champion">🏆 Champion</p>
                 <h2 class="winner-name" id="winnerName">-</h2>
             </div>
 
             <!-- Final Scores Table -->
             <div class="final-scores-section">
-                <h3 class="final-scores-title">📊 Final Scores
+                <h3 class="final-scores-title" data-i18n="gameEnd.finalScores">📊 Final Scores
                 </h3>
                 <table id="scoresTable">
                     <thead>
                         <tr class="scores-header-row">
-                            <th class="scores-header-cell scores-header-cell-left">Player</th>
-                            <th class="scores-header-cell scores-header-cell-center">Points</th>
-                            <th class="scores-header-cell scores-header-cell-center">Accuracy
+                            <th class="scores-header-cell scores-header-cell-left" data-i18n="gameEnd.playerColumn">Player</th>
+                            <th class="scores-header-cell scores-header-cell-center" data-i18n="gameEnd.pointsColumn">Points</th>
+                            <th class="scores-header-cell scores-header-cell-center" data-i18n="gameEnd.accuracyColumn">Accuracy
                             </th>
                         </tr>
                     </thead>
@@ -181,18 +181,18 @@
             </div>
 
             <div class="round-review-section">
-                <h3 class="round-review-title">🗺️ Fragen und empfangene Antworten</h3>
+                <h3 class="round-review-title" data-i18n="gameEnd.questionsAndAnswers">🗺️ Fragen und empfangene Antworten</h3>
                 <div id="roundReviewList" class="round-review-list"></div>
             </div>
 
             <!-- Action Buttons -->
             <div class="game-finished-actions">
                 <button onclick="playAgain()"
-                    class="game-finished-btn game-finished-btn-primary">
+                    class="game-finished-btn game-finished-btn-primary" data-i18n="gameEnd.newGame">
                     ➕ New Game
                 </button>
                 <button onclick="backToLobby()"
-                    class="game-finished-btn game-finished-btn-secondary">
+                    class="game-finished-btn game-finished-btn-secondary" data-i18n="gameEnd.backToLobby">
                     🔗 Back to Lobby
                 </button>
             </div>
@@ -201,6 +201,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="js/i18n.js"></script>
     <script src="js/main.js"></script>
 
 </body>

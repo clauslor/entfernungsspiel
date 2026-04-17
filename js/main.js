@@ -32,6 +32,13 @@ const STORAGE_KEYS = {
   GAME_ID: "entfernungsspiel.gameId",
 };
 
+// Initialize i18n system on page load
+document.addEventListener("DOMContentLoaded", async () => {
+  await initializeI18n();
+  updateUILanguage();
+  connect();
+});
+
 function connect() {
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
     return;
@@ -56,19 +63,19 @@ function connect() {
 
   ws.onopen = () => {
     isConnected = true;
-    appendMessage(`✅ Ready to play!`);
+    appendMessage(`✅ ${t("messages.ready")}`);
     sendMessage({ type: "tab_active", data: {} });
     restoreSessionFromStorage();
   };
 
   ws.onclose = () => {
     isConnected = false;
-    appendMessage("❌ Disconnected from server");
+    appendMessage(`❌ ${t("messages.disconnected")}`);
     setTimeout(connect, 2000); // Reconnect after 2 seconds
   };
 
   ws.onerror = (error) => {
-    appendMessage("❌ Connection error");
+    appendMessage(`❌ ${t("messages.connectionError")}`);
     console.error("WebSocket error:", error);
   };
 }
@@ -246,7 +253,7 @@ function startManagedCountdown(totalSeconds) {
 
     if (remaining <= 0) {
       clearCountdownTimer();
-      document.getElementById("countdown").textContent = "Time's up!";
+      document.getElementById("countdown").textContent = t("countdown.timesUp");
     }
   }, 250);
 }
@@ -348,7 +355,7 @@ function renderRoundHistory(roundHistory) {
   if (!roundHistory || roundHistory.length === 0) {
     const empty = document.createElement("p");
     empty.className = "round-review-meta";
-    empty.textContent = "Keine Rundendetails verfuegbar.";
+    empty.textContent = t("gameEnd.noDetailsAvailable");
     list.appendChild(empty);
     return;
   }
@@ -379,7 +386,7 @@ function renderRoundHistory(roundHistory) {
       const finalEntry = document.createElement("div");
       finalEntry.className = "round-review-player-final";
       if (submission.final_guess === null || submission.final_guess === undefined) {
-        finalEntry.textContent = "Keine gueltige Antwort eingegangen.";
+        finalEntry.textContent = t("gameEnd.noValidAnswer");
       } else {
         finalEntry.textContent = `Gewertet wurde: ${submission.final_guess} km um ${formatSubmissionTime(submission.final_submitted_at)}`;
       }
@@ -390,7 +397,7 @@ function renderRoundHistory(roundHistory) {
       const receivedAnswers = submission.received_answers || [];
       if (receivedAnswers.length === 0) {
         const none = document.createElement("li");
-        none.textContent = "Keine Antworten gesendet.";
+        none.textContent = t("gameEnd.noAnswersSent");
         logList.appendChild(none);
       } else {
         receivedAnswers.forEach((answer, index) => {
@@ -540,14 +547,14 @@ function handleJsonMessage(msg) {
     document.getElementById("inGamePlayerList").innerHTML =
       `<li>⏳ ${playerName} (you)</li>`;
     document.getElementById("playerCount").textContent = "1";
-    appendMessage(`✅ Game created! Game ID: ${msg.game_id}`);
+    appendMessage(`✅ ${t("messages.gameCreated")} ${msg.game_id}`);
     updateUILayout();
   } else if (msg.type === "game_joined") {
     currentGameId = msg.game_id;
     saveSessionToStorage();
     document.getElementById("gameIdDisplay").textContent = msg.game_id;
     document.getElementById("gameInfo").style.display = "block";
-    appendMessage(`✅ Joined game ${msg.game_id}`);
+    appendMessage(`✅ ${t("messages.gameJoined")} ${msg.game_id}`);
     document.getElementById("inGameButtons").style.display = "block";
     updateUILayout();
   } else if (msg.type === "game_info") {
@@ -570,19 +577,24 @@ function handleJsonMessage(msg) {
   } else if (msg.type === "game_starting") {
     currentGameStatus = "countdown";
     updateHostControls();
-    appendMessage(`⏳ Game starting in ${msg.countdown} seconds...`);
-    document.getElementById("countdownText").textContent = "Game starts in";
+    appendMessage(`⏳ ${t("messages.countdownStarting", { seconds: msg.countdown })}`);
+    document.getElementById("countdownText").textContent = t("countdown.startingIn");
     renderCountdownValue(msg.countdown);
   } else if (msg.type === "game_started") {
     currentGameStatus = "active";
     updateHostControls();
-    appendMessage(`🎮 Game started!`);
+    appendMessage(`🎮 ${t("messages.gameStarted")}`);
     if (msg.config) {
       document.getElementById("rulesText").textContent =
         `Max Rounds: ${msg.config.max_rounds}, Answer Time: ${msg.config.answer_time_seconds}s, Pause: ${msg.config.pause_between_rounds_seconds}s`;
     }
   } else if (msg.type === "new_question") {
-    appendMessage(`🟡 Round ${msg.round}/${msg.max_rounds}: ${msg.question}`);
+    // Generate localized question text
+    const localizedQuestion = t("question.distanceTemplate", {
+      city1: msg.cities[0],
+      city2: msg.cities[1]
+    });
+    appendMessage(`🟡 ${t("messages.roundUpdate")} ${msg.round}/${msg.max_rounds}: ${localizedQuestion}`);
     document.getElementById("city1").textContent = `${msg.cities[0]}`;
     document.getElementById("city2").textContent = `${msg.cities[1]}`;
     document.getElementById("guessInput").value = "";
@@ -591,7 +603,7 @@ function handleJsonMessage(msg) {
     if (msg.coordinates) {
       renderQuestionMap(msg.coordinates);
     }
-    document.getElementById("countdownText").textContent = "Answer time remaining";
+    document.getElementById("countdownText").textContent = t("countdown.answerTimeRemaining");
     startManagedCountdown(msg.time_limit);
   } else if (msg.type === "game_status") {
     appendMessage(`📈 Status: ${msg.status}`);
@@ -619,8 +631,8 @@ function handleJsonMessage(msg) {
     document.getElementById("countdownText").textContent = "Paused - waiting for reconnect";
     pauseManagedCountdown(msg.remaining_seconds);
   } else if (msg.type === "game_resumed") {
-    appendMessage("▶️ Runde fortgesetzt");
-    document.getElementById("countdownText").textContent = "Answer time remaining";
+    appendMessage(`▶️ ${t("messages.roundResumed")}`);
+    document.getElementById("countdownText").textContent = t("countdown.answerTimeRemaining");
     startManagedCountdown(msg.remaining_seconds);
   } else if (msg.type === "round_result") {
     const summary = msg.standings
@@ -630,9 +642,9 @@ function handleJsonMessage(msg) {
       `🏁 Runde ${msg.round}: ${msg.winner} gewinnt. Distanz: ${msg.correct_distance} km. ${summary}`,
     );
   } else if (msg.type === "warmup_started") {
-    appendMessage(`🔥 Warmup gestartet (${msg.time_limit}s)`);
+    appendMessage(`🔥 ${t("messages.warmupStarted")} (${msg.time_limit}s)`);
   } else if (msg.type === "warmup_result") {
-    appendMessage(`🔥 Warmup beendet: ${msg.message || ""}`);
+    appendMessage(`🔥 ${t("messages.warmupEnded")}: ${msg.message || ""}`);
   } else if (msg.type === "bot_suspected") {
     appendMessage(
       `🚨 Bot-Verdacht: ${msg.player_name} (Score ${msg.suspicion_score}, schnelle Antworten: ${msg.fast_answers})`,

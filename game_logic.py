@@ -213,7 +213,7 @@ class GameLogic:
                 "cities": [question.city1, question.city2],
                 "city1": question.city1,
                 "city2": question.city2,
-                "question": f"Wie weit ist es von {question.city1} nach {question.city2}? (in km)",
+                "question": f"How far is it from {question.city1} to {question.city2}? (in km)",
                 "coordinates": {
                     "from": {
                         "name": question.city1,
