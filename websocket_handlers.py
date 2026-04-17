@@ -261,15 +261,47 @@ class WebSocketHandler:
             create_msg = CreateGameMessage.parse_obj(data)
             game_id = create_msg.game_id or f"game_{uuid.uuid4().hex[:8]}"
 
-            # Always start new games with the current admin configuration.
+            requested_config = create_msg.config or {}
+
+            def _int_setting(key: str, default: int, min_value: int, max_value: int) -> int:
+                raw = requested_config.get(key, default)
+                try:
+                    value = int(raw)
+                except (TypeError, ValueError):
+                    return default
+                return max(min_value, min(max_value, value))
+
+            def _bool_setting(key: str, default: bool) -> bool:
+                raw = requested_config.get(key, default)
+                if isinstance(raw, bool):
+                    return raw
+                if isinstance(raw, str):
+                    return raw.strip().lower() in {"1", "true", "yes", "on"}
+                return bool(raw)
+
+            # Start new games with admin defaults but allow validated creator overrides.
             config = GameConfig(
-                max_rounds=self.default_config.max_rounds,
-                countdown_seconds=self.default_config.countdown_seconds,
-                answer_time_seconds=self.default_config.answer_time_seconds,
-                pause_between_rounds_seconds=self.default_config.pause_between_rounds_seconds,
-                auto_advance_on_all_answers=self.default_config.auto_advance_on_all_answers,
-                first_answer_ends_round=self.default_config.first_answer_ends_round,
-                wrong_answer_points_others=self.default_config.wrong_answer_points_others,
+                max_rounds=_int_setting("max_rounds", self.default_config.max_rounds, 1, 20),
+                countdown_seconds=_int_setting("countdown_seconds", self.default_config.countdown_seconds, 1, 30),
+                answer_time_seconds=_int_setting("answer_time_seconds", self.default_config.answer_time_seconds, 5, 180),
+                pause_between_rounds_seconds=_int_setting(
+                    "pause_between_rounds_seconds",
+                    self.default_config.pause_between_rounds_seconds,
+                    1,
+                    30,
+                ),
+                auto_advance_on_all_answers=_bool_setting(
+                    "auto_advance_on_all_answers",
+                    self.default_config.auto_advance_on_all_answers,
+                ),
+                first_answer_ends_round=_bool_setting(
+                    "first_answer_ends_round",
+                    self.default_config.first_answer_ends_round,
+                ),
+                wrong_answer_points_others=_bool_setting(
+                    "wrong_answer_points_others",
+                    self.default_config.wrong_answer_points_others,
+                ),
             )
 
             game = self.game_room.create_game(game_id, config)

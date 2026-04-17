@@ -36,6 +36,7 @@ const STORAGE_KEYS = {
   PLAYER_NAME: "entfernungsspiel.playerName",
   PLAYER_ID: "entfernungsspiel.playerId",
   GAME_ID: "entfernungsspiel.gameId",
+  CREATOR_SETTINGS: "entfernungsspiel.creatorSettings",
 };
 
 // Initialize i18n system on page load
@@ -595,27 +596,61 @@ function clearMapOverlays() {
   gameMapOverlays = [];
 }
 
-function getOrtsschildFontSize(cityName) {
-  const labelLength = String(cityName || "").trim().length;
-  if (labelLength <= 10) return "28px";
-  if (labelLength <= 14) return "24px";
-  if (labelLength <= 18) return "21px";
-  return "18px";
+function getOrtsschildLayout(cityName) {
+  const label = String(cityName || "").trim();
+  const labelLength = Math.max(1, label.length);
+  const useLargeTemplate = labelLength > 14;
+  const mapContainer = document.getElementById("mapContainer");
+  const containerWidth = mapContainer ? mapContainer.clientWidth : 0;
+  const isMobile = window.matchMedia("(max-width: 768px)").matches;
+
+  // Keep strict 3:2 proportions based on requested templates: 900x600 / 1260x840.
+  const templateWidth = useLargeTemplate ? 1260 : 900;
+  const templateHeight = useLargeTemplate ? 840 : 600;
+  const displayScale = useLargeTemplate ? 0.22 : 0.24;
+  let displayWidth = Math.round(templateWidth * displayScale);
+
+  // Mobile fine-tuning: keep both labels readable without overwhelming a small map.
+  if (containerWidth > 0) {
+    const maxByContainer = Math.floor(containerWidth * (isMobile ? 0.36 : 0.3));
+    displayWidth = Math.min(displayWidth, maxByContainer);
+  }
+  displayWidth = Math.max(isMobile ? 116 : 148, displayWidth);
+  const displayHeight = Math.round(displayWidth * (2 / 3));
+
+  const horizontalPadding = Math.round(displayWidth * 0.1);
+  const maxByHeight = Math.floor(displayHeight * (isMobile ? 0.38 : 0.43));
+  const maxByWidth = Math.floor((displayWidth - 2 * horizontalPadding) / (labelLength * 0.64));
+  const minFont = isMobile ? 11 : 13;
+  const fontSize = Math.max(minFont, Math.min(maxByHeight, maxByWidth));
+  const letterSpacing = labelLength > 16 ? "0" : (isMobile ? "0.01em" : "0.03em");
+
+  return {
+    displayWidth,
+    displayHeight,
+    fontSize,
+    letterSpacing,
+  };
 }
 
 function createOrtsschildOverlay(cityName, coordinate, variant) {
   if (!gameMap || !coordinate) return null;
+
+  const layout = getOrtsschildLayout(cityName);
 
   const wrapper = document.createElement("div");
   wrapper.className = `ortsschild-overlay ortsschild-${variant}`;
 
   const plate = document.createElement("div");
   plate.className = "ortsschild-plate";
-  plate.style.setProperty("--ortsschild-font-size", getOrtsschildFontSize(cityName));
+  plate.style.setProperty("--ortsschild-width", `${layout.displayWidth}px`);
+  plate.style.setProperty("--ortsschild-height", `${layout.displayHeight}px`);
+  plate.style.setProperty("--ortsschild-font-size", `${layout.fontSize}px`);
+  plate.style.setProperty("--ortsschild-letter-spacing", layout.letterSpacing);
 
   const text = document.createElement("div");
   text.className = "ortsschild-text";
-  text.textContent = formatCityLabel(cityName, 24).toUpperCase();
+  text.textContent = String(cityName || "").trim().toUpperCase();
 
   plate.appendChild(text);
   wrapper.appendChild(plate);
@@ -1282,6 +1317,9 @@ function updateGameSettings(game_id, config) {
     if (autoAdvanceAllAnsweredInput) autoAdvanceAllAnsweredInput.checked = !!config.auto_advance_on_all_answers;
     if (firstAnswerEndsRoundInput) firstAnswerEndsRoundInput.checked = !!config.first_answer_ends_round;
     if (wrongAnswerPointsOthersInput) wrongAnswerPointsOthersInput.checked = !!config.wrong_answer_points_others;
+    if (currentIsHost) {
+      localStorage.setItem(STORAGE_KEYS.CREATOR_SETTINGS, JSON.stringify(config));
+    }
   }
   updateHostControls();
 }
@@ -1492,6 +1530,20 @@ function saveGameSettings() {
       wrong_answer_points_others: wrongAnswerPointsOthers,
     },
   });
+
+  localStorage.setItem(
+    STORAGE_KEYS.CREATOR_SETTINGS,
+    JSON.stringify({
+      max_rounds: maxRounds,
+      countdown_seconds: countdownSeconds,
+      answer_time_seconds: answerTimeSeconds,
+      pause_between_rounds_seconds: pauseBetweenRoundsSeconds,
+      auto_advance_on_all_answers: autoAdvanceOnAllAnswers,
+      first_answer_ends_round: firstAnswerEndsRound,
+      wrong_answer_points_others: wrongAnswerPointsOthers,
+    }),
+  );
+
   appendMessage(t("messages.settingsUpdateSent"));
 }
 
@@ -1523,6 +1575,18 @@ function restoreSessionFromStorage() {
   sendMessage({ type: "set_name", data: { name: playerName } });
   if (storedGameId) {
     restorePendingJoinGameId = storedGameId;
+  }
+}
+
+function getStoredCreatorSettings() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.CREATOR_SETTINGS);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch (err) {
+    console.warn("Could not parse stored creator settings:", err);
+    return null;
   }
 }
 
@@ -1679,9 +1743,10 @@ function setPlayerName() {
 }
 
 function createGame() {
+  const storedSettings = getStoredCreatorSettings();
   const message = {
     type: "create_game",
-    data: {},
+    data: storedSettings ? { config: storedSettings } : {},
   };
   sendMessage(message);
   appendMessage(t("messages.creatingGame"));
