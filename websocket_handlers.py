@@ -35,6 +35,7 @@ class CreateGameMessage(BaseModel):
 
 class JoinGameMessage(BaseModel):
     game_id: str
+    pin: Optional[str] = None
 
 
 class KickPlayerMessage(BaseModel):
@@ -278,7 +279,18 @@ class WebSocketHandler:
             game_id = join_msg.game_id
 
             game = self.game_room.get_game(game_id)
-            if game and game.settings_locked:
+            
+            # Check if game exists
+            if not game:
+                await self.send_error(player_id, f"Game {game_id} not found")
+                return
+            
+            # Validate PIN if game has one
+            if game.pin and join_msg.pin != game.pin:
+                await self.send_error(player_id, "Invalid PIN")
+                return
+            
+            if game.settings_locked:
                 await self.send_error(player_id, "Host has locked the lobby")
                 return
 
@@ -590,6 +602,7 @@ class WebSocketHandler:
         """Send game information to player on all connections"""
         game = self.game_room.get_game(game_id)
         if game and player_id in self.active_connections:
+            is_host = player_id == game.host_player_id
             game_data = {
                 "type": "game_info",
                 "game_id": game_id,
@@ -614,8 +627,12 @@ class WebSocketHandler:
                     }
                     for p in game.players.values()
                 ],
-                "is_host": player_id == game.host_player_id,
+                "is_host": is_host,
             }
+            # Only show PIN to host
+            if is_host:
+                game_data["pin"] = game.pin
+            
             for websocket in self.active_connections[player_id]:
                 try:
                     await websocket.send_text(json.dumps(game_data))

@@ -4,6 +4,7 @@ from datetime import datetime
 from enum import Enum
 import uuid
 import asyncio
+import random
 
 
 class GameStatus(Enum):
@@ -83,6 +84,12 @@ class GameState:
     reconnect_resume_task: Optional[asyncio.Task] = None
     created_at: datetime = field(default_factory=datetime.now)
     host_player_id: Optional[str] = None
+    pin: str = ""
+    
+    def __post_init__(self):
+        """Generate PIN if not set"""
+        if not self.pin:
+            self.pin = f"{random.randint(0, 9999):04d}"
 
     def reset(self):
         """Reset game state for a new game"""

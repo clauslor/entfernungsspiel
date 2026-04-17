@@ -87,6 +87,7 @@
                             <p class="input-hint" data-i18n="lobbyControls.gameIdHint">Shortcut: press <strong>J</strong> to focus the game code field.</p>
                             <div class="input-group">
                                 <input type="text" id="gameIdInput" class="input-field" data-i18n="lobbyControls.gameIdPlaceholder" placeholder="Enter game ID">
+                                <input type="text" id="gamePinInput" class="input-field" placeholder="PIN (optional)" maxlength="4" inputmode="numeric">
                                 <button onclick="joinGame()" class="btn btn-primary" data-i18n="lobbyControls.joinButton">Join</button>
                                 <button onclick="hideJoinGame()" class="btn btn-secondary" data-i18n="lobbyControls.cancelButton">Cancel</button>
                             </div>
@@ -102,6 +103,10 @@
                             <p class="game-info-label" data-i18n="matchControls.gameCode">📌 Game Code:</p>
                             <p class="game-id-display"
                                 id="gameIdDisplay">-</p>
+                            <div id="pinSection" style="display: none;">
+                                <p class="game-info-label">🔐 PIN (nur für dich sichtbar):</p>
+                                <p class="game-pin-display" id="gamePinDisplay">-</p>
+                            </div>
                             <p class="game-info-label"><span data-i18n="matchControls.players">👥 Players</span> (<span
                                     id="playerCount">0</span>):</p>
                             <ul id="inGamePlayerList">

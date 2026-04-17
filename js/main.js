@@ -565,6 +565,16 @@ function handleJsonMessage(msg) {
     currentIsHost = !!msg.is_host;
     currentPlayers = msg.players;
     document.getElementById("gameIdDisplay").textContent = msg.game_id;
+    
+    // Show PIN only to host
+    const pinSection = document.getElementById("pinSection");
+    if (msg.is_host && msg.pin) {
+      pinSection.style.display = "block";
+      document.getElementById("gamePinDisplay").textContent = msg.pin;
+    } else {
+      pinSection.style.display = "none";
+    }
+    
     document.getElementById("gameInfo").style.display = "block";
     appendMessage(
       `📊 Game info - Status: ${msg.status || "unknown"}, Players: ${msg.players.length}`,
@@ -983,10 +993,14 @@ function renderLobbyGames(activeGames) {
   });
 }
 
-function joinGameById(gameId) {
+function joinGameById(gameId, pin = "") {
   if (!gameId) return;
   document.getElementById("gameIdInput").value = gameId;
-  sendMessage({ type: "join_game", data: { game_id: gameId } });
+  const payload = { game_id: gameId };
+  if (pin) {
+    payload.pin = pin;
+  }
+  sendMessage({ type: "join_game", data: payload });
   appendMessage(`Joining game ${gameId}...`);
 }
 
@@ -1112,13 +1126,15 @@ function showJoinGame() {
 function hideJoinGame() {
   document.getElementById("joinGameForm").style.display = "none";
   document.getElementById("gameIdInput").value = "";
+  document.getElementById("gamePinInput").value = "";
 }
 
 function joinGame() {
   const gameId = document.getElementById("gameIdInput").value.trim();
+  const pin = document.getElementById("gamePinInput").value.trim();
   if (!gameId) return alert("Please enter a game ID.");
 
-  joinGameById(gameId);
+  joinGameById(gameId, pin);
   hideJoinGame();
 }
 

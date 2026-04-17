@@ -184,6 +184,16 @@ main.game-layout.lobby-mode .game-column {
     font-family: monospace;
 }
 
+.game-pin-display {
+    margin: 5px 0 15px 0;
+    font-size: 1.5em;
+    font-weight: 700;
+    color: #dc2626;
+    text-align: center;
+    font-family: monospace;
+    letter-spacing: 0.2em;
+}
+
 #inGamePlayerList {
     margin: 0;
     padding-left: 20px;
