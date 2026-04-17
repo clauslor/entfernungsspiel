@@ -1616,6 +1616,10 @@ main.game-layout.lobby-mode .game-column {
     text-overflow: ellipsis;
 }
 
+.hud-value.is-countdown {
+    font-variant-numeric: tabular-nums;
+}
+
 /* ========================================
    UX POLISH (IMPROVEMENT ROUND 2)
    ======================================== */

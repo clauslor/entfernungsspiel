@@ -152,7 +152,13 @@ function updateMatchHud() {
   const phaseEl = document.getElementById("hudPhase");
   const gameEl = document.getElementById("hudGame");
   const roundEl = document.getElementById("hudRound");
-  const playersEl = document.getElementById("hudPlayers");
+  const countdownEl = document.getElementById("hudCountdown");
+
+  let countdownValue = "--:--";
+  const countdownDisplay = document.getElementById("countdown");
+  if (countdownDisplay && countdownDisplay.textContent && countdownDisplay.textContent.trim()) {
+    countdownValue = countdownDisplay.textContent.trim();
+  }
 
   if (phaseEl) phaseEl.textContent = getLocalizedPhaseLabel();
   if (gameEl) gameEl.textContent = currentGameId || "-";
@@ -161,7 +167,7 @@ function updateMatchHud() {
       ? `${currentRoundNumber}/${currentMaxRounds}`
       : "-";
   }
-  if (playersEl) playersEl.textContent = String(currentPlayers.length || 0);
+  if (countdownEl) countdownEl.textContent = currentGameId ? countdownValue : "--:--";
 }
 
 function translateServerMessage(rawMessage) {
@@ -343,6 +349,7 @@ function renderCountdownValue(totalSeconds) {
   const seconds = safeSeconds % 60;
   document.getElementById("countdown").textContent =
     `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  updateMatchHud();
 }
 
 function startManagedCountdown(totalSeconds) {
@@ -360,6 +367,7 @@ function startManagedCountdown(totalSeconds) {
     if (remaining <= 0) {
       clearCountdownTimer();
       document.getElementById("countdown").textContent = t("countdown.timesUp");
+      updateMatchHud();
     }
   }, 250);
 }
@@ -376,6 +384,7 @@ function resetCountdownDisplay(labelText = t("countdown.waiting")) {
   countdownRemainingSeconds = 0;
   document.getElementById("countdownText").textContent = labelText;
   document.getElementById("countdown").textContent = "--:--";
+  updateMatchHud();
 }
 
 function setGuessControlsDisabled(disabled) {
