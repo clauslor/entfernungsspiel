@@ -134,10 +134,12 @@ class GameState:
         return len(self.players) >= 1 and all(p.ready for p in self.players.values())
 
     def calculate_accuracy_percentage(self, guess: int, correct: int) -> float:
-        """Calculate percentage accuracy (lower is better)"""
+        """Calculate percentage accuracy (higher is better, clamped to 0-100)."""
         if correct == 0:
-            return 100.0 if guess == 0 else float('inf')
-        return abs(guess - correct) / correct * 100
+            return 100.0 if guess == 0 else 0.0
+
+        error_pct = abs(guess - correct) / correct * 100
+        return max(0.0, 100.0 - error_pct)
 
     def is_empty(self) -> bool:
         return len(self.players) == 0

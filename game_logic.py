@@ -410,27 +410,33 @@ class GameLogic:
                 }
             )
 
-        # Calculate accuracy percentage for winner
+        # Calculate and persist accuracy for every submitted answer in this round
         winner_guess = game.answers[winner_id]
-        accuracy_pct = game.calculate_accuracy_percentage(winner_guess, correct_distance)
+        winner_accuracy_pct = game.calculate_accuracy_percentage(winner_guess, correct_distance)
 
-        logger.info(f"Game {game_id} Round {game.current_round}: {winner.name} won with guess {winner_guess} km (accuracy: {accuracy_pct:.2f}%)")
+        logger.info(
+            f"Game {game_id} Round {game.current_round}: {winner.name} won with guess {winner_guess} km (accuracy: {winner_accuracy_pct:.2f}%)"
+        )
 
         if not game.warmup_active:
-            # Save result to database
-            result_data = {
-                "game_id": game_id,
-                "player_name": winner.name,
-                "guess": winner_guess,
-                "correct_distance": correct_distance,
-                "accuracy_percentage": accuracy_pct,
-                "city1": question.city1,
-                "city2": question.city2,
-                "round_number": game.current_round,
-            }
-
             with SessionLocal() as db:
-                save_game_result(db, result_data)
+                for submitted_player_id, submitted_guess in game.answers.items():
+                    submitted_player = game.players.get(submitted_player_id)
+                    if not submitted_player:
+                        continue
+
+                    accuracy_pct = game.calculate_accuracy_percentage(submitted_guess, correct_distance)
+                    result_data = {
+                        "game_id": game_id,
+                        "player_name": submitted_player.name,
+                        "guess": submitted_guess,
+                        "correct_distance": correct_distance,
+                        "accuracy_percentage": accuracy_pct,
+                        "city1": question.city1,
+                        "city2": question.city2,
+                        "round_number": game.current_round,
+                    }
+                    save_game_result(db, result_data)
 
         if self.ws_handler:
             standings = sorted(
