@@ -8,7 +8,7 @@ let isConnected = false;
 
 function connect() {
   const base = window.location.pathname.replace(/\/$/, ""); // trailing slash entfernen
-  const ws = new WebSocket(`wss://${window.location.host}/ws`);
+  ws = new WebSocket(`wss://${window.location.host}/ws`);
 
   ws.onmessage = (event) => {
     const data = event.data;

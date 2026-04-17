@@ -218,10 +218,11 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             data = await websocket.receive_text()
             await ws_handler.handle_message(player_id, data)
-    except WebSocketDisconnect:
+    except WebSocketDisconnect as e:
+        logger.info(f"WebSocket disconnected for player {player_id} with close code {getattr(e, 'code', None)}")
         await ws_handler.disconnect(player_id, websocket)
     except Exception as e:
-        logger.error(f"WebSocket error for player {player_id}: {e}")
+        logger.error(f"WebSocket error for player {player_id}: {e}", exc_info=True)
         await ws_handler.disconnect(player_id, websocket)
 
 

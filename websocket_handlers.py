@@ -125,7 +125,12 @@ class WebSocketHandler:
                 await self.send_error(player_id, "Unknown message type")
 
         except ValidationError as e:
-            logger.error(f"Invalid message format: {e}")
+            logger.error(
+                "Invalid message format from %s. payload=%r validation=%s",
+                player_id,
+                message_data,
+                e,
+            )
             await self.send_error(player_id, "Invalid message format")
         except json.JSONDecodeError:
             logger.error("Invalid JSON received")
