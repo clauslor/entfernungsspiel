@@ -716,7 +716,7 @@ main.game-layout.lobby-mode .game-column {
     .answer-card {
         position: sticky;
         top: 20px;
-        z-index: 5;
+        z-index: 100;
     }
 
     .answer-card .input-group {
