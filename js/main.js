@@ -11,6 +11,9 @@ let isConnected = false;
 let restorePendingJoinGameId = "";
 let leafletMap = null;
 let leafletLayerGroup = null;
+let countdownTimerId = null;
+let countdownEndTime = null;
+let countdownRemainingSeconds = 0;
 
 const STORAGE_KEYS = {
   PLAYER_NAME: "entfernungsspiel.playerName",
@@ -107,6 +110,54 @@ function focusAndSelect(elementId) {
 function shouldIgnoreGlobalShortcut(event) {
   const tagName = event.target?.tagName;
   return tagName === "INPUT" || tagName === "TEXTAREA" || event.ctrlKey || event.metaKey || event.altKey;
+}
+
+function clearCountdownTimer() {
+  if (countdownTimerId) {
+    clearInterval(countdownTimerId);
+    countdownTimerId = null;
+  }
+}
+
+function renderCountdownValue(totalSeconds) {
+  const safeSeconds = Math.max(0, totalSeconds);
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+  document.getElementById("countdown").textContent =
+    `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function startManagedCountdown(totalSeconds) {
+  clearCountdownTimer();
+
+  countdownRemainingSeconds = Math.max(0, Number(totalSeconds) || 0);
+  countdownEndTime = Date.now() + countdownRemainingSeconds * 1000;
+  renderCountdownValue(countdownRemainingSeconds);
+
+  countdownTimerId = setInterval(() => {
+    const remaining = Math.max(0, Math.ceil((countdownEndTime - Date.now()) / 1000));
+    countdownRemainingSeconds = remaining;
+    renderCountdownValue(remaining);
+
+    if (remaining <= 0) {
+      clearCountdownTimer();
+      document.getElementById("countdown").textContent = "Time's up!";
+    }
+  }, 250);
+}
+
+function pauseManagedCountdown(remainingSeconds) {
+  clearCountdownTimer();
+  countdownRemainingSeconds = Math.max(0, Number(remainingSeconds) || countdownRemainingSeconds || 0);
+  renderCountdownValue(countdownRemainingSeconds);
+}
+
+function resetCountdownDisplay(labelText = "Waiting to start...") {
+  clearCountdownTimer();
+  countdownEndTime = null;
+  countdownRemainingSeconds = 0;
+  document.getElementById("countdownText").textContent = labelText;
+  document.getElementById("countdown").textContent = "--:--";
 }
 
 function ensureLeafletMap() {
@@ -232,6 +283,8 @@ function handleJsonMessage(msg) {
     currentGameStatus = "countdown";
     updateHostControls();
     appendMessage(`⏳ Game starting in ${msg.countdown} seconds...`);
+    document.getElementById("countdownText").textContent = "Game starts in";
+    renderCountdownValue(msg.countdown);
   } else if (msg.type === "game_started") {
     currentGameStatus = "active";
     updateHostControls();
@@ -249,7 +302,8 @@ function handleJsonMessage(msg) {
     if (msg.coordinates) {
       renderQuestionMap(msg.coordinates);
     }
-    set_countdown(msg.time_limit);
+    document.getElementById("countdownText").textContent = "Answer time remaining";
+    startManagedCountdown(msg.time_limit);
   } else if (msg.type === "game_status") {
     appendMessage(`📈 Status: ${msg.status}`);
   } else if (msg.type === "answer_received") {
@@ -274,14 +328,19 @@ function handleJsonMessage(msg) {
   } else if (msg.type === "countdown") {
     const val = msg.value || "...";
     document.getElementById("countdownText").textContent = `Countdown: ${val}`;
+    if (typeof msg.value === "number") {
+      document.getElementById("countdown").textContent = String(msg.value);
+    }
   } else if (msg.type === "game_paused") {
     appendMessage(
       `⏸️ Runde pausiert (${msg.grace_seconds}s): ${msg.player_name || "Spieler"} reconnecting...`,
     );
     document.getElementById("countdownText").textContent = "Paused - waiting for reconnect";
+    pauseManagedCountdown(msg.remaining_seconds);
   } else if (msg.type === "game_resumed") {
     appendMessage("▶️ Runde fortgesetzt");
-    document.getElementById("countdownText").textContent = "Game resumed";
+    document.getElementById("countdownText").textContent = "Answer time remaining";
+    startManagedCountdown(msg.remaining_seconds);
   } else if (msg.type === "round_result") {
     const summary = msg.standings
       .map((s) => `${s.player_name}: ${s.score} (${s.delta >= 0 ? "+" : ""}${s.delta})`)
@@ -306,6 +365,7 @@ function handleJsonMessage(msg) {
     currentGameStatus = "waiting";
     updateHostControls();
     updateUILayout();
+    resetCountdownDisplay();
   } else if (msg.type === "player_joined") {
     // Note: Player joined message doesn't include full player data, so we'll wait for game_info update
     appendMessage(`👋 ${msg.player} joined the game`);
@@ -408,6 +468,7 @@ function handleJsonMessage(msg) {
     updateHostControls();
     clearStoredGame();
     updateUILayout();
+    resetCountdownDisplay("Game finished");
   } else if (msg.type === "name_set") {
     currentPlayerId = msg.player_id;
     localStorage.setItem(STORAGE_KEYS.PLAYER_ID, currentPlayerId);
@@ -420,35 +481,7 @@ function handleJsonMessage(msg) {
   }
 }
 function set_countdown(countdownLimitSeconds) {
-  // Calculate the target end time
-  const endTime = Date.now() + countdownLimitSeconds * 1000;
-
-  // Function to update the countdown display
-  function updateCountdown() {
-    const now = Date.now();
-    let remaining = Math.floor((endTime - now) / 1000);
-
-    // If time is up
-    if (remaining <= 0) {
-      document.getElementById("countdown").textContent = "Time's up!";
-      clearInterval(timerInterval);
-      return;
-    }
-
-    // Calculate minutes and seconds
-    const minutes = Math.floor(remaining / 60);
-    const seconds = remaining % 60;
-
-    // Display with leading zeros
-    document.getElementById("countdown").textContent =
-      `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-  }
-
-  // Initial call to display immediately
-  updateCountdown();
-
-  // Update every second
-  const timerInterval = setInterval(updateCountdown, 1000);
+  startManagedCountdown(countdownLimitSeconds);
 }
 function updateGameSettings(game_id, config) {
   if (config) {
@@ -753,6 +786,7 @@ function leaveGame() {
   document.getElementById("gameInfo").style.display = "none";
   updateHostControls();
   updateUILayout();
+  resetCountdownDisplay();
   appendMessage("You left the game.");
 }
 
@@ -773,6 +807,7 @@ function backToLobby() {
   document.getElementById("gameInfo").style.display = "none";
   clearStoredGame();
   updateUILayout();
+  resetCountdownDisplay();
   appendMessage("Back to lobby. Ready to create or join a new game!");
 }
 
@@ -825,6 +860,7 @@ window.onload = () => {
     document.getElementById("gamePhase").style.display = "block";
     document.getElementById("currentPlayerName").textContent = storedName;
   }
+  resetCountdownDisplay();
   updateUILayout();
   registerKeyboardUX();
   connect();
