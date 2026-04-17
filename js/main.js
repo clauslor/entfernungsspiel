@@ -860,6 +860,59 @@ function clearStoredGame() {
   updateUILayout();
 }
 
+function cleanupGameResources() {
+  """Thorough cleanup of game resources after game ends"""
+  
+  // Cleanup Leaflet map
+  if (leafletResizeObserver) {
+    leafletResizeObserver.disconnect();
+    leafletResizeObserver = null;
+  }
+  
+  if (leafletMap) {
+    if (leafletLayerGroup) {
+      leafletLayerGroup.clearLayers();
+      leafletMap.removeLayer(leafletLayerGroup);
+    }
+    if (leafletTileLayer) {
+      leafletMap.removeLayer(leafletTileLayer);
+    }
+    leafletMap.remove();
+    leafletMap = null;
+    leafletLayerGroup = null;
+    leafletTileLayer = null;
+  }
+  
+  // Clear map container
+  const mapContainer = document.getElementById("mapContainer");
+  if (mapContainer) {
+    mapContainer.classList.remove("has-map");
+    mapContainer.innerHTML = '<div id="mapPlaceholder" class="map-placeholder" data-i18n="mapPlaceholder">Die Karte erscheint mit der naechsten Frage.</div>';
+  }
+  
+  // Clear messages
+  const messagesDiv = document.getElementById("messages");
+  if (messagesDiv) {
+    messagesDiv.innerHTML = "";
+  }
+  
+  // Clear game-specific state
+  currentPlayers = [];
+  currentGameStatus = "waiting";
+  
+  // Reset all answer-related state
+  resetAnswerSubmissionState();
+  
+  // Cancel any pending timeouts
+  if (pendingMapPreparationTimeoutId) {
+    clearTimeout(pendingMapPreparationTimeoutId);
+    pendingMapPreparationTimeoutId = null;
+  }
+  
+  // Clear countdown timer
+  clearCountdownTimer();
+}
+
 function updateHostControls() {
   const warmupBtn = document.getElementById("warmupBtn");
   const lockBtn = document.getElementById("lockSettingsBtn");
@@ -1082,9 +1135,10 @@ function setReady() {
 }
 
 function leaveGame() {
+  // Cleanup game resources first
+  cleanupGameResources();
   const message = { type: "leave_game", data: {} };
   sendMessage(message);
-  resetAnswerSubmissionState();
   clearStoredGame();
   document.getElementById("inGameButtons").style.display = "none";
   document.getElementById("gameInfo").style.display = "none";
@@ -1095,6 +1149,8 @@ function leaveGame() {
 }
 
 function playAgain() {
+  // Cleanup old game resources first
+  cleanupGameResources();
   // Close modal
   document.getElementById("gameFinishedModal").style.display = "none";
   // Create new game
@@ -1102,6 +1158,8 @@ function playAgain() {
 }
 
 function backToLobby() {
+  // Cleanup old game resources first
+  cleanupGameResources();
   // Close modal
   document.getElementById("gameFinishedModal").style.display = "none";
   // Reset UI to show setup phase
@@ -1109,7 +1167,6 @@ function backToLobby() {
   document.getElementById("gamePhase").style.display = "block";
   document.getElementById("inGameButtons").style.display = "none";
   document.getElementById("gameInfo").style.display = "none";
-  resetAnswerSubmissionState();
   clearStoredGame();
   updateUILayout();
   resetCountdownDisplay();
