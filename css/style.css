@@ -79,6 +79,28 @@ main.game-layout {
     margin-bottom: 30px;
 }
 
+main.game-layout.lobby-mode {
+    grid-template-columns: 1fr;
+}
+
+main.game-layout.lobby-mode .game-column {
+    display: none;
+}
+
+#lobbyControls {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 14px;
+    background: #f8fafc;
+}
+
+#matchControls {
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    padding: 14px;
+    background: #eff6ff;
+}
+
 /* ========================================
    CARDS
    ======================================== */
@@ -125,6 +147,23 @@ main.game-layout {
     font-size: 1em;
     transition: all 0.2s ease;
     background: white;
+    color: var(--text-primary);
+}
+
+.guess-input {
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
+}
+
+.input-hint {
+    margin-bottom: 12px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.input-hint strong {
     color: var(--text-primary);
 }
 
@@ -285,14 +324,27 @@ main.game-layout {
 
 .map-container {
     margin-top: 20px;
+    min-height: 380px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    background: #eaf2ff;
 }
 
-.map-container svg {
+.map-container svg,
+#mapContainer {
     max-width: 100%;
-    height: auto;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    height: 380px;
     box-shadow: var(--shadow-md);
+}
+
+.leaflet-container {
+    font: inherit;
+}
+
+.map-label {
+    font-weight: 700;
+    color: var(--text-primary);
 }
 
 /* ========================================
@@ -301,6 +353,32 @@ main.game-layout {
 
 .answer-card {
     border-left: 4px solid var(--success-color);
+}
+
+@media (min-width: 1025px) {
+    .answer-card {
+        position: sticky;
+        top: 20px;
+        z-index: 5;
+    }
+
+    .answer-card .input-group {
+        align-items: stretch;
+    }
+
+    .answer-card .btn {
+        min-width: 180px;
+    }
+
+    .game-column {
+        display: grid;
+        gap: 20px;
+        align-content: start;
+    }
+
+    .question-card {
+        min-height: 620px;
+    }
 }
 
 .fade{

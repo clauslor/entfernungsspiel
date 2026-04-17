@@ -16,48 +16,6 @@ class GameLogic:
     def __init__(self, game_room: GameRoom, ws_handler=None):
         self.game_room = game_room
         self.ws_handler = ws_handler
-
-    def generate_map_svg(self, lat1: float, lon1: float, lat2: float, lon2: float, city1: str, city2: str) -> str:
-        """Generate SVG map of Germany with two cities and a line between them"""
-        # Germany approximate bounds: lat 47-55, lon 5-15
-        # SVG viewBox: 0 0 450 600 (matching the static map)
-        # Map scale: 45 units per degree lon, 75 units per degree lat
-        
-        def coord_to_svg(lat: float, lon: float) -> Tuple[float, float]:
-            # Transform lat/lon to SVG coordinates
-            x = (lon - 5) * 45  # 10 degrees lon -> 450 units
-            y = (55 - lat) * 75  # 8 degrees lat -> 600 units, inverted
-            return x, y
-        
-        x1, y1 = coord_to_svg(lat1, lon1)
-        x2, y2 = coord_to_svg(lat2, lon2)
-        
-        # Load the static Germany map
-        with open('static/Karte_gruenes_deutschland.svg', 'r', encoding='utf-8') as f:
-            static_svg = f.read()
-        
-        # Extract the content between <svg> and </svg>
-        start = static_svg.find('<g')
-        end = static_svg.rfind('</g>') + 4
-        germany_map = static_svg[start:end]
-        
-        svg = f'''<svg width="450" height="600" viewBox="0 0 450 600" xmlns="http://www.w3.org/2000/svg">
-            <!-- Germany map background -->
-            {germany_map}
-            
-            <!-- Line between cities -->
-            <line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="green" stroke-width="3"/>
-            
-            <!-- City 1 -->
-            <circle cx="{x1}" cy="{y1}" r="8" fill="red" stroke="black" stroke-width="2"/>
-            <text x="{x1}" y="{y1-10}" text-anchor="middle" font-size="12" font-weight="bold" fill="black">{city1}</text>
-            
-            <!-- City 2 -->
-            <circle cx="{x2}" cy="{y2}" r="8" fill="blue" stroke="black" stroke-width="2"/>
-            <text x="{x2}" y="{y2-10}" text-anchor="middle" font-size="12" font-weight="bold" fill="black">{city2}</text>
-        </svg>'''
-        
-        return svg
         
     def set_ws_handler(self, ws_handler):
         """Set the WebSocket handler for broadcasting messages"""
@@ -246,7 +204,6 @@ class GameLogic:
                 return
             
             question = game.current_question
-            svg_map = self.generate_map_svg(question.lat1, question.lon1, question.lat2, question.lon2, question.city1, question.city2)
             data = {
                 "question_id": str(question.question_id),
                 "round": game.current_round,
@@ -256,7 +213,18 @@ class GameLogic:
                 "city1": question.city1,
                 "city2": question.city2,
                 "question": f"Wie weit ist es von {question.city1} nach {question.city2}? (in km)",
-                "map_svg": svg_map
+                "coordinates": {
+                    "from": {
+                        "name": question.city1,
+                        "lat": question.lat1,
+                        "lon": question.lon1,
+                    },
+                    "to": {
+                        "name": question.city2,
+                        "lat": question.lat2,
+                        "lon": question.lon2,
+                    },
+                },
             }
             
             # Broadcast to all players in the game

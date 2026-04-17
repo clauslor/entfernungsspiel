@@ -9,6 +9,8 @@ let currentIsHost = false;
 let totalTime;
 let isConnected = false;
 let restorePendingJoinGameId = "";
+let leafletMap = null;
+let leafletLayerGroup = null;
 
 const STORAGE_KEYS = {
   PLAYER_NAME: "entfernungsspiel.playerName",
@@ -57,6 +59,115 @@ function connect() {
   };
 }
 
+function updateUILayout() {
+  const layout = document.querySelector("main.game-layout");
+  const inGame = Boolean(currentGameId);
+
+  const lobbyControls = document.getElementById("lobbyControls");
+  const matchControls = document.getElementById("matchControls");
+  const countdownCard = document.getElementById("countdownCard");
+  const rulesCard = document.getElementById("rulesCard");
+  const playersCard = document.getElementById("playersCard");
+
+  if (layout) {
+    layout.classList.toggle("lobby-mode", !inGame);
+  }
+
+  if (lobbyControls) {
+    lobbyControls.style.display = inGame ? "none" : "block";
+  }
+  if (matchControls) {
+    matchControls.style.display = inGame ? "block" : "none";
+  }
+
+  if (countdownCard) {
+    countdownCard.style.display = inGame ? "block" : "none";
+  }
+  if (rulesCard) {
+    rulesCard.style.display = inGame ? "block" : "none";
+  }
+  if (playersCard) {
+    playersCard.style.display = inGame ? "block" : "none";
+  }
+
+  if (inGame) {
+    setTimeout(() => focusAndSelect("guessInput"), 0);
+  }
+}
+
+function focusAndSelect(elementId) {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+  element.focus();
+  if (typeof element.select === "function") {
+    element.select();
+  }
+}
+
+function shouldIgnoreGlobalShortcut(event) {
+  const tagName = event.target?.tagName;
+  return tagName === "INPUT" || tagName === "TEXTAREA" || event.ctrlKey || event.metaKey || event.altKey;
+}
+
+function ensureLeafletMap() {
+  const container = document.getElementById("mapContainer");
+  if (!container || typeof L === "undefined") {
+    return null;
+  }
+
+  if (!leafletMap) {
+    leafletMap = L.map(container, {
+      zoomControl: true,
+      attributionControl: true,
+    });
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: "&copy; OpenStreetMap contributors",
+    }).addTo(leafletMap);
+
+    leafletLayerGroup = L.featureGroup().addTo(leafletMap);
+  }
+
+  return leafletMap;
+}
+
+function renderQuestionMap(coordinates) {
+  const map = ensureLeafletMap();
+  if (!map || !coordinates || !coordinates.from || !coordinates.to) {
+    return;
+  }
+
+  if (!leafletLayerGroup) {
+    leafletLayerGroup = L.featureGroup().addTo(map);
+  }
+
+  leafletLayerGroup.clearLayers();
+
+  const fromPoint = [coordinates.from.lat, coordinates.from.lon];
+  const toPoint = [coordinates.to.lat, coordinates.to.lon];
+
+  const fromMarker = L.marker(fromPoint).bindPopup(coordinates.from.name);
+  const toMarker = L.marker(toPoint).bindPopup(coordinates.to.name);
+  const line = L.polyline([fromPoint, toPoint], {
+    color: "#16a34a",
+    weight: 4,
+    opacity: 0.85,
+  });
+
+  leafletLayerGroup.addLayer(fromMarker);
+  leafletLayerGroup.addLayer(toMarker);
+  leafletLayerGroup.addLayer(line);
+
+  const bounds = L.latLngBounds([fromPoint, toPoint]);
+  map.fitBounds(bounds.pad(0.45));
+
+  setTimeout(() => {
+    map.invalidateSize();
+    map.fitBounds(bounds.pad(0.45));
+  }, 50);
+}
+
 function handleJsonMessage(msg) {
   console.log("Message received:", msg);
 
@@ -91,6 +202,7 @@ function handleJsonMessage(msg) {
       `<li>⏳ ${playerName} (you)</li>`;
     document.getElementById("playerCount").textContent = "1";
     appendMessage(`✅ Game created! Game ID: ${msg.game_id}`);
+    updateUILayout();
   } else if (msg.type === "game_joined") {
     currentGameId = msg.game_id;
     saveSessionToStorage();
@@ -98,6 +210,7 @@ function handleJsonMessage(msg) {
     document.getElementById("gameInfo").style.display = "block";
     appendMessage(`✅ Joined game ${msg.game_id}`);
     document.getElementById("inGameButtons").style.display = "block";
+    updateUILayout();
   } else if (msg.type === "game_info") {
     currentGameId = msg.game_id;
     saveSessionToStorage();
@@ -114,6 +227,7 @@ function handleJsonMessage(msg) {
     updateGameSettings(msg.game_id, msg.config);
     document.getElementById("inGameButtons").style.display = "block";
     updateHostControls();
+    updateUILayout();
   } else if (msg.type === "game_starting") {
     currentGameStatus = "countdown";
     updateHostControls();
@@ -132,9 +246,8 @@ function handleJsonMessage(msg) {
     document.getElementById("city2").textContent = `${msg.cities[1]}`;
     document.getElementById("guessInput").value = "";
     document.getElementById("guessInput").focus();
-    // Update map
-    if (msg.map_svg) {
-      document.getElementById("mapContainer").innerHTML = msg.map_svg;
+    if (msg.coordinates) {
+      renderQuestionMap(msg.coordinates);
     }
     set_countdown(msg.time_limit);
   } else if (msg.type === "game_status") {
@@ -192,6 +305,7 @@ function handleJsonMessage(msg) {
     currentPlayers = [];
     currentGameStatus = "waiting";
     updateHostControls();
+    updateUILayout();
   } else if (msg.type === "player_joined") {
     // Note: Player joined message doesn't include full player data, so we'll wait for game_info update
     appendMessage(`👋 ${msg.player} joined the game`);
@@ -240,6 +354,7 @@ function handleJsonMessage(msg) {
       restorePendingJoinGameId = msg.game_id;
       localStorage.setItem(STORAGE_KEYS.GAME_ID, msg.game_id);
     }
+    updateUILayout();
   } else if (msg.type === "error") {
     appendMessage(`❌ Error: ${msg.message}`);
     if (msg.message && msg.message.includes("Cannot join game")) {
@@ -292,6 +407,7 @@ function handleJsonMessage(msg) {
     currentGameStatus = "finished";
     updateHostControls();
     clearStoredGame();
+    updateUILayout();
   } else if (msg.type === "name_set") {
     currentPlayerId = msg.player_id;
     localStorage.setItem(STORAGE_KEYS.PLAYER_ID, currentPlayerId);
@@ -405,6 +521,7 @@ function clearStoredGame() {
   currentIsHost = false;
   currentSettingsLocked = false;
   localStorage.removeItem(STORAGE_KEYS.GAME_ID);
+  updateUILayout();
 }
 
 function updateHostControls() {
@@ -500,6 +617,66 @@ function notifyTabActive() {
   }
 }
 
+function registerKeyboardUX() {
+  const playerNameInput = document.getElementById("playerName");
+  const gameIdInput = document.getElementById("gameIdInput");
+  const guessInput = document.getElementById("guessInput");
+
+  if (playerNameInput) {
+    playerNameInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        setPlayerName();
+      }
+    });
+  }
+
+  if (gameIdInput) {
+    gameIdInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        joinGame();
+      }
+    });
+  }
+
+  if (guessInput) {
+    guessInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        sendGuess();
+      }
+      if (event.key === "Escape") {
+        guessInput.value = "";
+      }
+    });
+
+    guessInput.addEventListener("focus", () => {
+      guessInput.select();
+    });
+  }
+
+  document.addEventListener("keydown", (event) => {
+    if (shouldIgnoreGlobalShortcut(event)) return;
+
+    const key = event.key.toLowerCase();
+    if (key === "n") {
+      event.preventDefault();
+      focusAndSelect("playerName");
+    } else if (key === "j") {
+      event.preventDefault();
+      if (document.getElementById("gamePhase")?.style.display !== "none") {
+        showJoinGame();
+      }
+    } else if (key === "g") {
+      event.preventDefault();
+      if (currentGameId) {
+        focusAndSelect("guessInput");
+      }
+    }
+  });
+}
+
 function setPlayerName() {
   const nameInput = document.getElementById("playerName").value.trim();
   if (!nameInput) return alert("Name cannot be empty.");
@@ -519,6 +696,7 @@ function setPlayerName() {
   document.getElementById("setupPhase").style.display = "none";
   document.getElementById("gamePhase").style.display = "block";
   document.getElementById("currentPlayerName").textContent = playerName;
+  updateUILayout();
 }
 
 function createGame() {
@@ -539,6 +717,7 @@ function createGame() {
 
 function showJoinGame() {
   document.getElementById("joinGameForm").style.display = "block";
+  setTimeout(() => focusAndSelect("gameIdInput"), 0);
 }
 
 function hideJoinGame() {
@@ -573,6 +752,7 @@ function leaveGame() {
   document.getElementById("inGameButtons").style.display = "none";
   document.getElementById("gameInfo").style.display = "none";
   updateHostControls();
+  updateUILayout();
   appendMessage("You left the game.");
 }
 
@@ -591,7 +771,8 @@ function backToLobby() {
   document.getElementById("gamePhase").style.display = "block";
   document.getElementById("inGameButtons").style.display = "none";
   document.getElementById("gameInfo").style.display = "none";
-  currentGameId = "";
+  clearStoredGame();
+  updateUILayout();
   appendMessage("Back to lobby. Ready to create or join a new game!");
 }
 
@@ -644,6 +825,8 @@ window.onload = () => {
     document.getElementById("gamePhase").style.display = "block";
     document.getElementById("currentPlayerName").textContent = storedName;
   }
+  updateUILayout();
+  registerKeyboardUX();
   connect();
 };
 

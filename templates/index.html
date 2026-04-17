@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Entfernungsspiel - Guess the Distance Game</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 
 </head>
 
@@ -25,11 +27,12 @@
             <div class="game-column">
 
                 <!-- Answer Input Card -->
-                <section class="card answer-card">
+                <section class="card answer-card" id="answerCard">
                     <h2 class="card-title">📍 Your Answer</h2>
+                    <p class="input-hint">Shortcut: press <strong>G</strong> to jump here, <strong>Enter</strong> to submit.</p>
                     <div class="input-group">
-                        <input type="number" id="guessInput" class="input-field" placeholder="Distance in km" min="0">
-                        <button onclick="sendGuess()" class="btn btn-primary">Submit Answer</button>
+                        <input type="number" id="guessInput" class="input-field guess-input" placeholder="Distance in km" min="0" inputmode="numeric" autocomplete="off">
+                        <button onclick="sendGuess()" class="btn btn-primary" id="submitGuessBtn">Submit Answer</button>
                     </div>
 
                     <!-- Answer Feedback Card (shown after submission) -->
@@ -41,7 +44,7 @@
                 </section>
 
                 <!-- Question Card -->
-                <section class="card question-card">
+                <section class="card question-card" id="questionCard">
                     <h2 class="card-title">❓ Current Question</h2>
                     <div class="question-content">
                         <p class="question-text">What is the distance between:</p>
@@ -55,7 +58,7 @@
                             </div>
                         </div>
                         <div class="map-container" id="mapContainer" style="margin-top: 20px; text-align: center;">
-                            <!-- SVG map will be inserted here -->
+                            <!-- Leaflet map will be rendered here -->
                         </div>
                     </div>
                 </section>
@@ -67,6 +70,7 @@
                 <section class="card player-setup">
                     <h2 class="card-title">👤 Player Setup</h2>
                     <div id="setupPhase">
+                        <p class="input-hint">Shortcut: press <strong>N</strong> to focus your name field.</p>
                         <div class="input-group">
                             <input type="text" id="playerName" class="input-field" placeholder="Enter your name">
                             <button onclick="setPlayerName()" class="btn btn-primary">Set Name</button>
@@ -74,11 +78,13 @@
                     </div>
                     <div id="gamePhase" style="display: none;">
                         <p class="player-info">Player: <strong id="currentPlayerName"></strong></p>
+                        <div id="lobbyControls">
                         <div class="button-group">
                             <button onclick="createGame()" class="btn btn-primary">➕ Create Game</button>
                             <button onclick="showJoinGame()" class="btn btn-secondary">🔗 Join Game</button>
                         </div>
                         <div id="joinGameForm" style="display: none;">
+                            <p class="input-hint">Shortcut: press <strong>J</strong> to focus the game code field.</p>
                             <div class="input-group">
                                 <input type="text" id="gameIdInput" class="input-field" placeholder="Enter game ID">
                                 <button onclick="joinGame()" class="btn btn-primary">Join</button>
@@ -90,6 +96,8 @@
                             <p style="margin: 0 0 8px 0; font-size: 0.9em; color: #475569;">Open games (countdown not started):</p>
                             <ul id="lobbyGamesList" style="margin: 0; padding-left: 18px;"></ul>
                         </div>
+                        </div>
+                        <div id="matchControls" style="display: none;">
                         <!-- Game Info Section -->
                         <div id="gameInfo"
                             style="display: none; background: #f0f9ff; border: 2px solid #3b82f6; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
@@ -109,11 +117,12 @@
                                 style="display: none;">🔒 Lock Settings</button>
                             <button onclick="leaveGame()" class="btn btn-danger">✕ Leave</button>
                         </div>
+                        </div>
                     </div>
                 </section>
 
                 <!-- Countdown Card -->
-                <section class="card countdown-card">
+                <section class="card countdown-card" id="countdownCard">
                     <h2 class="card-title">⏱️ Game Status</h2>
                     <div id="countdownDisplay" class="status-display">
                         <p id="countdownText" class="status-text">Waiting to start...</p>
@@ -122,13 +131,13 @@
                 </section>
 
                 <!-- Rules Card -->
-                <section class="card rules-card">
+                <section class="card rules-card" id="rulesCard">
                     <h2 class="card-title">⚙️ Settings</h2>
                     <p id="rulesText" class="settings-text">Waiting for game settings...</p>
                 </section>
 
                 <!-- Players Card -->
-                <section class="card players-card">
+                <section class="card players-card" id="playersCard">
                     <h2 class="card-title">👥 Players Online</h2>
                     <ul id="playerList" class="player-list"></ul>
                 </section>
@@ -192,6 +201,8 @@
         </div>
     </div>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="js/main.js"></script>
 
 </body>
