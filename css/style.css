@@ -134,6 +134,20 @@ header.header {
     border-color: rgba(255, 255, 255, 0.8);
 }
 
+@media (max-width: 480px) {
+    .language-switcher {
+        gap: 4px;
+        top: 15px;
+        right: 15px;
+    }
+
+    .lang-btn {
+        padding: 6px 10px;
+        font-size: 0.8em;
+        border-radius: 4px;
+    }
+}
+
 main.game-layout {
     display: grid;
     grid-template-columns: 1fr;
@@ -197,6 +211,32 @@ main.game-layout.lobby-mode .game-column {
 #joinGameForm .input-group:last-of-type #gamePinInput {
     flex: 0 0 150px;
     min-width: 150px;
+}
+
+@media (max-width: 480px) {
+    #joinGameForm .input-group:first-of-type {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    #joinGameForm .input-group:first-of-type #gameIdInput {
+        flex: 1 1 100%;
+        min-width: 150px;
+    }
+
+    #joinGameForm .input-group:first-of-type .btn {
+        flex: 1 1 45%;
+    }
+
+    #joinGameForm .input-group:last-of-type {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    #joinGameForm .input-group:last-of-type #gamePinInput {
+        flex: 1;
+        min-width: 100%;
+    }
 }
 
 #lobbyGames {
@@ -458,9 +498,82 @@ main.game-layout.lobby-mode .game-column {
     border-left: 4px solid var(--primary-color);
 }
 
-/* ========================================
-   QUESTION CARD
-   ======================================== */
+/* Player Setup for Tablet/Phone */
+@media (max-width: 768px) {
+    .player-setup {
+        background: white;
+        border-left: 4px solid var(--primary-color);
+    }
+
+    .button-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin: 15px 0;
+    }
+
+    .button-group .btn {
+        padding: 10px 15px;
+        font-size: 0.95em;
+    }
+}
+
+@media (max-width: 480px) {
+    .player-setup {
+        background: white;
+        border-left: 4px solid var(--primary-color);
+    }
+
+    .button-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        margin: 12px 0;
+    }
+
+    .button-group .btn {
+        padding: 8px 10px;
+        font-size: 0.85em;
+    }
+
+    .player-info {
+        font-size: 0.9em;
+    }
+
+    #gameInfo {
+        padding: 10px 0;
+    }
+
+    .game-info-label {
+        font-size: 0.9em;
+        margin-bottom: 4px;
+    }
+
+    .game-id-display {
+        font-size: 1.2em;
+        margin-bottom: 8px;
+    }
+
+    .game-pin-display {
+        font-size: 1.3em;
+    }
+
+    #inGameButtons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+    }
+
+    #inGameButtons .btn {
+        padding: 8px 10px;
+        font-size: 0.8em;
+    }
+
+    #inGamePlayerList {
+        max-height: 120px;
+        overflow-y: auto;
+    }
+}
 
 .question-card {
     background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
@@ -598,6 +711,7 @@ main.game-layout.lobby-mode .game-column {
     border-left: 4px solid var(--success-color);
 }
 
+/* Laptop Layout */
 @media (min-width: 1025px) {
     .answer-card {
         position: sticky;
@@ -618,6 +732,113 @@ main.game-layout.lobby-mode .game-column {
         gap: 20px;
         align-content: start;
     }
+}
+
+/* Tablet Layout */
+@media (max-width: 1024px) and (min-width: 769px) {
+    .card {
+        padding: 18px;
+    }
+
+    .answer-card {
+        margin-bottom: 15px;
+    }
+
+    .question-card {
+        margin-bottom: 15px;
+    }
+}
+
+/* Phone Layout - Optimized */
+@media (max-width: 768px) {
+    .game-column {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .card {
+        padding: 16px;
+        margin-bottom: 12px;
+    }
+
+    .card-title {
+        font-size: 1.1em;
+        margin-bottom: 12px;
+    }
+
+    .answer-card {
+        margin-bottom: 10px;
+        order: -1;
+    }
+
+    .answer-card .input-group {
+        flex-direction: row;
+        gap: 8px;
+    }
+
+    .guess-input {
+        font-size: 16px;
+        padding: 12px;
+    }
+
+    #submitGuessBtn {
+        padding: 12px 20px;
+        font-size: 0.95em;
+        white-space: nowrap;
+    }
+
+    .question-card {
+        margin-bottom: 12px;
+    }
+
+    .input-hint {
+        font-size: 0.85em;
+        line-height: 1.4;
+    }
+}
+
+@media (max-width: 480px) {
+    .card {
+        padding: 14px;
+        margin-bottom: 10px;
+    }
+
+    .card-title {
+        font-size: 1em;
+        margin-bottom: 10px;
+    }
+
+    .answer-card .input-group {
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .guess-input {
+        width: 100%;
+        font-size: 16px;
+        padding: 10px;
+    }
+
+    #submitGuessBtn {
+        width: 100%;
+        padding: 10px;
+        font-size: 0.9em;
+    }
+
+    .input-hint {
+        font-size: 0.8em;
+        line-height: 1.3;
+    }
+
+    .question-text {
+        font-size: 0.95em;
+    }
+
+    .cities-container {
+        padding: 10px 0;
+    }
+}
 
     .question-card {
         min-height: 620px;
@@ -892,6 +1113,8 @@ main.game-layout.lobby-mode .game-column {
     align-items: center;
     justify-content: center;
     animation: fadeIn 0.3s ease;
+    overflow-y: auto;
+    padding: 20px;
 }
 
 .game-finished-modal-content {
@@ -899,9 +1122,11 @@ main.game-layout.lobby-mode .game-column {
     border-radius: 16px;
     padding: 40px;
     max-width: 600px;
-    width: 90%;
+    width: 100%;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     text-align: center;
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 .game-finished-celebration {
@@ -969,6 +1194,24 @@ main.game-layout.lobby-mode .game-column {
     text-align: center;
 }
 
+.round-review-section {
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+.round-review-title {
+    font-size: 1.1em;
+    margin-bottom: 12px;
+    color: #2d3748;
+}
+
+.round-review-list {
+    max-height: 300px;
+    overflow-y: auto;
+    gap: 10px;
+    display: grid;
+}
+
 .game-finished-actions {
     display: flex;
     gap: 12px;
@@ -993,6 +1236,177 @@ main.game-layout.lobby-mode .game-column {
 .game-finished-btn-secondary {
     background: #e2e8f0;
     color: #2d3748;
+}
+
+/* Mobile: Tablet and below */
+@media (max-width: 768px) {
+    #gameFinishedModal {
+        padding: 10px;
+    }
+
+    .game-finished-modal-content {
+        padding: 25px 20px;
+        max-height: 95vh;
+    }
+
+    .game-finished-celebration {
+        font-size: 2em;
+        margin-bottom: 15px;
+    }
+
+    .game-finished-title {
+        font-size: 1.8em;
+        margin-bottom: 8px;
+    }
+
+    .winner-section {
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+
+    .winner-name {
+        font-size: 1.5em;
+    }
+
+    .final-scores-section {
+        margin-bottom: 15px;
+    }
+
+    .final-scores-title {
+        font-size: 1em;
+        margin-bottom: 10px;
+    }
+
+    #scoresTable {
+        font-size: 0.9em;
+    }
+
+    .scores-header-cell {
+        padding: 8px;
+    }
+
+    .round-review-section {
+        margin-bottom: 15px;
+    }
+
+    .round-review-title {
+        font-size: 1em;
+        margin-bottom: 10px;
+    }
+
+    .round-review-list {
+        max-height: 250px;
+    }
+
+    .game-finished-actions {
+        gap: 8px;
+    }
+
+    .game-finished-btn {
+        padding: 10px 20px;
+        font-size: 0.95em;
+        flex: 1;
+    }
+}
+
+/* Mobile: Phone */
+@media (max-width: 480px) {
+    #gameFinishedModal {
+        padding: 5px;
+    }
+
+    .game-finished-modal-content {
+        padding: 20px 15px;
+        border-radius: 12px;
+        max-height: 95vh;
+    }
+
+    .game-finished-celebration {
+        font-size: 1.5em;
+        margin-bottom: 10px;
+    }
+
+    .game-finished-title {
+        font-size: 1.4em;
+        margin-bottom: 6px;
+    }
+
+    .winner-section {
+        padding: 12px;
+        margin-bottom: 12px;
+        border-radius: 8px;
+    }
+
+    .winner-label {
+        font-size: 0.8em;
+        margin-bottom: 4px;
+    }
+
+    .winner-name {
+        font-size: 1.3em;
+    }
+
+    .final-scores-section {
+        margin-bottom: 12px;
+    }
+
+    .final-scores-title {
+        font-size: 0.95em;
+        margin-bottom: 8px;
+    }
+
+    #scoresTable {
+        font-size: 0.85em;
+    }
+
+    .scores-header-cell {
+        padding: 6px;
+        font-size: 0.85em;
+    }
+
+    #scoresTable td {
+        padding: 8px 4px;
+        font-size: 0.85em;
+    }
+
+    .round-review-section {
+        margin-bottom: 12px;
+    }
+
+    .round-review-title {
+        font-size: 0.95em;
+        margin-bottom: 8px;
+    }
+
+    .round-review-card {
+        padding: 10px 12px;
+    }
+
+    .round-review-question {
+        font-weight: 600;
+        font-size: 0.9em;
+    }
+
+    .round-review-solution {
+        font-size: 0.9em;
+        padding: 8px 10px;
+    }
+
+    .round-review-list {
+        max-height: 200px;
+        gap: 8px;
+    }
+
+    .game-finished-actions {
+        gap: 6px;
+        flex-direction: column;
+    }
+
+    .game-finished-btn {
+        padding: 10px 15px;
+        font-size: 0.9em;
+        width: 100%;
+    }
 }
 
 @keyframes fadeIn {
