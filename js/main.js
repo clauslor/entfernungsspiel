@@ -11,6 +11,9 @@ let isConnected = false;
 let restorePendingJoinGameId = "";
 let leafletMap = null;
 let leafletLayerGroup = null;
+let leafletTileLayer = null;
+let leafletResizeObserver = null;
+let pendingMapPreparationTimeoutId = null;
 let countdownTimerId = null;
 let countdownEndTime = null;
 let countdownRemainingSeconds = 0;
@@ -53,7 +56,7 @@ function connect() {
 
   ws.onopen = () => {
     isConnected = true;
-    appendMessage(`✅ Connected to server: wss://${window.location.host}${base}/ws`);
+    appendMessage(`✅ Ready to play!`);
     sendMessage({ type: "tab_active", data: {} });
     restoreSessionFromStorage();
   };
@@ -103,9 +106,37 @@ function updateUILayout() {
 
   if (inGame) {
     setTimeout(() => focusAndSelect("guessInput"), 0);
+    queueMapPreparation();
+  }
+}
+
+function isMapContainerReady(container) {
+  if (!container) return false;
+
+  const rect = container.getBoundingClientRect();
+  return rect.width > 100 && rect.height > 100;
+}
+
+function queueMapPreparation(attempt = 0) {
+  if (pendingMapPreparationTimeoutId) {
+    clearTimeout(pendingMapPreparationTimeoutId);
+    pendingMapPreparationTimeoutId = null;
+  }
+
+  pendingMapPreparationTimeoutId = setTimeout(() => {
+    pendingMapPreparationTimeoutId = null;
+
+    const container = document.getElementById("mapContainer");
+    if (!isMapContainerReady(container)) {
+      if (attempt < 10) {
+        queueMapPreparation(attempt + 1);
+      }
+      return;
+    }
+
     prepareMapForGameplay();
     scheduleLeafletResize();
-  }
+  }, attempt === 0 ? 0 : 60);
 }
 
 function prepareMapForGameplay() {
@@ -125,16 +156,51 @@ function prepareMapForGameplay() {
   scheduleLeafletResize();
 }
 
+function redrawLeafletMap() {
+  if (!leafletMap) return;
+
+  leafletMap.invalidateSize({
+    pan: false,
+    debounceMoveend: true,
+  });
+
+  if (leafletTileLayer && typeof leafletTileLayer.redraw === "function") {
+    leafletTileLayer.redraw();
+  }
+}
+
 function scheduleLeafletResize() {
   if (!leafletMap) return;
 
   setTimeout(() => {
-    leafletMap.invalidateSize();
+    redrawLeafletMap();
   }, 0);
 
   setTimeout(() => {
-    leafletMap.invalidateSize();
+    redrawLeafletMap();
   }, 120);
+
+  setTimeout(() => {
+    redrawLeafletMap();
+  }, 260);
+}
+
+function attachLeafletResizeObserver(container) {
+  if (!container || leafletResizeObserver || typeof ResizeObserver === "undefined") {
+    return;
+  }
+
+  leafletResizeObserver = new ResizeObserver((entries) => {
+    for (const entry of entries) {
+      if (entry.target !== container) continue;
+      const { width, height } = entry.contentRect;
+      if (width > 0 && height > 0) {
+        scheduleLeafletResize();
+      }
+    }
+  });
+
+  leafletResizeObserver.observe(container);
 }
 
 function focusAndSelect(elementId) {
@@ -351,6 +417,12 @@ function ensureLeafletMap() {
     return null;
   }
 
+  if (!isMapContainerReady(container)) {
+    return null;
+  }
+
+  attachLeafletResizeObserver(container);
+
   if (!leafletMap) {
     leafletMap = L.map(container, {
       zoomControl: true,
@@ -359,15 +431,20 @@ function ensureLeafletMap() {
       zoomAnimation: false,
     });
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    leafletTileLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 18,
       attribution: "&copy; OpenStreetMap contributors",
       keepBuffer: 4,
+      updateWhenIdle: true,
+      updateWhenZooming: false,
     }).addTo(leafletMap);
 
     leafletLayerGroup = L.featureGroup().addTo(leafletMap);
     leafletMap.setView(DEFAULT_MAP_VIEW.center, DEFAULT_MAP_VIEW.zoom, {
       animate: false,
+    });
+    leafletMap.whenReady(() => {
+      scheduleLeafletResize();
     });
   }
 
@@ -417,7 +494,7 @@ function renderQuestionMap(coordinates) {
   scheduleLeafletResize();
 
   setTimeout(() => {
-    map.invalidateSize();
+    redrawLeafletMap();
     map.flyToBounds(bounds.pad(0.45), {
       animate: false,
       duration: 0,
