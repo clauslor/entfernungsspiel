@@ -29,6 +29,7 @@ class Player:
     name: str
     ready: bool = False
     score: int = 0
+    tab_away: bool = False
     websocket: Optional['WebSocket'] = None
     game_id: Optional[str] = None
 

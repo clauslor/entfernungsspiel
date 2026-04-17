@@ -5,10 +5,25 @@ let currentPlayerId = "";
 let currentPlayers = [];
 let totalTime;
 let isConnected = false;
+let restorePendingJoinGameId = "";
+
+const STORAGE_KEYS = {
+  PLAYER_NAME: "entfernungsspiel.playerName",
+  PLAYER_ID: "entfernungsspiel.playerId",
+  GAME_ID: "entfernungsspiel.gameId",
+};
 
 function connect() {
+  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
+
   const base = window.location.pathname.replace(/\/$/, ""); // trailing slash entfernen
-  ws = new WebSocket(`wss://${window.location.host}/ws`);
+  const storedPlayerId = localStorage.getItem(STORAGE_KEYS.PLAYER_ID);
+  const playerParam = storedPlayerId
+    ? `?player_id=${encodeURIComponent(storedPlayerId)}`
+    : "";
+  ws = new WebSocket(`wss://${window.location.host}/ws${playerParam}`);
 
   ws.onmessage = (event) => {
     const data = event.data;
@@ -23,6 +38,8 @@ function connect() {
   ws.onopen = () => {
     isConnected = true;
     appendMessage(`✅ Connected to server: wss://${window.location.host}${base}/ws`);
+    sendMessage({ type: "tab_active", data: {} });
+    restoreSessionFromStorage();
   };
 
   ws.onclose = () => {
@@ -50,14 +67,17 @@ function handleJsonMessage(msg) {
         appendMessage(`  - Game ${game.id} (${game.player_count} players)`);
       });
     }
+    renderLobbyGames(msg.active_games);
   } else if (msg.type === "game_created") {
     currentGameId = msg.game_id;
+    saveSessionToStorage();
     currentPlayers = [
       {
         id: currentPlayerId,
         name: playerName,
         ready: false,
         score: 0,
+        tab_away: false,
         is_host: true,
       },
     ];
@@ -70,12 +90,14 @@ function handleJsonMessage(msg) {
     appendMessage(`✅ Game created! Game ID: ${msg.game_id}`);
   } else if (msg.type === "game_joined") {
     currentGameId = msg.game_id;
+    saveSessionToStorage();
     document.getElementById("gameIdDisplay").textContent = msg.game_id;
     document.getElementById("gameInfo").style.display = "block";
     appendMessage(`✅ Joined game ${msg.game_id}`);
     document.getElementById("inGameButtons").style.display = "block";
   } else if (msg.type === "game_info") {
     currentGameId = msg.game_id;
+    saveSessionToStorage();
     currentPlayers = msg.players;
     document.getElementById("gameIdDisplay").textContent = msg.game_id;
     document.getElementById("gameInfo").style.display = "block";
@@ -124,9 +146,7 @@ function handleJsonMessage(msg) {
     // const originalText = document.querySelector('.answer-card .btn-primary').textContent;
     // document.querySelector('.answer-card .btn-primary').disabled = true;
 
-    appendMessage(
-      `✅ Your answer received: ${guess} km (Correct: ${correct} km, Difference: ${diff} km)`,
-    );
+    appendMessage(`✅ Your answer received: ${msg.guess} km`);
   } else if (msg.type === "countdown") {
     const val = msg.value || "...";
     document.getElementById("countdownText").textContent = `Countdown: ${val}`;
@@ -150,8 +170,39 @@ function handleJsonMessage(msg) {
     appendMessage(
       `${msg.ready ? "✓" : "✕"} Player is ${msg.ready ? "ready" : "not ready"}`,
     );
+  } else if (msg.type === "player_updated") {
+    const playerIndex = currentPlayers.findIndex((p) => p.id === msg.player_id);
+    if (playerIndex !== -1) {
+      currentPlayers[playerIndex].name = msg.name;
+      updateGameList(currentGameId, currentPlayers);
+    }
+  } else if (msg.type === "player_tab_left") {
+    const playerIndex = currentPlayers.findIndex((p) => p.id === msg.player_id);
+    if (playerIndex !== -1) {
+      currentPlayers[playerIndex].tab_away = true;
+      updateGameList(currentGameId, currentPlayers);
+    }
+    appendMessage(`❗ ${msg.name || "A player"} left the browser tab`);
+  } else if (msg.type === "session_restored") {
+    currentPlayerId = msg.player_id;
+    playerName = msg.name || playerName;
+    if (playerName) {
+      localStorage.setItem(STORAGE_KEYS.PLAYER_NAME, playerName);
+      localStorage.setItem(STORAGE_KEYS.PLAYER_ID, currentPlayerId);
+      document.getElementById("setupPhase").style.display = "none";
+      document.getElementById("gamePhase").style.display = "block";
+      document.getElementById("currentPlayerName").textContent = playerName;
+    }
+    if (msg.game_id) {
+      currentGameId = msg.game_id;
+      restorePendingJoinGameId = msg.game_id;
+      localStorage.setItem(STORAGE_KEYS.GAME_ID, msg.game_id);
+    }
   } else if (msg.type === "error") {
     appendMessage(`❌ Error: ${msg.message}`);
+    if (msg.message && msg.message.includes("Cannot join game")) {
+      clearStoredGame();
+    }
   } else if (msg.type === "game_finished") {
     // Show game finished modal with results
     document.getElementById("winnerName").textContent = msg.winner || "Unknown";
@@ -196,8 +247,15 @@ function handleJsonMessage(msg) {
     appendMessage(`🎉 Game finished! Winner: ${msg.winner}`);
     document.getElementById("inGameButtons").style.display = "none";
     document.getElementById("gameInfo").style.display = "none";
+    clearStoredGame();
   } else if (msg.type === "name_set") {
     currentPlayerId = msg.player_id;
+    localStorage.setItem(STORAGE_KEYS.PLAYER_ID, currentPlayerId);
+    localStorage.setItem(STORAGE_KEYS.PLAYER_NAME, msg.name);
+    if (restorePendingJoinGameId && !currentGameId) {
+      joinGameById(restorePendingJoinGameId);
+    }
+    restorePendingJoinGameId = "";
     appendMessage(`✅ Your name set to: ${msg.name}`);
   }
 }
@@ -250,8 +308,9 @@ function updateGameList(game_id, players) {
   gameli.appendChild(ulp);
   players.forEach((p) => {
     const status = p.ready ? "✓ Ready" : "⏳ Waiting";
+    const away = p.tab_away ? " ❗" : "";
     const item = document.createElement("li");
-    item.textContent = `${p.name} - ${status} (Score: ${p.score || 0})`;
+    item.textContent = `${p.name}${away} - ${status} (Score: ${p.score || 0})`;
     ulp.appendChild(item);
   });
 
@@ -261,8 +320,9 @@ function updateGameList(game_id, players) {
   document.getElementById("playerCount").textContent = players.length;
   players.forEach((p) => {
     const status = p.ready ? "✓" : "⏳";
+    const away = p.tab_away ? "❗" : "";
     const item = document.createElement("li");
-    item.textContent = `${status} ${p.name}`;
+    item.textContent = `${status}${away ? ` ${away}` : ""} ${p.name}`;
     inGameList.appendChild(item);
   });
 }
@@ -275,10 +335,91 @@ function appendMessage(text) {
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
+function saveSessionToStorage() {
+  if (playerName) localStorage.setItem(STORAGE_KEYS.PLAYER_NAME, playerName);
+  if (currentPlayerId) localStorage.setItem(STORAGE_KEYS.PLAYER_ID, currentPlayerId);
+  if (currentGameId) localStorage.setItem(STORAGE_KEYS.GAME_ID, currentGameId);
+}
+
+function clearStoredGame() {
+  currentGameId = "";
+  localStorage.removeItem(STORAGE_KEYS.GAME_ID);
+}
+
+function restoreSessionFromStorage() {
+  const storedName = localStorage.getItem(STORAGE_KEYS.PLAYER_NAME) || "";
+  const storedGameId = localStorage.getItem(STORAGE_KEYS.GAME_ID) || "";
+
+  if (!storedName) return;
+
+  playerName = storedName;
+  document.getElementById("playerName").value = playerName;
+  document.getElementById("setupPhase").style.display = "none";
+  document.getElementById("gamePhase").style.display = "block";
+  document.getElementById("currentPlayerName").textContent = playerName;
+
+  sendMessage({ type: "set_name", data: { name: playerName } });
+  if (storedGameId) {
+    restorePendingJoinGameId = storedGameId;
+  }
+}
+
+function renderLobbyGames(activeGames) {
+  const list = document.getElementById("lobbyGamesList");
+  if (!list) return;
+
+  list.innerHTML = "";
+  const waitingGames = (activeGames || []).filter((g) => g.status === "waiting");
+
+  if (waitingGames.length === 0) {
+    const empty = document.createElement("li");
+    empty.textContent = "No open games right now.";
+    list.appendChild(empty);
+    return;
+  }
+
+  waitingGames.forEach((game) => {
+    const item = document.createElement("li");
+    const link = document.createElement("a");
+    link.href = "#";
+    link.textContent = `${game.id} (${game.player_count} players)`;
+    link.onclick = (event) => {
+      event.preventDefault();
+      joinGameById(game.id);
+    };
+    item.appendChild(link);
+    list.appendChild(item);
+  });
+}
+
+function joinGameById(gameId) {
+  if (!gameId) return;
+  document.getElementById("gameIdInput").value = gameId;
+  sendMessage({ type: "join_game", data: { game_id: gameId } });
+  appendMessage(`Joining game ${gameId}...`);
+}
+
+function notifyTabLeaving() {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    try {
+      ws.send(JSON.stringify({ type: "tab_leaving", data: {} }));
+    } catch (error) {
+      console.error("Could not send tab_leaving", error);
+    }
+  }
+}
+
+function notifyTabActive() {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    sendMessage({ type: "tab_active", data: {} });
+  }
+}
+
 function setPlayerName() {
   const nameInput = document.getElementById("playerName").value.trim();
   if (!nameInput) return alert("Name cannot be empty.");
   playerName = nameInput;
+  localStorage.setItem(STORAGE_KEYS.PLAYER_NAME, playerName);
 
   if (!isConnected) {
     connect();
@@ -316,7 +457,7 @@ function showJoinGame() {
 }
 
 function hideJoinGame() {
-  document.getElementById("setupPhase").style.display = "none";
+  document.getElementById("joinGameForm").style.display = "none";
   document.getElementById("gameIdInput").value = "";
 }
 
@@ -324,12 +465,7 @@ function joinGame() {
   const gameId = document.getElementById("gameIdInput").value.trim();
   if (!gameId) return alert("Please enter a game ID.");
 
-  const message = {
-    type: "join_game",
-    data: { game_id: gameId },
-  };
-  sendMessage(message);
-  appendMessage(`Joining game ${gameId}...`);
+  joinGameById(gameId);
   hideJoinGame();
 }
 
@@ -348,7 +484,7 @@ function setReady() {
 function leaveGame() {
   const message = { type: "leave_game", data: {} };
   sendMessage(message);
-  currentGameId = "";
+  clearStoredGame();
   document.getElementById("inGameButtons").style.display = "none";
   document.getElementById("gameInfo").style.display = "none";
   appendMessage("You left the game.");
@@ -383,14 +519,6 @@ function sendGuess() {
 
   const message = { type: "submit_answer", data: { guess: guessNum } };
   sendMessage(message);
-  var div = document.querySelector(".answer-card");
-  var btn = document.querySelector(".send-guess-btn");
-  btn.addEventListener("submit", function () {
-    div.classList.add("answerFeedback");
-    setTimeout(function () {
-      div.classList.remove("answerFeedback");
-    }, 1000);
-  });
   // TODO: fade in out feedback card
 }
 
@@ -422,5 +550,23 @@ function sendMessage(msg) {
 }
 
 window.onload = () => {
+  const storedName = localStorage.getItem(STORAGE_KEYS.PLAYER_NAME) || "";
+  if (storedName) {
+    playerName = storedName;
+    document.getElementById("playerName").value = storedName;
+    document.getElementById("setupPhase").style.display = "none";
+    document.getElementById("gamePhase").style.display = "block";
+    document.getElementById("currentPlayerName").textContent = storedName;
+  }
   connect();
 };
+
+window.addEventListener("beforeunload", notifyTabLeaving);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") {
+    notifyTabLeaving();
+  } else {
+    notifyTabActive();
+  }
+});
+window.addEventListener("focus", notifyTabActive);
