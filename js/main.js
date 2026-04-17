@@ -569,10 +569,10 @@ function handleJsonMessage(msg) {
     // Show PIN only to host
     const pinSection = document.getElementById("pinSection");
     if (msg.is_host && msg.pin) {
-      pinSection.style.display = "block";
+      pinSection.classList.add("visible");
       document.getElementById("gamePinDisplay").textContent = msg.pin;
     } else {
-      pinSection.style.display = "none";
+      pinSection.classList.remove("visible");
     }
     
     document.getElementById("gameInfo").style.display = "block";

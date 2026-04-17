@@ -140,6 +140,25 @@ main.game-layout.lobby-mode .game-column {
     display: none;
 }
 
+#joinGameForm .input-group:first-of-type {
+    display: flex;
+    gap: 10px;
+}
+
+#joinGameForm .input-group:first-of-type #gameIdInput {
+    flex: 1;
+}
+
+#joinGameForm .input-group:last-of-type {
+    display: flex;
+    gap: 10px;
+}
+
+#joinGameForm .input-group:last-of-type #gamePinInput {
+    flex: 0 0 150px;
+    min-width: 150px;
+}
+
 #lobbyGames {
     display: block;
     background: #f8fafc;
@@ -192,6 +211,14 @@ main.game-layout.lobby-mode .game-column {
     text-align: center;
     font-family: monospace;
     letter-spacing: 0.2em;
+}
+
+#pinSection {
+    display: none;
+}
+
+#pinSection.visible {
+    display: block;
 }
 
 #inGamePlayerList {
