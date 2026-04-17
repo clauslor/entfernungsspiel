@@ -4,9 +4,20 @@ from typing import List, Dict, Tuple, Optional
 from datetime import datetime
 import statistics
 from models import GameState, Player, CityPair, GameStatus, GameRoom
-from database import get_city_pairs, save_game_result, save_high_score, SessionLocal, DBGameResult
+from database import (
+    get_city_pairs,
+    save_game_result,
+    save_high_score,
+    SessionLocal,
+    DBGameResult,
+    get_cached_route_distance_km,
+    get_cached_route_points,
+    upsert_route_distance_km,
+    upsert_route_points,
+)
 import uuid
 from config import config
+from graphhopper_service import fetch_route_data
 import logging
 
 logger = logging.getLogger(__name__)
@@ -20,6 +31,93 @@ class GameLogic:
     def set_ws_handler(self, ws_handler):
         """Set the WebSocket handler for broadcasting messages"""
         self.ws_handler = ws_handler
+
+    def _should_use_road_variant(self) -> bool:
+        if not config.GRAPHHOPPER_API_KEY:
+            return False
+        chance = max(0.0, min(1.0, float(config.ROAD_DISTANCE_QUESTION_CHANCE)))
+        return random.random() < chance
+
+    async def _try_get_road_route(self, question: CityPair) -> Optional[Dict[str, object]]:
+        with SessionLocal() as db:
+            cached_distance = get_cached_route_distance_km(
+                db,
+                city_pair_id=question.id,
+                provider="graphhopper",
+                profile=config.GRAPHHOPPER_PROFILE,
+            )
+            cached_points = get_cached_route_points(
+                db,
+                city_pair_id=question.id,
+                provider="graphhopper",
+                profile=config.GRAPHHOPPER_PROFILE,
+            )
+
+        if cached_distance is not None and cached_points:
+            return {
+                "distance_km": int(cached_distance),
+                "points": cached_points,
+            }
+
+        route_data = await asyncio.to_thread(
+            fetch_route_data,
+            question.lat1,
+            question.lon1,
+            question.lat2,
+            question.lon2,
+            config.GRAPHHOPPER_API_KEY,
+            config.GRAPHHOPPER_PROFILE,
+        )
+        if route_data is None:
+            return None
+
+        distance_km = int(route_data.get("distance_km", 0) or 0)
+        points = route_data.get("points") or []
+        if distance_km <= 0 or len(points) < 2:
+            return None
+
+        with SessionLocal() as db:
+            upsert_route_distance_km(
+                db,
+                city_pair_id=question.id,
+                distance_km=distance_km,
+                provider="graphhopper",
+                profile=config.GRAPHHOPPER_PROFILE,
+            )
+            upsert_route_points(
+                db,
+                city_pair_id=question.id,
+                points=points,
+                provider="graphhopper",
+                profile=config.GRAPHHOPPER_PROFILE,
+            )
+        return {
+            "distance_km": distance_km,
+            "points": points,
+        }
+
+    async def _build_question_from_db_pair(self, db_city_pair) -> CityPair:
+        question = CityPair(
+            id=db_city_pair.id,
+            city1=db_city_pair.city1,
+            city2=db_city_pair.city2,
+            distance=db_city_pair.distance,
+            lat1=db_city_pair.lat1,
+            lon1=db_city_pair.lon1,
+            lat2=db_city_pair.lat2,
+            lon2=db_city_pair.lon2,
+            question_id=str(uuid.uuid4().hex[:8]),
+            question_variant="air",
+        )
+
+        if self._should_use_road_variant():
+            road_route = await self._try_get_road_route(question)
+            if road_route is not None:
+                question.distance = int(road_route["distance_km"])
+                question.question_variant = "road"
+                question.route_points = road_route.get("points") or []
+
+        return question
 
     async def start_game(self, game_id: str) -> bool:
         """Start a new game if all players are ready"""
@@ -189,17 +287,7 @@ class GameLogic:
                 return None
 
             db_city_pair = random.choice(city_pairs)
-            game.current_question = CityPair(
-                id=db_city_pair.id,
-                city1=db_city_pair.city1,
-                city2=db_city_pair.city2,
-                distance=db_city_pair.distance,
-                lat1=db_city_pair.lat1,
-                lon1=db_city_pair.lon1,
-                lat2=db_city_pair.lat2,
-                lon2=db_city_pair.lon2,
-                question_id=str(uuid.uuid4().hex[:8]),
-            )
+            game.current_question = await self._build_question_from_db_pair(db_city_pair)
         return game.current_question
 
     async def _assign_random_question_for_preload(self, game: GameState) -> Optional[CityPair]:
@@ -211,17 +299,7 @@ class GameLogic:
                 return None
 
             db_city_pair = random.choice(city_pairs)
-            return CityPair(
-                id=db_city_pair.id,
-                city1=db_city_pair.city1,
-                city2=db_city_pair.city2,
-                distance=db_city_pair.distance,
-                lat1=db_city_pair.lat1,
-                lon1=db_city_pair.lon1,
-                lat2=db_city_pair.lat2,
-                lon2=db_city_pair.lon2,
-                question_id=str(uuid.uuid4().hex[:8]),
-            )
+            return await self._build_question_from_db_pair(db_city_pair)
 
     async def broadcast_question(self, game_id: str):
         """Broadcast current question to all players in the game"""
@@ -238,13 +316,19 @@ class GameLogic:
             data = {
                 "game_id": game_id,
                 "question_id": str(question.question_id),
+                "question_variant": question.question_variant,
                 "round": game.current_round,
                 "max_rounds": game.config.max_rounds,
                 "time_limit": game.config.answer_time_seconds,
                 "cities": [question.city1, question.city2],
                 "city1": question.city1,
                 "city2": question.city2,
-                "question": f"How far is it from {question.city1} to {question.city2}? (in km)",
+                "question": (
+                    f"What is the road distance from {question.city1} to {question.city2}? (in km)"
+                    if question.question_variant == "road"
+                    else f"How far is it from {question.city1} to {question.city2}? (in km)"
+                ),
+                "route_points": question.route_points if question.question_variant == "road" else [],
                 "coordinates": {
                     "from": {
                         "name": question.city1,
@@ -386,7 +470,11 @@ class GameLogic:
 
         empty_round_review = {
             "round": game.current_round,
-            "question": f"Wie weit ist es von {question.city1} nach {question.city2}?",
+            "question": (
+                f"Wie lang ist die Straßenentfernung von {question.city1} nach {question.city2}?"
+                if question.question_variant == "road"
+                else f"Wie weit ist es von {question.city1} nach {question.city2}?"
+            ),
             "cities": [question.city1, question.city2],
             "correct_distance": correct_distance,
             "winner": "Keine Antwort",
@@ -444,7 +532,11 @@ class GameLogic:
 
         round_review = {
             "round": game.current_round,
-            "question": f"Wie weit ist es von {question.city1} nach {question.city2}?",
+            "question": (
+                f"Wie lang ist die Straßenentfernung von {question.city1} nach {question.city2}?"
+                if question.question_variant == "road"
+                else f"Wie weit ist es von {question.city1} nach {question.city2}?"
+            ),
             "cities": [question.city1, question.city2],
             "correct_distance": correct_distance,
             "winner": winner.name,

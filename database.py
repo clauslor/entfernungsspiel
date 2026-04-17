@@ -3,6 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
 from typing import List, Optional
+import json
 from config import config
 
 Base = declarative_base()
@@ -21,6 +22,28 @@ class DBCityPair(Base):
     lon1 = Column(Float)
     lat2 = Column(Float)
     lon2 = Column(Float)
+
+
+class DBRouteDistanceCache(Base):
+    __tablename__ = "route_distance_cache"
+
+    id = Column(Integer, primary_key=True, index=True)
+    city_pair_id = Column(Integer, index=True)
+    provider = Column(String, default="graphhopper")
+    profile = Column(String, default="car")
+    distance_km = Column(Integer)
+    updated_at = Column(DateTime, default=datetime.utcnow)
+
+
+class DBRoutePointsCache(Base):
+    __tablename__ = "route_points_cache"
+
+    id = Column(Integer, primary_key=True, index=True)
+    city_pair_id = Column(Integer, index=True)
+    provider = Column(String, default="graphhopper")
+    profile = Column(String, default="car")
+    points_json = Column(String)
+    updated_at = Column(DateTime, default=datetime.utcnow)
 
 
 class DBGameResult(Base):
@@ -76,6 +99,112 @@ def add_city_pair(db, city1: str, city2: str, distance: int, lat1: float, lon1: 
     db.commit()
     db.refresh(city_pair)
     return city_pair
+
+
+def get_cached_route_distance_km(db, city_pair_id: int, provider: str = "graphhopper", profile: str = "car") -> Optional[int]:
+    """Get cached route distance (km) for a city pair and routing profile."""
+    row = (
+        db.query(DBRouteDistanceCache)
+        .filter(DBRouteDistanceCache.city_pair_id == city_pair_id)
+        .filter(DBRouteDistanceCache.provider == provider)
+        .filter(DBRouteDistanceCache.profile == profile)
+        .first()
+    )
+    if not row:
+        return None
+    return int(row.distance_km)
+
+
+def upsert_route_distance_km(
+    db,
+    city_pair_id: int,
+    distance_km: int,
+    provider: str = "graphhopper",
+    profile: str = "car",
+) -> DBRouteDistanceCache:
+    """Insert or update cached route distance for a city pair/profile."""
+    row = (
+        db.query(DBRouteDistanceCache)
+        .filter(DBRouteDistanceCache.city_pair_id == city_pair_id)
+        .filter(DBRouteDistanceCache.provider == provider)
+        .filter(DBRouteDistanceCache.profile == profile)
+        .first()
+    )
+    if row:
+        row.distance_km = int(distance_km)
+        row.updated_at = datetime.utcnow()
+    else:
+        row = DBRouteDistanceCache(
+            city_pair_id=city_pair_id,
+            provider=provider,
+            profile=profile,
+            distance_km=int(distance_km),
+            updated_at=datetime.utcnow(),
+        )
+        db.add(row)
+
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def get_cached_route_points(
+    db,
+    city_pair_id: int,
+    provider: str = "graphhopper",
+    profile: str = "car",
+) -> Optional[list]:
+    """Get cached route points list for a city pair/profile."""
+    row = (
+        db.query(DBRoutePointsCache)
+        .filter(DBRoutePointsCache.city_pair_id == city_pair_id)
+        .filter(DBRoutePointsCache.provider == provider)
+        .filter(DBRoutePointsCache.profile == profile)
+        .first()
+    )
+    if not row or not row.points_json:
+        return None
+    try:
+        points = json.loads(row.points_json)
+    except Exception:
+        return None
+    if not isinstance(points, list):
+        return None
+    return points
+
+
+def upsert_route_points(
+    db,
+    city_pair_id: int,
+    points: list,
+    provider: str = "graphhopper",
+    profile: str = "car",
+) -> DBRoutePointsCache:
+    """Insert or update cached route points for a city pair/profile."""
+    row = (
+        db.query(DBRoutePointsCache)
+        .filter(DBRoutePointsCache.city_pair_id == city_pair_id)
+        .filter(DBRoutePointsCache.provider == provider)
+        .filter(DBRoutePointsCache.profile == profile)
+        .first()
+    )
+    payload = json.dumps(points)
+    if row:
+        row.points_json = payload
+        row.updated_at = datetime.utcnow()
+    else:
+        row = DBRoutePointsCache(
+            city_pair_id=city_pair_id,
+            provider=provider,
+            profile=profile,
+            points_json=payload,
+            updated_at=datetime.utcnow(),
+        )
+        db.add(row)
+
+    db.commit()
+    db.refresh(row)
+    return row
 
 
 def save_game_result(db, result_data: dict):

@@ -25,6 +25,11 @@ class Config:
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
     LOG_FILE: str = os.getenv("LOG_FILE", "server.log")
 
+    # External routing (optional)
+    GRAPHHOPPER_API_KEY: str = os.getenv("GRAPHHOPPER_API_KEY", "")
+    GRAPHHOPPER_PROFILE: str = os.getenv("GRAPHHOPPER_PROFILE", "car")
+    ROAD_DISTANCE_QUESTION_CHANCE: float = float(os.getenv("ROAD_DISTANCE_QUESTION_CHANCE", "0.35"))
+
     # Admin
     ADMIN_USER: str = os.getenv("ADMIN_USER", "admin")
     ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "admin123")

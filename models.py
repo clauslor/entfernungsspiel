@@ -57,6 +57,8 @@ class CityPair:
     lat2: float
     lon2: float
     question_id: str
+    question_variant: str = "air"
+    route_points: List[Dict[str, float]] = field(default_factory=list)
 
     @property
     def cities(self) -> Tuple[str, str]:

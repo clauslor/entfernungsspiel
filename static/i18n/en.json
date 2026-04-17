@@ -26,10 +26,12 @@
   "question": {
     "title": "❓ Current Question",
     "askDistance": "What is the distance between:",
+    "askRoadDistance": "What is the road distance between:",
     "sortCities": "Order the cities from nearest to farthest:",
     "placeholder": "Distance in km",
     "hint": "Shortcut: press G to jump here, Enter to submit.",
-    "distanceTemplate": "How far is it from {city1} to {city2}? (in km)"
+    "distanceTemplate": "How far is it from {city1} to {city2}? (in km)",
+    "roadDistanceTemplate": "What is the road distance from {city1} to {city2}? (in km)"
   },
   "answer": {
     "title": "📍 Your Answer",

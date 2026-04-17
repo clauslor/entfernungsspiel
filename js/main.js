@@ -871,7 +871,23 @@ function renderQuestionMap(coordinates) {
     const toFeature = new ol.Feature({ geometry: new ol.geom.Point(toPoint) });
     toFeature.setStyle(createQuestionPointStyle("to"));
 
-    const lineFeature = new ol.Feature({ geometry: new ol.geom.LineString([fromPoint, toPoint]) });
+    let lineCoordinates = [fromPoint, toPoint];
+    const routePoints = Array.isArray(coordinates.route_points) ? coordinates.route_points : [];
+    if (routePoints.length >= 2) {
+      const transformedRoute = routePoints
+        .map((pt) => {
+          if (!pt || !Number.isFinite(Number(pt.lon)) || !Number.isFinite(Number(pt.lat))) {
+            return null;
+          }
+          return ol.proj.transform([Number(pt.lon), Number(pt.lat)], "EPSG:4326", "EPSG:25832");
+        })
+        .filter(Boolean);
+      if (transformedRoute.length >= 2) {
+        lineCoordinates = transformedRoute;
+      }
+    }
+
+    const lineFeature = new ol.Feature({ geometry: new ol.geom.LineString(lineCoordinates) });
     lineFeature.setStyle(
       new ol.style.Style({
         stroke: new ol.style.Stroke({
@@ -1035,6 +1051,12 @@ function handleJsonMessage(msg) {
 
     const cityFrom = msg.city1 || msg.cities?.[0] || msg.coordinates?.from?.name || "-";
     const cityTo = msg.city2 || msg.cities?.[1] || msg.coordinates?.to?.name || "-";
+    const questionVariant = msg.question_variant === "road" ? "road" : "air";
+    const routePoints = Array.isArray(msg.route_points)
+      ? msg.route_points
+        .filter((pt) => pt && Number.isFinite(Number(pt.lat)) && Number.isFinite(Number(pt.lon)))
+        .map((pt) => ({ lat: Number(pt.lat), lon: Number(pt.lon) }))
+      : [];
     const coordinates = msg.coordinates
       && msg.coordinates.from
       && msg.coordinates.to
@@ -1053,6 +1075,7 @@ function handleJsonMessage(msg) {
           lat: Number(msg.coordinates.to.lat),
           lon: Number(msg.coordinates.to.lon),
         },
+        route_points: routePoints,
       }
       : null;
     
@@ -1068,11 +1091,14 @@ function handleJsonMessage(msg) {
       renderQuestionMap(coordinates);
     }
 
-    // Generate localized question text
-    const localizedQuestion = t("question.distanceTemplate", {
-      city1: cityFrom,
-      city2: cityTo
-    });
+    // Generate localized question text depending on variant (air-line vs road distance).
+    const localizedQuestion = t(
+      questionVariant === "road" ? "question.roadDistanceTemplate" : "question.distanceTemplate",
+      {
+        city1: cityFrom,
+        city2: cityTo,
+      },
+    );
     appendMessage(`🟡 ${t("messages.roundUpdate")} ${msg.round}/${msg.max_rounds}: ${localizedQuestion}`);
     const city1El = document.getElementById("city1");
     const city2El = document.getElementById("city2");
@@ -1081,6 +1107,12 @@ function handleJsonMessage(msg) {
 
     if (city1El) city1El.textContent = cityFrom;
     if (city2El) city2El.textContent = cityTo;
+    const questionTextEl = document.querySelector("#questionCard .question-text");
+    if (questionTextEl) {
+      questionTextEl.textContent = t(
+        questionVariant === "road" ? "question.askRoadDistance" : "question.askDistance",
+      );
+    }
     if (guessInputEl) guessInputEl.value = "";
     resetAnswerSubmissionState();
     if (guessInputEl) guessInputEl.focus();
