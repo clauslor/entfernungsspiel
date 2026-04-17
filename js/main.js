@@ -368,12 +368,12 @@ function renderRoundHistory(roundHistory) {
     question.className = "round-review-question";
     question.textContent = `Runde ${round.round}: ${round.question}`;
 
-    const meta = document.createElement("div");
-    meta.className = "round-review-meta";
-    meta.textContent = `Loesung: ${round.correct_distance} km | Gewinner: ${round.winner}`;
+    const solution = document.createElement("div");
+    solution.className = "round-review-solution";
+    solution.innerHTML = `✅ <strong>Richtige Antwort: ${round.correct_distance} km</strong> | 🏆 Gewinner: ${round.winner}`;
 
     card.appendChild(question);
-    card.appendChild(meta);
+    card.appendChild(solution);
 
     (round.submissions || []).forEach((submission) => {
       const playerBlock = document.createElement("div");

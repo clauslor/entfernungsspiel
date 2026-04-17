@@ -542,6 +542,18 @@ main.game-layout.lobby-mode .game-column {
     box-shadow: var(--shadow-md);
 }
 
+@media (max-width: 768px) {
+    #mapContainer {
+        height: 280px;
+    }
+}
+
+@media (max-width: 480px) {
+    #mapContainer {
+        height: 200px;
+    }
+}
+
 /* Leaflet uses internal SVG overlays for vectors; do not stretch them via global SVG sizing. */
 .map-container svg {
     max-width: none;
@@ -745,6 +757,17 @@ main.game-layout.lobby-mode .game-column {
     font-size: 0.92rem;
     color: var(--text-secondary);
     margin-bottom: 10px;
+}
+
+.round-review-solution {
+    font-size: 1rem;
+    color: #22c55e;
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    background: #f0fdf4;
+    border-left: 4px solid #22c55e;
+    border-radius: 4px;
+    font-weight: 600;
 }
 
 .round-review-player {
@@ -1062,6 +1085,15 @@ main.game-layout.lobby-mode .game-column {
         width: 100%;
     }
 
+    .question-text {
+        font-size: 1em;
+        margin-bottom: 15px;
+    }
+
+    .city-name {
+        font-size: 1.3em;
+    }
+
     .cities-container {
         flex-direction: column;
         gap: 10px;
@@ -1094,6 +1126,29 @@ main.game-layout.lobby-mode .game-column {
     .card-title {
         font-size: 1.1em;
         margin-bottom: 12px;
+    }
+
+    .question-text {
+        font-size: 0.95em;
+        margin-bottom: 15px;
+    }
+
+    .city-name {
+        font-size: 1.2em;
+    }
+
+    .city-separator {
+        font-size: 1.5em;
+    }
+
+    .cities-container {
+        padding: 12px 0;
+        gap: 8px;
+    }
+
+    .city {
+        max-width: 110px;
+        padding: 10px;
     }
 
     #countdown {
