@@ -574,6 +574,7 @@ class WebSocketHandler:
         lobby_data = {
             "type": "lobby_info",
             "active_games": self.game_room.list_active_games(),
+            "started_games_count": self.game_room.started_games_count(),
             "player_name": player.name,
         }
         if player_id in self.active_connections:

@@ -14,6 +14,9 @@ let leafletLayerGroup = null;
 let countdownTimerId = null;
 let countdownEndTime = null;
 let countdownRemainingSeconds = 0;
+let answerHintTimerId = null;
+let guessSubmissionPending = false;
+let guessLockedForRound = false;
 
 const STORAGE_KEYS = {
   PLAYER_NAME: "entfernungsspiel.playerName",
@@ -160,6 +163,65 @@ function resetCountdownDisplay(labelText = "Waiting to start...") {
   document.getElementById("countdown").textContent = "--:--";
 }
 
+function setGuessControlsDisabled(disabled) {
+  const guessInput = document.getElementById("guessInput");
+  const submitButton = document.getElementById("submitGuessBtn");
+  if (guessInput) {
+    guessInput.disabled = disabled;
+  }
+  if (submitButton) {
+    submitButton.disabled = disabled;
+  }
+}
+
+function showAnswerSubmissionHint(text, variant = "pending", autoHideMs = 0) {
+  const hint = document.getElementById("answerSubmissionHint");
+  if (!hint) return;
+
+  if (answerHintTimerId) {
+    clearTimeout(answerHintTimerId);
+    answerHintTimerId = null;
+  }
+
+  hint.textContent = text;
+  hint.classList.remove("is-pending", "is-success", "is-error", "is-visible");
+  hint.classList.add("is-visible");
+
+  if (variant === "success") {
+    hint.classList.add("is-success");
+  } else if (variant === "error") {
+    hint.classList.add("is-error");
+  } else {
+    hint.classList.add("is-pending");
+  }
+
+  if (autoHideMs > 0) {
+    answerHintTimerId = setTimeout(() => {
+      clearAnswerSubmissionHint();
+    }, autoHideMs);
+  }
+}
+
+function clearAnswerSubmissionHint() {
+  const hint = document.getElementById("answerSubmissionHint");
+  if (!hint) return;
+
+  if (answerHintTimerId) {
+    clearTimeout(answerHintTimerId);
+    answerHintTimerId = null;
+  }
+
+  hint.textContent = "";
+  hint.classList.remove("is-pending", "is-success", "is-error", "is-visible");
+}
+
+function resetAnswerSubmissionState() {
+  guessSubmissionPending = false;
+  guessLockedForRound = false;
+  setGuessControlsDisabled(false);
+  clearAnswerSubmissionHint();
+}
+
 function ensureLeafletMap() {
   const container = document.getElementById("mapContainer");
   if (!container || typeof L === "undefined") {
@@ -223,6 +285,10 @@ function handleJsonMessage(msg) {
   console.log("Message received:", msg);
 
   if (msg.type === "lobby_info") {
+    const startedGamesCounter = document.getElementById("startedGamesCounter");
+    if (startedGamesCounter) {
+      startedGamesCounter.textContent = String(msg.started_games_count || 0);
+    }
     appendMessage(
       `📋 Lobby info received. Active games: ${msg.active_games.length}`,
     );
@@ -298,6 +364,7 @@ function handleJsonMessage(msg) {
     document.getElementById("city1").textContent = `${msg.cities[0]}`;
     document.getElementById("city2").textContent = `${msg.cities[1]}`;
     document.getElementById("guessInput").value = "";
+    resetAnswerSubmissionState();
     document.getElementById("guessInput").focus();
     if (msg.coordinates) {
       renderQuestionMap(msg.coordinates);
@@ -307,24 +374,10 @@ function handleJsonMessage(msg) {
   } else if (msg.type === "game_status") {
     appendMessage(`📈 Status: ${msg.status}`);
   } else if (msg.type === "answer_received") {
-    // const guess = msg.guess;
-    // const correct = msg.correct_distance;
-    // const diff = msg.difference;
-    // const accuracy = msg.accuracy_percent;
-
-    // // Display feedback
-    // document.getElementById("feedbackGuess").textContent = guess;
-    // document.getElementById("feedbackCorrect").textContent = correct;
-    // document.getElementById("feedbackDiff").textContent = diff;
-    // document.getElementById("feedbackAccuracy").textContent = accuracy;
-    // document.getElementById("answerFeedback").style.display = "block";
-
-    // // Disable submit button momentarily
-    // document.getElementById("guessInput").disabled = true;
-    // const originalText = document.querySelector('.answer-card .btn-primary').textContent;
-    // document.querySelector('.answer-card .btn-primary').disabled = true;
-
-    appendMessage(`✅ Your answer received: ${msg.guess} km`);
+    guessSubmissionPending = false;
+    guessLockedForRound = true;
+    setGuessControlsDisabled(true);
+    showAnswerSubmissionHint(`Antwort registriert: ${msg.guess} km`, "success");
   } else if (msg.type === "countdown") {
     const val = msg.value || "...";
     document.getElementById("countdownText").textContent = `Countdown: ${val}`;
@@ -358,6 +411,7 @@ function handleJsonMessage(msg) {
     );
   } else if (msg.type === "kicked") {
     appendMessage("🚫 Du wurdest vom Host aus dem Spiel entfernt");
+    resetAnswerSubmissionState();
     clearStoredGame();
     document.getElementById("inGameButtons").style.display = "none";
     document.getElementById("gameInfo").style.display = "none";
@@ -417,6 +471,14 @@ function handleJsonMessage(msg) {
     updateUILayout();
   } else if (msg.type === "error") {
     appendMessage(`❌ Error: ${msg.message}`);
+    if (guessSubmissionPending || guessLockedForRound) {
+      guessSubmissionPending = false;
+      if (!String(msg.message || "").includes("already submitted")) {
+        guessLockedForRound = false;
+        setGuessControlsDisabled(false);
+      }
+      showAnswerSubmissionHint(msg.message || "Antwort konnte nicht registriert werden", "error", 3500);
+    }
     if (msg.message && msg.message.includes("Cannot join game")) {
       clearStoredGame();
     }
@@ -465,6 +527,7 @@ function handleJsonMessage(msg) {
     document.getElementById("inGameButtons").style.display = "none";
     document.getElementById("gameInfo").style.display = "none";
     currentGameStatus = "finished";
+    resetAnswerSubmissionState();
     updateHostControls();
     clearStoredGame();
     updateUILayout();
@@ -781,6 +844,7 @@ function setReady() {
 function leaveGame() {
   const message = { type: "leave_game", data: {} };
   sendMessage(message);
+  resetAnswerSubmissionState();
   clearStoredGame();
   document.getElementById("inGameButtons").style.display = "none";
   document.getElementById("gameInfo").style.display = "none";
@@ -805,6 +869,7 @@ function backToLobby() {
   document.getElementById("gamePhase").style.display = "block";
   document.getElementById("inGameButtons").style.display = "none";
   document.getElementById("gameInfo").style.display = "none";
+  resetAnswerSubmissionState();
   clearStoredGame();
   updateUILayout();
   resetCountdownDisplay();
@@ -819,27 +884,27 @@ function sendGuess() {
   if (isNaN(guessNum) || guessNum < 0)
     return alert("Please enter a valid number.");
 
+  if (guessSubmissionPending || guessLockedForRound) {
+    return;
+  }
+
   const message = { type: "submit_answer", data: { guess: guessNum } };
+  guessSubmissionPending = true;
+  setGuessControlsDisabled(true);
+  showAnswerSubmissionHint(`Antwort ${guessNum} km wird gesendet...`, "pending");
   sendMessage(message);
-  // TODO: fade in out feedback card
 }
 
 function updateAnswer() {
-  // Show the input field again and clear feedback
-  document.getElementById("answerFeedback").style.display = "none";
-  document.getElementById("guessInput").disabled = false;
+  resetAnswerSubmissionState();
   document.getElementById("guessInput").value = "";
   document.getElementById("guessInput").focus();
-  document.querySelector(".answer-card .btn-primary").disabled = false;
   appendMessage("📝 You can now update your answer");
 }
 
 function keepAnswer() {
-  // Hide feedback, move to next round
-  document.getElementById("answerFeedback").style.display = "none";
-  document.getElementById("guessInput").disabled = false;
+  resetAnswerSubmissionState();
   document.getElementById("guessInput").value = "";
-  document.querySelector(".answer-card .btn-primary").disabled = false;
   appendMessage("✅ Answer locked in! Waiting for other players...");
 }
 
@@ -852,6 +917,10 @@ function sendMessage(msg) {
 }
 
 window.onload = () => {
+  const startedGamesCounter = document.getElementById("startedGamesCounter");
+  if (startedGamesCounter) {
+    startedGamesCounter.textContent = "0";
+  }
   const storedName = localStorage.getItem(STORAGE_KEYS.PLAYER_NAME) || "";
   if (storedName) {
     playerName = storedName;
@@ -860,6 +929,7 @@ window.onload = () => {
     document.getElementById("gamePhase").style.display = "block";
     document.getElementById("currentPlayerName").textContent = storedName;
   }
+  resetAnswerSubmissionState();
   resetCountdownDisplay();
   updateUILayout();
   registerKeyboardUX();

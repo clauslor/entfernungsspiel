@@ -72,6 +72,36 @@ header.header {
     font-weight: 400;
 }
 
+.header-stats {
+    margin-top: 18px;
+    display: flex;
+    justify-content: center;
+}
+
+.header-stat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.26);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+}
+
+.header-stat-label {
+    font-size: 0.95rem;
+    font-weight: 500;
+    opacity: 0.92;
+}
+
+.header-stat-value {
+    min-width: 2ch;
+    font-size: 1.15rem;
+    font-variant-numeric: tabular-nums;
+}
+
 main.game-layout {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -165,6 +195,33 @@ main.game-layout.lobby-mode .game-column {
 
 .input-hint strong {
     color: var(--text-primary);
+}
+
+.answer-submission-hint {
+    min-height: 24px;
+    margin-top: 6px;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    opacity: 0;
+    transform: translateY(-2px);
+    transition: opacity 0.18s ease, transform 0.18s ease, color 0.18s ease;
+}
+
+.answer-submission-hint.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.answer-submission-hint.is-pending {
+    color: var(--text-secondary);
+}
+
+.answer-submission-hint.is-success {
+    color: #15803d;
+}
+
+.answer-submission-hint.is-error {
+    color: var(--danger-color);
 }
 
 .input-field:focus {

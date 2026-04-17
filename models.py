@@ -217,6 +217,16 @@ class GameRoom:
             for game in self.games.values()
         ]
 
+    def started_games_count(self) -> int:
+        """Count games that have already started at least once."""
+        started_statuses = {
+            GameStatus.COUNTDOWN,
+            GameStatus.ACTIVE,
+            GameStatus.PAUSED,
+            GameStatus.FINISHED,
+        }
+        return sum(1 for game in self.games.values() if game.status in started_statuses)
+
 
 @dataclass
 class GameResult:
