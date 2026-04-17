@@ -49,6 +49,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const noTimeLimitRowEl = document.getElementById("noTimeLimitRow");
   const noTimeLimitInputEl = document.getElementById("settingNoTimeLimit");
   const answerTimeInputEl = document.getElementById("settingAnswerTime");
+  const enableRoadQuestionsEl = document.getElementById("settingEnableRoadQuestions");
 
   if (firstAnswerEl && noTimeLimitRowEl) {
     firstAnswerEl.addEventListener("change", () => {
@@ -62,6 +63,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (noTimeLimitInputEl && answerTimeInputEl) {
     noTimeLimitInputEl.addEventListener("change", () => {
       answerTimeInputEl.disabled = noTimeLimitInputEl.checked;
+    });
+  }
+  if (enableRoadQuestionsEl) {
+    enableRoadQuestionsEl.addEventListener("change", () => {
+      applyRoadQuestionControls(enableRoadQuestionsEl.checked);
     });
   }
 
@@ -1356,12 +1362,20 @@ function updateGameSettings(game_id, config) {
     const autoAdvanceAllAnsweredInput = document.getElementById("settingAutoAdvanceAllAnswered");
     const firstAnswerEndsRoundInput = document.getElementById("settingFirstAnswerEndsRound");
     const wrongAnswerPointsOthersInput = document.getElementById("settingWrongAnswerPointsOthers");
+    const enableRoadQuestionsInput = document.getElementById("settingEnableRoadQuestions");
+    const roadQuestionRatioInput = document.getElementById("settingRoadQuestionRatio");
     if (maxRoundsInput) maxRoundsInput.value = config.max_rounds;
     if (countdownInput) countdownInput.value = config.countdown_seconds;
     if (pauseTimeInput) pauseTimeInput.value = config.pause_between_rounds_seconds;
     if (autoAdvanceAllAnsweredInput) autoAdvanceAllAnsweredInput.checked = !!config.auto_advance_on_all_answers;
     if (firstAnswerEndsRoundInput) firstAnswerEndsRoundInput.checked = !!config.first_answer_ends_round;
     if (wrongAnswerPointsOthersInput) wrongAnswerPointsOthersInput.checked = !!config.wrong_answer_points_others;
+    const roadQuestionsEnabled = config.enable_road_questions !== false;
+    if (enableRoadQuestionsInput) enableRoadQuestionsInput.checked = roadQuestionsEnabled;
+    if (roadQuestionRatioInput) {
+      const parsedRatio = Number.parseInt(config.road_question_ratio_percent, 10);
+      roadQuestionRatioInput.value = Number.isNaN(parsedRatio) ? "50" : String(Math.max(0, Math.min(100, parsedRatio)));
+    }
     // Handle no-time-limit flag (answer_time_seconds == 0)
     const noTimeLimit = config.answer_time_seconds === 0;
     const noTimeLimitInput = document.getElementById("settingNoTimeLimit");
@@ -1371,6 +1385,7 @@ function updateGameSettings(game_id, config) {
       answerTimeInput.disabled = noTimeLimit;
     }
     applyNoTimeLimitVisibility(!!config.first_answer_ends_round);
+    applyRoadQuestionControls(roadQuestionsEnabled);
     if (currentIsHost) {
       localStorage.setItem(STORAGE_KEYS.CREATOR_SETTINGS, JSON.stringify(config));
     }
@@ -1542,6 +1557,7 @@ function updateHostControls() {
     document.getElementById("settingFirstAnswerEndsRound"),
     document.getElementById("settingWrongAnswerPointsOthers"),
     document.getElementById("settingNoTimeLimit"),
+    document.getElementById("settingEnableRoadQuestions"),
   ].forEach((inputEl) => {
     if (inputEl) {
       inputEl.disabled = !canEditSettings;
@@ -1550,7 +1566,10 @@ function updateHostControls() {
   // answerTime is conditionally disabled by noTimeLimit; only re-enable when canEdit AND not noTimeLimit
   const answerTimeEl = document.getElementById("settingAnswerTime");
   const noTimeLimitEl = document.getElementById("settingNoTimeLimit");
+  const roadRatioEl = document.getElementById("settingRoadQuestionRatio");
+  const enableRoadQuestionsEl = document.getElementById("settingEnableRoadQuestions");
   if (answerTimeEl) answerTimeEl.disabled = !canEditSettings || !!(noTimeLimitEl?.checked);
+  if (roadRatioEl) roadRatioEl.disabled = !canEditSettings || !(enableRoadQuestionsEl?.checked);
 
   if (saveSettingsBtn) {
     saveSettingsBtn.disabled = !canEditSettings;
@@ -1560,6 +1579,13 @@ function updateHostControls() {
 function applyNoTimeLimitVisibility(firstAnswerEndsRound) {
   const row = document.getElementById("noTimeLimitRow");
   if (row) row.style.display = firstAnswerEndsRound ? "" : "none";
+}
+
+function applyRoadQuestionControls(enabled) {
+  const ratioField = document.getElementById("roadRatioField");
+  const ratioInput = document.getElementById("settingRoadQuestionRatio");
+  if (ratioField) ratioField.style.opacity = enabled ? "1" : "0.6";
+  if (ratioInput) ratioInput.disabled = !enabled;
 }
 
 function saveGameSettings() {
@@ -1575,6 +1601,8 @@ function saveGameSettings() {
   const pauseBetweenRoundsSeconds = parseInt(document.getElementById("settingPauseTime")?.value || "", 10);
   const autoAdvanceOnAllAnswers = !!document.getElementById("settingAutoAdvanceAllAnswered")?.checked;
   const wrongAnswerPointsOthers = !!document.getElementById("settingWrongAnswerPointsOthers")?.checked;
+  const enableRoadQuestions = !!document.getElementById("settingEnableRoadQuestions")?.checked;
+  const roadQuestionRatioPercent = parseInt(document.getElementById("settingRoadQuestionRatio")?.value || "", 10);
 
   const ranges = [
     { value: maxRounds,               min: 1,  max: 20,  label: "Max. Runden" },
@@ -1584,6 +1612,7 @@ function saveGameSettings() {
   if (!noTimeLimit) {
     ranges.push({ value: answerTimeSeconds, min: 5, max: 180, label: "Antwortzeit" });
   }
+  ranges.push({ value: roadQuestionRatioPercent, min: 0, max: 100, label: "Straßenanteil" });
   const invalid = ranges.filter((r) => Number.isNaN(r.value) || r.value < r.min || r.value > r.max);
   if (invalid.length > 0) {
     const details = invalid.map((r) => `${r.label}: ${r.min}–${r.max}`).join(", ");
@@ -1601,6 +1630,8 @@ function saveGameSettings() {
       auto_advance_on_all_answers: autoAdvanceOnAllAnswers,
       first_answer_ends_round: firstAnswerEndsRound,
       wrong_answer_points_others: wrongAnswerPointsOthers,
+      enable_road_questions: enableRoadQuestions,
+      road_question_ratio_percent: roadQuestionRatioPercent,
     },
   });
 
@@ -1614,6 +1645,8 @@ function saveGameSettings() {
       auto_advance_on_all_answers: autoAdvanceOnAllAnswers,
       first_answer_ends_round: firstAnswerEndsRound,
       wrong_answer_points_others: wrongAnswerPointsOthers,
+      enable_road_questions: enableRoadQuestions,
+      road_question_ratio_percent: roadQuestionRatioPercent,
     }),
   );
 

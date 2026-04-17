@@ -80,10 +80,12 @@
     "countdownLabel": "Countdown (s)",
     "answerTimeLabel": "Answer time (s)",
     "pauseTimeLabel": "Pause between rounds (s)",
+    "roadRatioLabel": "Road question share (%)",
     "applyButton": "Save settings",
     "autoAdvanceAllAnsweredLabel": "Start next question immediately when all players answered",
     "firstAnswerEndsRoundLabel": "First answer ends the round",
-    "wrongAnswerPointsOthersLabel": "Wrong answers give every other player +1 point"
+    "wrongAnswerPointsOthersLabel": "Wrong answers give every other player +1 point",
+    "enableRoadQuestionsLabel": "Enable road-distance questions"
   },
   "players": {
     "title": "👥 Players Online"
@@ -221,7 +223,7 @@
     "noValidAnswer": "No valid answer received.",
     "scored": "Scored:",
     "at": "at",
-    "accuracy_formula": "The formula is: Accuracy = 100 - (|Guess - Actual| / Actual) * 100",
+    "accuracy_formula": "The formula is:    <math display='block' mathsize='2rem' >Genauigkeit = 100 - (|Schätzung - Tatsächlich| / Tatsächlich) * 100</math>",
     "noAnswersSent": "No answers sent.",
     "sortOrder": "Order"
   },

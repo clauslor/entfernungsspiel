@@ -32,9 +32,12 @@ class GameLogic:
         """Set the WebSocket handler for broadcasting messages"""
         self.ws_handler = ws_handler
 
-    def _should_use_road_variant(self) -> bool:
-        chance = max(0.0, min(1.0, float(config.ROAD_DISTANCE_QUESTION_CHANCE)))
-        return random.random() < chance
+    def _should_use_road_variant(self, game_config) -> bool:
+        if not getattr(game_config, "enable_road_questions", True):
+            return False
+        ratio_pct = int(getattr(game_config, "road_question_ratio_percent", 50) or 0)
+        ratio_pct = max(0, min(100, ratio_pct))
+        return random.random() < (ratio_pct / 100.0)
 
     def _routing_provider(self) -> str:
         return (getattr(config, "ROUTING_PROVIDER", "osrm") or "osrm").strip().lower()
@@ -105,7 +108,7 @@ class GameLogic:
             "points": points,
         }
 
-    async def _build_question_from_db_pair(self, db_city_pair) -> CityPair:
+    async def _build_question_from_db_pair(self, db_city_pair, game_config) -> CityPair:
         question = CityPair(
             id=db_city_pair.id,
             city1=db_city_pair.city1,
@@ -119,7 +122,7 @@ class GameLogic:
             question_variant="air",
         )
 
-        if self._should_use_road_variant():
+        if self._should_use_road_variant(game_config):
             road_route = await self._try_get_road_route(question)
             if road_route is not None:
                 question.distance = int(road_route["distance_km"])
@@ -302,7 +305,7 @@ class GameLogic:
                 return None
 
             db_city_pair = random.choice(city_pairs)
-            game.current_question = await self._build_question_from_db_pair(db_city_pair)
+            game.current_question = await self._build_question_from_db_pair(db_city_pair, game.config)
         return game.current_question
 
     async def _assign_random_question_for_preload(self, game: GameState) -> Optional[CityPair]:
@@ -314,7 +317,7 @@ class GameLogic:
                 return None
 
             db_city_pair = random.choice(city_pairs)
-            return await self._build_question_from_db_pair(db_city_pair)
+            return await self._build_question_from_db_pair(db_city_pair, game.config)
 
     async def broadcast_question(self, game_id: str):
         """Broadcast current question to all players in the game"""

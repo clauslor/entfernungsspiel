@@ -54,6 +54,8 @@ class UpdateSettingsMessage(BaseModel):
     auto_advance_on_all_answers: bool = True
     first_answer_ends_round: bool = False
     wrong_answer_points_others: bool = False
+    enable_road_questions: bool = True
+    road_question_ratio_percent: int = 50
 
 
 class WebSocketHandler:
@@ -301,6 +303,16 @@ class WebSocketHandler:
                 wrong_answer_points_others=_bool_setting(
                     "wrong_answer_points_others",
                     self.default_config.wrong_answer_points_others,
+                ),
+                enable_road_questions=_bool_setting(
+                    "enable_road_questions",
+                    self.default_config.enable_road_questions,
+                ),
+                road_question_ratio_percent=_int_setting(
+                    "road_question_ratio_percent",
+                    self.default_config.road_question_ratio_percent,
+                    0,
+                    100,
                 ),
             )
 
@@ -574,6 +586,9 @@ class WebSocketHandler:
         if not (1 <= msg.pause_between_rounds_seconds <= 30):
             await self.send_error(player_id, "Invalid settings values")
             return
+        if not (0 <= msg.road_question_ratio_percent <= 100):
+            await self.send_error(player_id, "Invalid settings values")
+            return
 
         game.config = GameConfig(
             max_rounds=msg.max_rounds,
@@ -583,6 +598,8 @@ class WebSocketHandler:
             auto_advance_on_all_answers=msg.auto_advance_on_all_answers,
             first_answer_ends_round=msg.first_answer_ends_round,
             wrong_answer_points_others=msg.wrong_answer_points_others,
+            enable_road_questions=msg.enable_road_questions,
+            road_question_ratio_percent=msg.road_question_ratio_percent,
         )
 
         await self.broadcast_players_update(game.id)
@@ -670,6 +687,8 @@ class WebSocketHandler:
                         "auto_advance_on_all_answers": game.config.auto_advance_on_all_answers,
                         "first_answer_ends_round": game.config.first_answer_ends_round,
                         "wrong_answer_points_others": game.config.wrong_answer_points_others,
+                        "enable_road_questions": game.config.enable_road_questions,
+                        "road_question_ratio_percent": game.config.road_question_ratio_percent,
                     }
                 },
             )
@@ -719,6 +738,8 @@ class WebSocketHandler:
                     "auto_advance_on_all_answers": game.config.auto_advance_on_all_answers,
                     "first_answer_ends_round": game.config.first_answer_ends_round,
                     "wrong_answer_points_others": game.config.wrong_answer_points_others,
+                    "enable_road_questions": game.config.enable_road_questions,
+                    "road_question_ratio_percent": game.config.road_question_ratio_percent,
                 },
                 "players": [
                     {
@@ -769,6 +790,8 @@ class WebSocketHandler:
                         "auto_advance_on_all_answers": game.config.auto_advance_on_all_answers,
                         "first_answer_ends_round": game.config.first_answer_ends_round,
                         "wrong_answer_points_others": game.config.wrong_answer_points_others,
+                        "enable_road_questions": game.config.enable_road_questions,
+                        "road_question_ratio_percent": game.config.road_question_ratio_percent,
                     },
                     "players": [
                         {

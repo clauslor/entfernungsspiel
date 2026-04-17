@@ -219,7 +219,7 @@
                                 <input type="number" id="settingAnswerTime" min="5" max="180" step="1"
                                     inputmode="numeric">
                                 <span class="field-hint">5 – 180 s</span>
-                                <label id="noTimeLimitRow" class="no-time-limit-row" style="display:none">
+                                <label id="noTimeLimitRow" class="no-time-limit-row">
                                     <input type="checkbox" id="settingNoTimeLimit">
                                     <span data-i18n="settings.noTimeLimitLabel">Kein Zeitlimit</span>
                                 </label>
@@ -229,6 +229,12 @@
                                 <input type="number" id="settingPauseTime" min="1" max="30" step="1"
                                     inputmode="numeric">
                                 <span class="field-hint">1 – 30 s</span>
+                            </label>
+                            <label class="host-settings-field" id="roadRatioField">
+                                <span data-i18n="settings.roadRatioLabel">Anteil Straßenfragen (%)</span>
+                                <input type="number" id="settingRoadQuestionRatio" min="0" max="100" step="5"
+                                    inputmode="numeric">
+                                <span class="field-hint">0 – 100 %</span>
                             </label>
                         </div>
                         <div class="host-settings-options">
@@ -251,6 +257,10 @@
                                 <input type="checkbox" id="settingKickOnDisconnect">
                                 <span data-i18n="settings.kickOnDisconnectLabel">Spieler wird gekickt wenn er das Tab
                                     schließt (statt Pause)</span>
+                            </label>
+                            <label class="host-settings-toggle">
+                                <input type="checkbox" id="settingEnableRoadQuestions">
+                                <span data-i18n="settings.enableRoadQuestionsLabel">Straßenentfernungsfragen aktivieren</span>
                             </label>
                         </div>
                         <div class="host-settings-actions">
@@ -330,7 +340,8 @@
             </div>
             <div class="accuracy-section">
                 <h3 class="round-review-title" data-i18n="gameEnd.accuracy">🎯 Genauigkeit</h3>
-                <div id="accuracyFormula" class="accuracy-list" data-i18n-html="gameEnd.accuracy_formula">Die Formel ist: Genauigkeit = 100 - (|Schätzung - Tatsächlich| / Tatsächlich) * 100</div>
+                <div id="accuracyFormula" class="accuracy-list" data-i18n-html="gameEnd.accuracy_formula">Die Formel ist: <math display="block" mathsize="2rem">Genauigkeit = 100 - (|Schätzung - Tatsächlich| / Tatsächlich) * 100</math></div>
+                <div id="accuracyExplanations" class="accuracy-list" data-i18n="gameEnd.accuracy_explanation">Je näher die Schätzung an der tatsächlichen Entfernung liegt, desto höher ist die Genauigkeit. Eine perfekte Schätzung (0 km Unterschied) ergibt 100% Genauigkeit, während eine Schätzung, die doppelt so hoch oder niedrig wie die tatsächliche Entfernung ist, 0% Genauigkeit ergibt.</div>
             </div>
 
             <!-- Action Buttons -->

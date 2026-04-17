@@ -80,10 +80,12 @@
     "countdownLabel": "Countdown (s)",
     "answerTimeLabel": "Antwortzeit (s)",
     "pauseTimeLabel": "Pause zwischen Runden (s)",
+    "roadRatioLabel": "Anteil Straßenfragen (%)",
     "applyButton": "Einstellungen speichern",
     "autoAdvanceAllAnsweredLabel": "Wenn alle geantwortet haben, sofort nächste Frage starten",
     "firstAnswerEndsRoundLabel": "Erste Antwort beendet die Runde",
-    "wrongAnswerPointsOthersLabel": "Falsche Antworten geben allen anderen je 1 Punkt"
+    "wrongAnswerPointsOthersLabel": "Falsche Antworten geben allen anderen je 1 Punkt",
+    "enableRoadQuestionsLabel": "Straßenentfernungsfragen aktivieren"
   },
   "players": {
     "title": "👥 Online Spieler"
