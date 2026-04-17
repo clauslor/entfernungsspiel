@@ -61,9 +61,14 @@ templates = Jinja2Templates(directory="templates")
 
 # Initialize game room and handlers
 game_room = GameRoom()
-game_config = GameConfig()  # Global configuration for admin panel
+game_config = GameConfig(
+    max_rounds=config.DEFAULT_MAX_ROUNDS,
+    countdown_seconds=config.DEFAULT_COUNTDOWN,
+    answer_time_seconds=config.DEFAULT_ANSWER_TIME,
+    pause_between_rounds_seconds=config.DEFAULT_PAUSE_BETWEEN_ROUNDS,
+)  # Global configuration for admin panel and new games
 game_logic = GameLogic(game_room)
-ws_handler = WebSocketHandler(game_room, game_logic)
+ws_handler = WebSocketHandler(game_room, game_logic, default_config=game_config)
 game_logic.set_ws_handler(ws_handler)  # Set the handler for broadcasting
 
 # Security

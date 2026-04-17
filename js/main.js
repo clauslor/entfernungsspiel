@@ -1257,14 +1257,7 @@ function setPlayerName() {
 function createGame() {
   const message = {
     type: "create_game",
-    data: {
-      config: {
-        max_rounds: 5,
-        countdown_seconds: 3,
-        answer_time_seconds: 15,
-        pause_between_rounds_seconds: 3,
-      },
-    },
+    data: {},
   };
   sendMessage(message);
   appendMessage(t("messages.creatingGame"));

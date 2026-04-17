@@ -47,9 +47,10 @@ class LockSettingsMessage(BaseModel):
 
 
 class WebSocketHandler:
-    def __init__(self, game_room: GameRoom, game_logic: GameLogic):
+    def __init__(self, game_room: GameRoom, game_logic: GameLogic, default_config: Optional[GameConfig] = None):
         self.game_room = game_room
         self.game_logic = game_logic
+        self.default_config = default_config or GameConfig()
         # Track multiple connections per player (for multiple tabs)
         self.active_connections: Dict[str, list] = {}
         # Delay final cleanup to allow fast reload reconnects.
@@ -248,15 +249,13 @@ class WebSocketHandler:
             create_msg = CreateGameMessage.parse_obj(data)
             game_id = create_msg.game_id or f"game_{uuid.uuid4().hex[:8]}"
 
-            config = GameConfig()
-            if create_msg.config:
-                config.max_rounds = create_msg.config.get("max_rounds", config.max_rounds)
-                config.countdown_seconds = create_msg.config.get("countdown_seconds", config.countdown_seconds)
-                config.answer_time_seconds = create_msg.config.get("answer_time_seconds", config.answer_time_seconds)
-                config.pause_between_rounds_seconds = create_msg.config.get(
-                    "pause_between_rounds_seconds",
-                    config.pause_between_rounds_seconds,
-                )
+            # Always start new games with the current admin configuration.
+            config = GameConfig(
+                max_rounds=self.default_config.max_rounds,
+                countdown_seconds=self.default_config.countdown_seconds,
+                answer_time_seconds=self.default_config.answer_time_seconds,
+                pause_between_rounds_seconds=self.default_config.pause_between_rounds_seconds,
+            )
 
             game = self.game_room.create_game(game_id, config)
 
