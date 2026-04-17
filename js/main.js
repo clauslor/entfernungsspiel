@@ -1549,6 +1549,18 @@ function registerKeyboardUX() {
   }
 
   document.addEventListener("keydown", (event) => {
+    const gameFinishedModal = document.getElementById("gameFinishedModal");
+    const isGameFinishedModalVisible = !!(
+      gameFinishedModal
+      && window.getComputedStyle(gameFinishedModal).display !== "none"
+    );
+
+    if (event.key === "Escape" && isGameFinishedModalVisible) {
+      event.preventDefault();
+      backToLobby();
+      return;
+    }
+
     if (shouldIgnoreGlobalShortcut(event)) return;
 
     const key = event.key.toLowerCase();
