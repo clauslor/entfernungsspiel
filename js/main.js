@@ -651,12 +651,10 @@ function handleJsonMessage(msg) {
     );
   } else if (msg.type === "kicked") {
     appendMessage("🚫 Du wurdest vom Host aus dem Spiel entfernt");
-    resetAnswerSubmissionState();
+    cleanupGameResources();
     clearStoredGame();
     document.getElementById("inGameButtons").style.display = "none";
     document.getElementById("gameInfo").style.display = "none";
-    currentPlayers = [];
-    currentGameStatus = "waiting";
     updateHostControls();
     updateUILayout();
     resetCountdownDisplay();
@@ -758,6 +756,9 @@ function handleJsonMessage(msg) {
 
     renderRoundHistory(msg.round_history || []);
 
+    // Cleanup game resources before showing results
+    cleanupGameResources();
+
     // Show the modal
     const modal = document.getElementById("gameFinishedModal");
     modal.style.display = "flex";
@@ -767,7 +768,6 @@ function handleJsonMessage(msg) {
     document.getElementById("inGameButtons").style.display = "none";
     document.getElementById("gameInfo").style.display = "none";
     currentGameStatus = "finished";
-    resetAnswerSubmissionState();
     updateHostControls();
     clearStoredGame();
     updateUILayout();
@@ -861,7 +861,7 @@ function clearStoredGame() {
 }
 
 function cleanupGameResources() {
-  """Thorough cleanup of game resources after game ends"""
+  // Thorough cleanup of game resources after game ends
   
   // Cleanup Leaflet map
   if (leafletResizeObserver) {
