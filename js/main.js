@@ -11,10 +11,12 @@ let isConnected = false;
 let restorePendingJoinGameId = "";
 let gameMap = null;
 let gameMapBaseLayer = null;
+let gameMapFallbackLayer = null;
 let gameMapFeatureLayer = null;
 let gameMapFeatureSource = null;
 let gameMapResizeObserver = null;
 let pendingMapPreparationTimeoutId = null;
+let pendingQuestionCoordinates = null;
 let countdownTimerId = null;
 let countdownEndTime = null;
 let countdownRemainingSeconds = 0;
@@ -241,6 +243,11 @@ function translateServerMessage(rawMessage) {
 function isMapContainerReady(container) {
   if (!container) return false;
 
+  // Check if element is actually in DOM and visible
+  if (!container.offsetParent && container.style.display !== "block") {
+    return false;
+  }
+
   const rect = container.getBoundingClientRect();
   return rect.width > 100 && rect.height > 100;
 }
@@ -251,27 +258,49 @@ function queueMapPreparation(attempt = 0) {
     pendingMapPreparationTimeoutId = null;
   }
 
+  // First attempt should be immediate, subsequent attempts with backoff
+  const delayMs = attempt === 0 ? 10 : Math.min(60, 20 + attempt * 5);
+
   pendingMapPreparationTimeoutId = setTimeout(() => {
     pendingMapPreparationTimeoutId = null;
 
     const container = document.getElementById("mapContainer");
     if (!isMapContainerReady(container)) {
-      if (attempt < 10) {
+      if (attempt < 15) {
         queueMapPreparation(attempt + 1);
+      } else {
+        console.warn("[Map] Map preparation timeout after 15 attempts");
       }
       return;
     }
 
     prepareMapForGameplay();
     scheduleLeafletResize();
-  }, attempt === 0 ? 0 : 60);
+  }, delayMs);
 }
 
 function prepareMapForGameplay() {
   const map = ensureLeafletMap();
-  if (!map) return;
+  if (!map) {
+    console.warn("[Map] ensureLeafletMap returned null, cannot prepare map");
+    return;
+  }
 
-  if (gameMapFeatureSource && gameMapFeatureSource.getFeatures().length === 0) {
+  // Sanity check: if gameMapFeatureSource is still null after ensureLeafletMap, 
+  // there's an initialization issue, bail out
+  if (!gameMapFeatureSource) {
+    console.error("[Map] gameMapFeatureSource is null after ensureLeafletMap initialization");
+    return;
+  }
+
+  if (pendingQuestionCoordinates) {
+    const coordinates = pendingQuestionCoordinates;
+    pendingQuestionCoordinates = null;
+    renderQuestionMap(coordinates);
+    return;
+  }
+
+  if (gameMapFeatureSource.getFeatures().length === 0) {
     const center25832 = ol.proj.transform(
       [DEFAULT_MAP_VIEW.center[1], DEFAULT_MAP_VIEW.center[0]],
       "EPSG:4326",
@@ -286,23 +315,33 @@ function prepareMapForGameplay() {
 
 function redrawLeafletMap() {
   if (!gameMap) return;
-  gameMap.updateSize();
+  try {
+    gameMap.updateSize();
+  } catch (err) {
+    console.warn("[Map] Error during map resize:", err);
+  }
 }
+
+let resizeDebounceTimer = null;
 
 function scheduleLeafletResize() {
   if (!gameMap) return;
 
-  setTimeout(() => {
-    redrawLeafletMap();
-  }, 0);
+  // Clear any pending resize operation
+  if (resizeDebounceTimer) {
+    clearTimeout(resizeDebounceTimer);
+  }
 
-  setTimeout(() => {
-    redrawLeafletMap();
-  }, 120);
+  // First update immediately to catch synchronous layout changes
+  gameMap.updateSize();
 
-  setTimeout(() => {
-    redrawLeafletMap();
-  }, 260);
+  // Then schedule a second update after a short delay to catch cascading reflows
+  resizeDebounceTimer = setTimeout(() => {
+    if (gameMap) {
+      gameMap.updateSize();
+    }
+    resizeDebounceTimer = null;
+  }, 150);
 }
 
 function attachLeafletResizeObserver(container) {
@@ -560,33 +599,52 @@ function ensureLeafletMap() {
   attachLeafletResizeObserver(container);
 
   if (!gameMap) {
-    proj4.defs("EPSG:25832", "+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs");
-    if (ol.proj.proj4 && typeof ol.proj.proj4.register === "function") {
-      ol.proj.proj4.register(proj4);
-    }
+    try {
+      proj4.defs("EPSG:25832", "+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs");
+      if (ol.proj.proj4 && typeof ol.proj.proj4.register === "function") {
+        ol.proj.proj4.register(proj4);
+      }
 
-    let projection25832 = ol.proj.get("EPSG:25832");
-    if (!projection25832) {
-      projection25832 = new ol.proj.Projection({
-        code: "EPSG:25832",
-        units: "m",
-        extent: [200000, 5200000, 1000000, 6200000],
-      });
-      ol.proj.addProjection(projection25832);
-    }
+      let projection25832 = ol.proj.get("EPSG:25832");
+      if (!projection25832) {
+        projection25832 = new ol.proj.Projection({
+          code: "EPSG:25832",
+          units: "m",
+          extent: [200000, 5200000, 1000000, 6200000],
+        });
+        ol.proj.addProjection(projection25832);
+      }
 
-    if (!ol.proj.get("EPSG:25832")) {
+      if (!ol.proj.get("EPSG:25832")) {
+        console.error("[Map] EPSG:25832 projection registration failed");
+        return null;
+      }
+    } catch (err) {
+      console.error("[Map] Error setting up EPSG:25832 projection:", err);
       return null;
     }
 
     gameMapBaseLayer = new ol.layer.Tile({
       source: new ol.source.XYZ({
-        // basemap.de Web Raster as robust fallback/base layer
+        // basemap.de Web Raster with OSM fallback
         url: "https://sgx.geodatenzentrum.de/wmts_basemapde/tile/1.0.0/de_basemapde_web_raster_farbe/default/GLOBAL_WEBMERCATOR/{z}/{y}/{x}.png",
-        attributions: "© basemap.de / BKG",
+        attributions: "© basemap.de / BKG, © OpenStreetMap contributors",
         crossOrigin: "anonymous",
+        imageSmoothing: true,
       }),
     });
+
+    // Add fallback layer (OSM) that will be used if basemap.de fails
+    gameMapFallbackLayer = new ol.layer.Tile({
+      source: new ol.source.OSM({
+        attributions: "© OpenStreetMap contributors",
+        crossOrigin: "anonymous",
+        imageSmoothing: true,
+      }),
+      visible: false,
+      zIndex: 0,
+    });
+
 
     gameMapFeatureSource = new ol.source.Vector();
     gameMapFeatureLayer = new ol.layer.Vector({
@@ -595,7 +653,7 @@ function ensureLeafletMap() {
 
     gameMap = new ol.Map({
       target: container,
-      layers: [gameMapBaseLayer, gameMapFeatureLayer],
+      layers: [gameMapBaseLayer, gameMapFallbackLayer, gameMapFeatureLayer],
       controls: ol.control.defaults().extend([
         new ol.control.ScaleLine({
           units: "metric",
@@ -616,6 +674,16 @@ function ensureLeafletMap() {
         maxZoom: 18,
       }),
     });
+
+    // Handle basemap.de tile load failure: switch to OSM fallback
+    gameMapBaseLayer.on("error", () => {
+      if (gameMapFallbackLayer) {
+        gameMapBaseLayer.setVisible(false);
+        gameMapFallbackLayer.setVisible(true);
+        console.warn("[Map] basemap.de tiles failed to load, switched to OSM fallback");
+      }
+    });
+
   }
 
   container.classList.add("has-map");
@@ -656,63 +724,83 @@ function createOrtsschildIcon(cityName) {
 
 function renderQuestionMap(coordinates) {
   const container = document.getElementById("mapContainer");
-  const map = ensureLeafletMap();
-  if (!map || !coordinates || !coordinates.from || !coordinates.to) {
+
+  if (!coordinates || !coordinates.from || !coordinates.to) {
+    pendingQuestionCoordinates = null;
     if (container) {
       container.classList.remove("has-map");
     }
     return;
   }
 
-  if (!gameMapFeatureSource) return;
+  const map = ensureLeafletMap();
+  if (!map || !gameMapFeatureSource) {
+    // Only cache if not already cached (avoid redundant retries with same data)
+    if (!pendingQuestionCoordinates) {
+      pendingQuestionCoordinates = coordinates;
+      queueMapPreparation();
+    }
+    return;
+  }
+
+  pendingQuestionCoordinates = null;
 
   gameMapFeatureSource.clear();
 
-  const fromPoint = ol.proj.transform(
-    [coordinates.from.lon, coordinates.from.lat],
-    "EPSG:4326",
-    "EPSG:25832",
-  );
-  const toPoint = ol.proj.transform(
-    [coordinates.to.lon, coordinates.to.lat],
-    "EPSG:4326",
-    "EPSG:25832",
-  );
+  try {
+    const fromPoint = ol.proj.transform(
+      [coordinates.from.lon, coordinates.from.lat],
+      "EPSG:4326",
+      "EPSG:25832",
+    );
+    const toPoint = ol.proj.transform(
+      [coordinates.to.lon, coordinates.to.lat],
+      "EPSG:4326",
+      "EPSG:25832",
+    );
 
-  const fromFeature = new ol.Feature({ geometry: new ol.geom.Point(fromPoint) });
-  fromFeature.setStyle(createOrtsschildIcon(coordinates.from.name));
+    const fromFeature = new ol.Feature({ geometry: new ol.geom.Point(fromPoint) });
+    fromFeature.setStyle(createOrtsschildIcon(coordinates.from.name));
 
-  const toFeature = new ol.Feature({ geometry: new ol.geom.Point(toPoint) });
-  toFeature.setStyle(createOrtsschildIcon(coordinates.to.name));
+    const toFeature = new ol.Feature({ geometry: new ol.geom.Point(toPoint) });
+    toFeature.setStyle(createOrtsschildIcon(coordinates.to.name));
 
-  const lineFeature = new ol.Feature({ geometry: new ol.geom.LineString([fromPoint, toPoint]) });
-  lineFeature.setStyle(
-    new ol.style.Style({
-      stroke: new ol.style.Stroke({
-        color: "#16a34a",
-        width: 4,
+    const lineFeature = new ol.Feature({ geometry: new ol.geom.LineString([fromPoint, toPoint]) });
+    lineFeature.setStyle(
+      new ol.style.Style({
+        stroke: new ol.style.Stroke({
+          color: "#16a34a",
+          width: 4,
+        }),
       }),
-    }),
-  );
+    );
 
-  gameMapFeatureSource.addFeatures([lineFeature, fromFeature, toFeature]);
+    gameMapFeatureSource.addFeatures([lineFeature, fromFeature, toFeature]);
 
-  const extent = gameMapFeatureSource.getExtent();
-  map.getView().fit(extent, {
-    padding: [24, 24, 24, 24],
-    duration: 0,
-    maxZoom: 12,
-  });
-  scheduleLeafletResize();
-
-  setTimeout(() => {
-    redrawLeafletMap();
+    const extent = gameMapFeatureSource.getExtent();
     map.getView().fit(extent, {
       padding: [24, 24, 24, 24],
       duration: 0,
       maxZoom: 12,
     });
-  }, 50);
+    scheduleLeafletResize();
+
+    setTimeout(() => {
+      if (gameMap && gameMapFeatureSource.getFeatures().length > 0) {
+        const extent = gameMapFeatureSource.getExtent();
+        gameMap.getView().fit(extent, {
+          padding: [24, 24, 24, 24],
+          duration: 0,
+          maxZoom: 12,
+        });
+      }
+    }, 160);
+  } catch (err) {
+    console.error("[Map] Error rendering question map:", err);
+    if (container) {
+      container.classList.remove("has-map");
+    }
+  }
 }
 
 function handleJsonMessage(msg) {
@@ -1159,6 +1247,12 @@ function clearStoredGame() {
 function cleanupGameResources() {
   // Thorough cleanup of game resources after game ends
   
+  // Clear any pending resize debounce
+  if (resizeDebounceTimer) {
+    clearTimeout(resizeDebounceTimer);
+    resizeDebounceTimer = null;
+  }
+
   // Cleanup map
   if (gameMapResizeObserver) {
     gameMapResizeObserver.disconnect();
@@ -1173,15 +1267,23 @@ function cleanupGameResources() {
     gameMap.setTarget(null);
     gameMap = null;
     gameMapBaseLayer = null;
+    gameMapFallbackLayer = null;
     gameMapFeatureLayer = null;
     gameMapFeatureSource = null;
   }
   
-  // Clear map container
+  // Clear map container with i18n-safe placeholder
   const mapContainer = document.getElementById("mapContainer");
   if (mapContainer) {
     mapContainer.classList.remove("has-map");
-    mapContainer.innerHTML = `<div id="mapPlaceholder" class="map-placeholder" data-i18n="mapPlaceholder">${t("mapPlaceholder")}</div>`;
+    // Create placeholder element with i18n data attribute
+    const placeholder = document.createElement("div");
+    placeholder.id = "mapPlaceholder";
+    placeholder.className = "map-placeholder";
+    placeholder.setAttribute("data-i18n", "mapPlaceholder");
+    placeholder.textContent = t("mapPlaceholder") || "Map will load with next question.";
+    mapContainer.innerHTML = "";
+    mapContainer.appendChild(placeholder);
   }
   
   // Clear messages
@@ -1204,7 +1306,8 @@ function cleanupGameResources() {
     clearTimeout(pendingMapPreparationTimeoutId);
     pendingMapPreparationTimeoutId = null;
   }
-  
+  pendingQuestionCoordinates = null;
+
   // Clear countdown timer
   clearCountdownTimer();
 }

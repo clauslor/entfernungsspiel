@@ -221,6 +221,6 @@
     "noAnswersSent": "Keine Antworten gesendet.",
     "sortOrder": "Sortierung"
   },
-  "mapPlaceholder": "Die Karte erscheint mit der nächsten Frage."
+  "mapPlaceholder": "Karte wird für die aktuelle Frage geladen."
 }
 

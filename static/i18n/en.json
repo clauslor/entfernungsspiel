@@ -221,5 +221,5 @@
     "noAnswersSent": "No answers sent.",
     "sortOrder": "Order"
   },
-  "mapPlaceholder": "Map appears with the next question."
+  "mapPlaceholder": "Map is loading for the current question."
 }
