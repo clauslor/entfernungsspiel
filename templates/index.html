@@ -42,7 +42,8 @@
             </div>
             <!-- Language Switcher -->
             <div class="language-switcher">
-                <button onclick="changeLanguage('de')" id="langDE" class="lang-btn lang-btn-active">🇩🇪 Deutsch</button>
+                <button onclick="changeLanguage('de')" id="langDE" class="lang-btn lang-btn-active">🇩🇪
+                    Deutsch</button>
                 <button onclick="changeLanguage('en')" id="langEN" class="lang-btn">🇬🇧 English</button>
             </div>
         </header>
@@ -53,25 +54,30 @@
             <div class="game-column">
                 <div class="round-top-panels">
 
-                <!-- Answer Input Card -->
-                <section class="card answer-card" id="answerCard">
-                    <h2 class="card-title" data-i18n="answer.title">📍 Your Answer</h2>
-                    <p class="input-hint" data-i18n="answer.shortcut">Shortcut: press <strong>G</strong> to jump here, <strong>Enter</strong> to submit.</p>
-                    <div class="input-group">
-                        <input type="number" id="guessInput" class="input-field guess-input" data-i18n="question.placeholder" placeholder="Distance in km" min="0" inputmode="numeric" autocomplete="off">
-                        <button onclick="sendGuess()" class="btn btn-primary" id="submitGuessBtn" data-i18n="answer.submit">Submit Answer</button>
-                    </div>
-                    <div id="answerSubmissionHint" class="answer-submission-hint" aria-live="polite"></div>
-                </section>
+                    <!-- Answer Input Card -->
+                    <section class="card answer-card" id="answerCard">
+                        <h2 class="card-title" data-i18n="answer.title">📍 Your Answer</h2>
+                        <p class="input-hint" data-i18n="answer.shortcut">Shortcut: press <strong>G</strong> to jump
+                            here, <strong>Enter</strong> to submit.</p>
+                        <div class="input-group">
+                            <input type="number" id="guessInput" class="input-field guess-input"
+                                data-i18n="question.placeholder" placeholder="Distance in km" min="0"
+                                inputmode="numeric" autocomplete="off">
+                            <button onclick="sendGuess()" class="btn btn-primary" id="submitGuessBtn"
+                                data-i18n="answer.submit">Submit Answer</button>
+                        </div>
+                        <div id="answerSubmissionHint" class="answer-submission-hint" aria-live="polite"></div>
+                    </section>
 
-                <!-- Countdown Card -->
-                <section class="card countdown-card" id="countdownCard">
-                    <h2 class="card-title" data-i18n="countdown.title">⏱️ Game Status</h2>
-                    <div id="countdownDisplay" class="status-display">
-                        <p id="countdownText" class="status-text" data-i18n="countdown.waiting">Waiting to start...</p>
-                        <div id="countdown" class="countdown-timer"></div>
-                    </div>
-                </section>
+                    <!-- Countdown Card -->
+                    <section class="card countdown-card" id="countdownCard">
+                        <h2 class="card-title" data-i18n="countdown.title">⏱️ Game Status</h2>
+                        <div id="countdownDisplay" class="status-display">
+                            <p id="countdownText" class="status-text" data-i18n="countdown.waiting">Waiting to start...
+                            </p>
+                            <div id="countdown" class="countdown-timer"></div>
+                        </div>
+                    </section>
                 </div>
 
                 <!-- Question Card -->
@@ -81,7 +87,8 @@
                         <p class="question-text" data-i18n="question.askDistance">What is the distance between:</p>
                         <div id="ortsschildContainer" class="ortsschild-container"></div>
                         <div class="map-container" id="mapContainer">
-                            <div id="mapPlaceholder" class="map-placeholder" data-i18n="mapPlaceholder">Karte wird fuer die aktuelle Frage geladen.</div>
+                            <div id="mapPlaceholder" class="map-placeholder" data-i18n="mapPlaceholder">Karte wird fuer
+                                die aktuelle Frage geladen.</div>
                         </div>
                     </div>
                 </section>
@@ -93,56 +100,71 @@
                 <section class="card player-setup">
                     <h2 class="card-title" data-i18n="playerSetup.title">👤 Player Setup</h2>
                     <div id="setupPhase">
-                        <p class="input-hint" data-i18n="playerSetup.nameHint">Shortcut: press <strong>N</strong> to focus your name field.</p>
+                        <p class="input-hint" data-i18n="playerSetup.nameHint">Shortcut: press <strong>N</strong> to
+                            focus your name field.</p>
                         <div class="input-group">
-                            <input type="text" id="playerName" class="input-field" data-i18n="playerSetup.enterName" placeholder="Enter your name">
-                            <button onclick="setPlayerName()" class="btn btn-primary" data-i18n="playerSetup.setName">Set Name</button>
+                            <input type="text" id="playerName" class="input-field" data-i18n="playerSetup.enterName"
+                                placeholder="Enter your name">
+                            <button onclick="setPlayerName()" class="btn btn-primary"
+                                data-i18n="playerSetup.setName">Set Name</button>
                         </div>
                     </div>
                     <div id="gamePhase">
-                        <p class="player-info"><span data-i18n="playerSetup.player">Player</span>: <strong id="currentPlayerName"></strong></p>
+                        <p class="player-info"><span data-i18n="playerSetup.player">Player</span>: <strong
+                                id="currentPlayerName"></strong></p>
                         <div id="lobbyControls">
-                        <div class="button-group">
-                            <button onclick="createGame()" class="btn btn-primary" data-i18n="lobbyControls.create">➕ Create Game</button>
-                            <button onclick="showJoinGame()" class="btn btn-secondary" data-i18n="lobbyControls.join">🔗 Join Game</button>
-                        </div>
-                        <div id="joinGameForm">
-                            <p class="input-hint" data-i18n="lobbyControls.gameIdHint">Shortcut: press <strong>J</strong> to focus the game code field.</p>
-                            <div class="input-group">
-                                <input type="text" id="gameIdInput" class="input-field" data-i18n="lobbyControls.gameIdPlaceholder" placeholder="Enter game ID">
-                                <button onclick="joinGame()" class="btn btn-primary" data-i18n="lobbyControls.joinButton">Join</button>
-                                <button onclick="hideJoinGame()" class="btn btn-secondary" data-i18n="lobbyControls.cancelButton">Cancel</button>
+                            <div class="button-group">
+                                <button onclick="createGame()" class="btn btn-primary"
+                                    data-i18n="lobbyControls.create">➕ Create Game</button>
+                                <button onclick="showJoinGame()" class="btn btn-secondary"
+                                    data-i18n="lobbyControls.join">🔗 Join Game</button>
                             </div>
-                            <div class="input-group">
-                                <input type="text" id="gamePinInput" class="input-field" placeholder="PIN (optional, 4 digits)" maxlength="4" inputmode="numeric">
+                            <div id="joinGameForm">
+                                <p class="input-hint" data-i18n="lobbyControls.gameIdHint">Shortcut: press
+                                    <strong>J</strong> to focus the game code field.</p>
+                                <div class="input-group">
+                                    <input type="text" id="gameIdInput" class="input-field"
+                                        data-i18n="lobbyControls.gameIdPlaceholder" placeholder="Enter game ID">
+                                    <button onclick="joinGame()" class="btn btn-primary"
+                                        data-i18n="lobbyControls.joinButton">Join</button>
+                                    <button onclick="hideJoinGame()" class="btn btn-secondary"
+                                        data-i18n="lobbyControls.cancelButton">Cancel</button>
+                                </div>
+                                <div class="input-group">
+                                    <input type="text" id="gamePinInput" class="input-field"
+                                        placeholder="PIN (optional, 4 digits)" maxlength="4" inputmode="numeric">
+                                </div>
                             </div>
-                        </div>
-                        <div id="lobbyGames">
-                            <p class="lobby-games-title" data-i18n="lobbyControls.openGames">Open games (countdown not started):</p>
-                            <ul id="lobbyGamesList"></ul>
-                        </div>
+                            <div id="lobbyGames">
+                                <p class="lobby-games-title" data-i18n="lobbyControls.openGames">Open games (countdown
+                                    not started):</p>
+                                <ul id="lobbyGamesList"></ul>
+                            </div>
                         </div>
                         <div id="matchControls">
-                        <!-- Game Info Section -->
-                        <div id="gameInfo">
-                            <p class="game-info-label" data-i18n="matchControls.gameCode">📌 Game Code:</p>
-                            <p class="game-id-display"
-                                id="gameIdDisplay">-</p>
-                            <div id="pinSection">
-                                <p class="game-info-label">🔐 PIN (nur für dich sichtbar):</p>
-                                <p class="game-pin-display" id="gamePinDisplay">-</p>
+                            <!-- Game Info Section -->
+                            <div id="gameInfo">
+                                <p class="game-info-label" data-i18n="matchControls.gameCode">📌 Game Code:</p>
+                                <p class="game-id-display" id="gameIdDisplay">-</p>
+                                <div id="pinSection">
+                                    <p class="game-info-label">🔐 PIN (nur für dich sichtbar):</p>
+                                    <p class="game-pin-display" id="gamePinDisplay">-</p>
+                                </div>
+                                <p class="game-info-label"><span data-i18n="matchControls.players">👥 Players</span>
+                                    (<span id="playerCount">0</span>):</p>
+                                <ul id="inGamePlayerList">
+                                </ul>
                             </div>
-                            <p class="game-info-label"><span data-i18n="matchControls.players">👥 Players</span> (<span
-                                    id="playerCount">0</span>):</p>
-                            <ul id="inGamePlayerList">
-                            </ul>
-                        </div>
-                        <div class="button-group" id="inGameButtons">
-                            <button onclick="setReady()" class="btn btn-success" data-i18n="matchControls.ready">✓ Ready</button>
-                            <button id="warmupBtn" onclick="startWarmup()" class="btn btn-secondary" data-i18n="matchControls.warmup">🔥 Warmup</button>
-                            <button id="lockSettingsBtn" onclick="toggleLockSettings()" class="btn btn-secondary" data-i18n="matchControls.lockSettings">🔒 Lock Settings</button>
-                            <button onclick="leaveGame()" class="btn btn-danger" data-i18n="matchControls.leave">✕ Leave</button>
-                        </div>
+                            <div class="button-group" id="inGameButtons">
+                                <button onclick="setReady()" class="btn btn-success" data-i18n="matchControls.ready">✓
+                                    Ready</button>
+                                <button id="warmupBtn" onclick="startWarmup()" class="btn btn-secondary"
+                                    data-i18n="matchControls.warmup">🔥 Warmup</button>
+                                <button id="lockSettingsBtn" onclick="toggleLockSettings()" class="btn btn-secondary"
+                                    data-i18n="matchControls.lockSettings">🔒 Lock Settings</button>
+                                <button onclick="leaveGame()" class="btn btn-danger" data-i18n="matchControls.leave">✕
+                                    Leave</button>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -155,15 +177,19 @@
                     <ul class="lobby-guide-list">
                         <li data-i18n="lobbyGuide.rule1">Jede Runde: Distanz zwischen zwei Städten schätzen.</li>
                         <li data-i18n="lobbyGuide.rule2">Standard: Wer am nächsten dran ist, bekommt 1 Punkt.</li>
-                        <li data-i18n="lobbyGuide.rule3">Der Host kann Sonderregeln aktivieren (z. B. erste Antwort beendet Runde).</li>
-                        <li data-i18n="lobbyGuide.rule4">Nach allen Runden gewinnt der Spieler mit den meisten Punkten.</li>
+                        <li data-i18n="lobbyGuide.rule3">Der Host kann Sonderregeln aktivieren (z. B. erste Antwort
+                            beendet Runde).</li>
+                        <li data-i18n="lobbyGuide.rule4">Nach allen Runden gewinnt der Spieler mit den meisten Punkten.
+                        </li>
                     </ul>
                     <h3 class="lobby-guide-subtitle" data-i18n="lobbyGuide.uiTitle">UI bedienen</h3>
                     <ul class="lobby-guide-list">
-                        <li data-i18n="lobbyGuide.ui1">Name setzen, dann Spiel erstellen oder über Code + PIN beitreten.</li>
+                        <li data-i18n="lobbyGuide.ui1">Name setzen, dann Spiel erstellen oder über Code + PIN beitreten.
+                        </li>
                         <li data-i18n="lobbyGuide.ui2">Host: Einstellungen prüfen/anpassen und ggf. sperren.</li>
                         <li data-i18n="lobbyGuide.ui3">Alle Spieler klicken Bereit, dann startet die Runde.</li>
-                        <li data-i18n="lobbyGuide.ui4">Antwort im Feld eingeben und mit Antwort absenden bestätigen.</li>
+                        <li data-i18n="lobbyGuide.ui4">Antwort im Feld eingeben und mit Antwort absenden bestätigen.
+                        </li>
                         <li data-i18n="lobbyGuide.ui5">Shortcuts: N Name, J Join-Code, G direkt zum Eingabefeld.</li>
                     </ul>
                 </section>
@@ -171,23 +197,27 @@
                 <!-- Rules Card -->
                 <section class="card rules-card" id="rulesCard">
                     <h2 class="card-title" data-i18n="settings.title">⚙️ Settings</h2>
-                    <p id="rulesText" class="settings-text" data-i18n="settings.waiting">Waiting for game settings...</p>
+                    <p id="rulesText" class="settings-text" data-i18n="settings.waiting">Waiting for game settings...
+                    </p>
                     <div id="hostSettingsEditor" class="host-settings-editor" aria-live="polite">
                         <h3 class="host-settings-title" data-i18n="settings.editorTitle">Spiel-Einstellungen (Host)</h3>
                         <div class="host-settings-grid">
                             <label class="host-settings-field">
                                 <span data-i18n="settings.maxRoundsLabel">Max. Runden</span>
-                                <input type="number" id="settingMaxRounds" min="1" max="20" step="1" inputmode="numeric">
+                                <input type="number" id="settingMaxRounds" min="1" max="20" step="1"
+                                    inputmode="numeric">
                                 <span class="field-hint">1 – 20</span>
                             </label>
                             <label class="host-settings-field">
                                 <span data-i18n="settings.countdownLabel">Countdown (s)</span>
-                                <input type="number" id="settingCountdown" min="1" max="30" step="1" inputmode="numeric">
+                                <input type="number" id="settingCountdown" min="1" max="30" step="1"
+                                    inputmode="numeric">
                                 <span class="field-hint">1 – 30 s</span>
                             </label>
                             <label class="host-settings-field">
                                 <span data-i18n="settings.answerTimeLabel">Antwortzeit (s)</span>
-                                <input type="number" id="settingAnswerTime" min="5" max="180" step="1" inputmode="numeric">
+                                <input type="number" id="settingAnswerTime" min="5" max="180" step="1"
+                                    inputmode="numeric">
                                 <span class="field-hint">5 – 180 s</span>
                                 <label id="noTimeLimitRow" class="no-time-limit-row" style="display:none">
                                     <input type="checkbox" id="settingNoTimeLimit">
@@ -196,30 +226,36 @@
                             </label>
                             <label class="host-settings-field">
                                 <span data-i18n="settings.pauseTimeLabel">Pause zwischen Runden (s)</span>
-                                <input type="number" id="settingPauseTime" min="1" max="30" step="1" inputmode="numeric">
+                                <input type="number" id="settingPauseTime" min="1" max="30" step="1"
+                                    inputmode="numeric">
                                 <span class="field-hint">1 – 30 s</span>
                             </label>
                         </div>
                         <div class="host-settings-options">
                             <label class="host-settings-toggle">
                                 <input type="checkbox" id="settingAutoAdvanceAllAnswered">
-                                <span data-i18n="settings.autoAdvanceAllAnsweredLabel">Wenn alle geantwortet haben, sofort nächste Frage starten</span>
+                                <span data-i18n="settings.autoAdvanceAllAnsweredLabel">Wenn alle geantwortet haben,
+                                    sofort nächste Frage starten</span>
                             </label>
                             <label class="host-settings-toggle">
                                 <input type="checkbox" id="settingFirstAnswerEndsRound">
-                                <span data-i18n="settings.firstAnswerEndsRoundLabel">Erste Antwort beendet die Runde</span>
+                                <span data-i18n="settings.firstAnswerEndsRoundLabel">Erste Antwort beendet die
+                                    Runde</span>
                             </label>
                             <label class="host-settings-toggle">
                                 <input type="checkbox" id="settingWrongAnswerPointsOthers">
-                                <span data-i18n="settings.wrongAnswerPointsOthersLabel">Falsche Antworten geben allen anderen je 1 Punkt</span>
+                                <span data-i18n="settings.wrongAnswerPointsOthersLabel">Falsche Antworten geben allen
+                                    anderen je 1 Punkt</span>
                             </label>
                             <label class="host-settings-toggle">
                                 <input type="checkbox" id="settingKickOnDisconnect">
-                                <span data-i18n="settings.kickOnDisconnectLabel">Spieler wird gekickt wenn er das Tab schließt (statt Pause)</span>
+                                <span data-i18n="settings.kickOnDisconnectLabel">Spieler wird gekickt wenn er das Tab
+                                    schließt (statt Pause)</span>
                             </label>
                         </div>
                         <div class="host-settings-actions">
-                            <button id="saveSettingsBtn" onclick="saveGameSettings()" class="btn btn-primary" data-i18n="settings.applyButton">Einstellungen speichern</button>
+                            <button id="saveSettingsBtn" onclick="saveGameSettings()" class="btn btn-primary"
+                                data-i18n="settings.applyButton">Einstellungen speichern</button>
                         </div>
                     </div>
                 </section>
@@ -273,9 +309,12 @@
                 <table id="scoresTable">
                     <thead>
                         <tr class="scores-header-row">
-                            <th class="scores-header-cell scores-header-cell-left" data-i18n="gameEnd.playerColumn">Player</th>
-                            <th class="scores-header-cell scores-header-cell-center" data-i18n="gameEnd.pointsColumn">Points</th>
-                            <th class="scores-header-cell scores-header-cell-center" data-i18n="gameEnd.accuracyColumn">Accuracy
+                            <th class="scores-header-cell scores-header-cell-left" data-i18n="gameEnd.playerColumn">
+                                Player</th>
+                            <th class="scores-header-cell scores-header-cell-center" data-i18n="gameEnd.pointsColumn">
+                                Points</th>
+                            <th class="scores-header-cell scores-header-cell-center" data-i18n="gameEnd.accuracyColumn">
+                                Accuracy
                             </th>
                         </tr>
                     </thead>
@@ -285,24 +324,32 @@
             </div>
 
             <div class="round-review-section">
-                <h3 class="round-review-title" data-i18n="gameEnd.questionsAndAnswers">🗺️ Fragen und empfangene Antworten</h3>
+                <h3 class="round-review-title" data-i18n="gameEnd.questionsAndAnswers">🗺️ Fragen und empfangene
+                    Antworten</h3>
                 <div id="roundReviewList" class="round-review-list"></div>
+            </div>
+            <div class="accuracy-section">
+                <h3 class="round-review-title" data-i18n="gameEnd.accuracy">🎯 Genauigkeit</h3>
+                <div id="accuracyFormula" class="accuracy-list" data-i18n="gameEnd.accuracy_formula">Die Formel ist: <math
+                        display="block" mathsize="2rem">Genauigkeit = 100 - <mfrac bevelled="true">
+                            <mi>|Schätzung - Tatsächlich|</mi>
+                            <mi>Tatsächlich</mi>
+                        </mfrac></math></div>
             </div>
 
             <!-- Action Buttons -->
             <div class="game-finished-actions">
-                <button onclick="playAgain()"
-                    class="game-finished-btn game-finished-btn-primary" data-i18n="gameEnd.newGame">
+                <button onclick="playAgain()" class="game-finished-btn game-finished-btn-primary"
+                    data-i18n="gameEnd.newGame">
                     ➕ New Game
                 </button>
-                <button onclick="backToLobby()"
-                    class="game-finished-btn game-finished-btn-secondary" data-i18n="gameEnd.backToLobby">
+                <button onclick="backToLobby()" class="game-finished-btn game-finished-btn-secondary"
+                    data-i18n="gameEnd.backToLobby">
                     🔗 Back to Lobby
                 </button>
             </div>
         </div>
     </div>
-
     <script src="https://cdn.jsdelivr.net/npm/ol@9.2.4/dist/ol.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/proj4@2.11.0/dist/proj4.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/ol@9.2.4/proj/proj4.js"></script>
