@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kilometer Knobelei - Guess the Distance Game</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
@@ -147,6 +148,27 @@
                     </div>
                 </section>
 
+                <!-- Lobby Guide Card -->
+                <section class="card lobby-guide-card" id="lobbyGuideCard">
+                    <h2 class="card-title" data-i18n="lobbyGuide.title">📘 Spielanleitung</h2>
+                    <p class="settings-text" data-i18n="lobbyGuide.intro">Alles Wichtige vor dem Start:</p>
+                    <h3 class="lobby-guide-subtitle" data-i18n="lobbyGuide.rulesTitle">Spielregeln</h3>
+                    <ul class="lobby-guide-list">
+                        <li data-i18n="lobbyGuide.rule1">Jede Runde: Distanz zwischen zwei Städten schätzen.</li>
+                        <li data-i18n="lobbyGuide.rule2">Standard: Wer am nächsten dran ist, bekommt 1 Punkt.</li>
+                        <li data-i18n="lobbyGuide.rule3">Der Host kann Sonderregeln aktivieren (z. B. erste Antwort beendet Runde).</li>
+                        <li data-i18n="lobbyGuide.rule4">Nach allen Runden gewinnt der Spieler mit den meisten Punkten.</li>
+                    </ul>
+                    <h3 class="lobby-guide-subtitle" data-i18n="lobbyGuide.uiTitle">UI bedienen</h3>
+                    <ul class="lobby-guide-list">
+                        <li data-i18n="lobbyGuide.ui1">Name setzen, dann Spiel erstellen oder über Code + PIN beitreten.</li>
+                        <li data-i18n="lobbyGuide.ui2">Host: Einstellungen prüfen/anpassen und ggf. sperren.</li>
+                        <li data-i18n="lobbyGuide.ui3">Alle Spieler klicken Bereit, dann startet die Runde.</li>
+                        <li data-i18n="lobbyGuide.ui4">Antwort im Feld eingeben und mit Antwort absenden bestätigen.</li>
+                        <li data-i18n="lobbyGuide.ui5">Shortcuts: N Name, J Join-Code, G direkt zum Eingabefeld.</li>
+                    </ul>
+                </section>
+
                 <!-- Countdown Card -->
                 <section class="card countdown-card" id="countdownCard">
                     <h2 class="card-title" data-i18n="countdown.title">⏱️ Game Status</h2>
@@ -178,6 +200,20 @@
                             <label class="host-settings-field">
                                 <span data-i18n="settings.pauseTimeLabel">Pause zwischen Runden (s)</span>
                                 <input type="number" id="settingPauseTime" min="1" max="30" step="1" inputmode="numeric">
+                            </label>
+                        </div>
+                        <div class="host-settings-options">
+                            <label class="host-settings-toggle">
+                                <input type="checkbox" id="settingAutoAdvanceAllAnswered">
+                                <span data-i18n="settings.autoAdvanceAllAnsweredLabel">Wenn alle geantwortet haben, sofort nächste Frage starten</span>
+                            </label>
+                            <label class="host-settings-toggle">
+                                <input type="checkbox" id="settingFirstAnswerEndsRound">
+                                <span data-i18n="settings.firstAnswerEndsRoundLabel">Erste Antwort beendet die Runde</span>
+                            </label>
+                            <label class="host-settings-toggle">
+                                <input type="checkbox" id="settingWrongAnswerPointsOthers">
+                                <span data-i18n="settings.wrongAnswerPointsOthersLabel">Falsche Antworten geben allen anderen je 1 Punkt</span>
                             </label>
                         </div>
                         <div class="host-settings-actions">
@@ -220,6 +256,11 @@
             <div class="final-scores-section">
                 <h3 class="final-scores-title" data-i18n="gameEnd.finalScores">📊 Final Scores
                 </h3>
+                <div id="podiumSection" class="podium-section">
+                    <div id="podiumPlace1" class="podium-place"></div>
+                    <div id="podiumPlace2" class="podium-place"></div>
+                    <div id="podiumPlace3" class="podium-place"></div>
+                </div>
                 <table id="scoresTable">
                     <thead>
                         <tr class="scores-header-row">

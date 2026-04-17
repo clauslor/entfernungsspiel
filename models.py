@@ -21,6 +21,9 @@ class GameConfig:
     countdown_seconds: int = 3
     answer_time_seconds: int = 15
     pause_between_rounds_seconds: int = 3
+    auto_advance_on_all_answers: bool = True
+    first_answer_ends_round: bool = False
+    wrong_answer_points_others: bool = False
 
 
 
@@ -82,6 +85,7 @@ class GameState:
     round_history: List[Dict] = field(default_factory=list)
     answer_deadline_task: Optional[asyncio.Task] = None
     reconnect_resume_task: Optional[asyncio.Task] = None
+    round_resolution_in_progress: bool = False
     created_at: datetime = field(default_factory=datetime.now)
     host_player_id: Optional[str] = None
     pin: str = ""
@@ -104,6 +108,7 @@ class GameState:
         self.pause_reason = None
         self.warmup_active = False
         self.round_history = []
+        self.round_resolution_in_progress = False
         if self.answer_deadline_task and not self.answer_deadline_task.done():
             self.answer_deadline_task.cancel()
         self.answer_deadline_task = None

@@ -78,10 +78,28 @@
     "countdownLabel": "Countdown (s)",
     "answerTimeLabel": "Answer time (s)",
     "pauseTimeLabel": "Pause between rounds (s)",
-    "applyButton": "Save settings"
+    "applyButton": "Save settings",
+    "autoAdvanceAllAnsweredLabel": "Start next question immediately when all players answered",
+    "firstAnswerEndsRoundLabel": "First answer ends the round",
+    "wrongAnswerPointsOthersLabel": "Wrong answers give every other player +1 point"
   },
   "players": {
     "title": "👥 Players Online"
+  },
+  "lobbyGuide": {
+    "title": "📘 How To Play",
+    "intro": "Everything you need before the start:",
+    "rulesTitle": "Game Rules",
+    "rule1": "Each round: estimate the distance between two cities.",
+    "rule2": "Default: the closest guess earns 1 point.",
+    "rule3": "The host can enable special rules (e.g. first answer ends the round).",
+    "rule4": "After all rounds, the player with the most points wins.",
+    "uiTitle": "How To Use The UI",
+    "ui1": "Set your name, then create a game or join with code + PIN.",
+    "ui2": "Host: review/adjust settings and lock them if needed.",
+    "ui3": "All players click Ready, then the round starts.",
+    "ui4": "Enter your guess and confirm with Submit Answer.",
+    "ui5": "Shortcuts: N name field, J join code, G guess input."
   },
   "messages": {
     "title": "💬 Game Chat",
@@ -193,6 +211,9 @@
     "solution": "Solution",
     "km": "km",
     "winner": "Winner",
+    "firstPlace": "🥇 1st place: {name} ({score})",
+    "secondPlace": "🥈 2nd place: {name} ({score})",
+    "thirdPlace": "🥉 3rd place: {name} ({score})",
     "noDetailsAvailable": "No round details available.",
     "noValidAnswer": "No valid answer received.",
     "scored": "Scored:",

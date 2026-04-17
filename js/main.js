@@ -90,6 +90,7 @@ function updateUILayout() {
 
   const lobbyControls = document.getElementById("lobbyControls");
   const matchControls = document.getElementById("matchControls");
+  const lobbyGuideCard = document.getElementById("lobbyGuideCard");
   const countdownCard = document.getElementById("countdownCard");
   const rulesCard = document.getElementById("rulesCard");
   const playersCard = document.getElementById("playersCard");
@@ -108,6 +109,9 @@ function updateUILayout() {
   }
   if (matchControls) {
     matchControls.style.display = inGame ? "block" : "none";
+  }
+  if (lobbyGuideCard) {
+    lobbyGuideCard.style.display = inGame ? "none" : "block";
   }
 
   if (countdownCard) {
@@ -887,12 +891,36 @@ function handleJsonMessage(msg) {
 
     const scoresTableBody = document.getElementById("scoresTableBody");
     scoresTableBody.innerHTML = "";
+    ["podiumPlace1", "podiumPlace2", "podiumPlace3"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = "";
+      el.classList.remove("visible");
+    });
 
     if (msg.final_scores && Object.keys(msg.final_scores).length > 0) {
       let scoreIndex = 1;
       const sortedScores = Object.entries(msg.final_scores).sort(
         (a, b) => b[1].score - a[1].score,
       );
+
+      const podium = [
+        { id: "podiumPlace1", key: "gameEnd.firstPlace" },
+        { id: "podiumPlace2", key: "gameEnd.secondPlace" },
+        { id: "podiumPlace3", key: "gameEnd.thirdPlace" },
+      ];
+      podium.forEach((slot, index) => {
+        const el = document.getElementById(slot.id);
+        if (!el) return;
+        if (sortedScores[index]) {
+          const [name, stats] = sortedScores[index];
+          el.textContent = t(slot.key, { name, score: stats.score });
+          el.classList.add("visible");
+        } else {
+          el.textContent = "";
+          el.classList.remove("visible");
+        }
+      });
 
       sortedScores.forEach(([playerName, stats]) => {
         const row = document.createElement("tr");
@@ -965,10 +993,16 @@ function updateGameSettings(game_id, config) {
     const countdownInput = document.getElementById("settingCountdown");
     const answerTimeInput = document.getElementById("settingAnswerTime");
     const pauseTimeInput = document.getElementById("settingPauseTime");
+    const autoAdvanceAllAnsweredInput = document.getElementById("settingAutoAdvanceAllAnswered");
+    const firstAnswerEndsRoundInput = document.getElementById("settingFirstAnswerEndsRound");
+    const wrongAnswerPointsOthersInput = document.getElementById("settingWrongAnswerPointsOthers");
     if (maxRoundsInput) maxRoundsInput.value = config.max_rounds;
     if (countdownInput) countdownInput.value = config.countdown_seconds;
     if (answerTimeInput) answerTimeInput.value = config.answer_time_seconds;
     if (pauseTimeInput) pauseTimeInput.value = config.pause_between_rounds_seconds;
+    if (autoAdvanceAllAnsweredInput) autoAdvanceAllAnsweredInput.checked = !!config.auto_advance_on_all_answers;
+    if (firstAnswerEndsRoundInput) firstAnswerEndsRoundInput.checked = !!config.first_answer_ends_round;
+    if (wrongAnswerPointsOthersInput) wrongAnswerPointsOthersInput.checked = !!config.wrong_answer_points_others;
   }
   updateHostControls();
 }
@@ -1119,6 +1153,9 @@ function updateHostControls() {
     document.getElementById("settingCountdown"),
     document.getElementById("settingAnswerTime"),
     document.getElementById("settingPauseTime"),
+    document.getElementById("settingAutoAdvanceAllAnswered"),
+    document.getElementById("settingFirstAnswerEndsRound"),
+    document.getElementById("settingWrongAnswerPointsOthers"),
   ].forEach((inputEl) => {
     if (inputEl) {
       inputEl.disabled = !canEditSettings;
@@ -1139,6 +1176,9 @@ function saveGameSettings() {
   const countdownSeconds = parseInt(document.getElementById("settingCountdown")?.value || "", 10);
   const answerTimeSeconds = parseInt(document.getElementById("settingAnswerTime")?.value || "", 10);
   const pauseBetweenRoundsSeconds = parseInt(document.getElementById("settingPauseTime")?.value || "", 10);
+  const autoAdvanceOnAllAnswers = !!document.getElementById("settingAutoAdvanceAllAnswered")?.checked;
+  const firstAnswerEndsRound = !!document.getElementById("settingFirstAnswerEndsRound")?.checked;
+  const wrongAnswerPointsOthers = !!document.getElementById("settingWrongAnswerPointsOthers")?.checked;
 
   const values = [maxRounds, countdownSeconds, answerTimeSeconds, pauseBetweenRoundsSeconds];
   if (values.some((v) => Number.isNaN(v))) {
@@ -1153,6 +1193,9 @@ function saveGameSettings() {
       countdown_seconds: countdownSeconds,
       answer_time_seconds: answerTimeSeconds,
       pause_between_rounds_seconds: pauseBetweenRoundsSeconds,
+      auto_advance_on_all_answers: autoAdvanceOnAllAnswers,
+      first_answer_ends_round: firstAnswerEndsRound,
+      wrong_answer_points_others: wrongAnswerPointsOthers,
     },
   });
   appendMessage(t("messages.settingsUpdateSent"));

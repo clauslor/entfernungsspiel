@@ -969,6 +969,45 @@ main.game-layout.lobby-mode .game-column {
     justify-content: flex-end;
 }
 
+.host-settings-options {
+    margin-top: 10px;
+    display: grid;
+    gap: 8px;
+}
+
+.host-settings-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.host-settings-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+}
+
+.podium-section {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.podium-place {
+    display: none;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: #f8fafc;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.podium-place.visible {
+    display: block;
+}
+
 @media (max-width: 760px) {
     .host-settings-grid {
         grid-template-columns: 1fr;
@@ -989,6 +1028,24 @@ main.game-layout.lobby-mode .game-column {
 
 .players-card {
     border-left: 4px solid var(--primary-color);
+}
+
+.lobby-guide-card {
+    border-left: 4px solid #0ea5e9;
+}
+
+.lobby-guide-list {
+    margin: 10px 0 0 20px;
+    color: var(--text-secondary);
+    display: grid;
+    gap: 8px;
+    line-height: 1.4;
+}
+
+.lobby-guide-subtitle {
+    margin: 12px 0 6px 0;
+    font-size: 0.95rem;
+    color: var(--text-primary);
 }
 
 .player-list {

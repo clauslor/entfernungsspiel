@@ -51,6 +51,9 @@ class UpdateSettingsMessage(BaseModel):
     countdown_seconds: int
     answer_time_seconds: int
     pause_between_rounds_seconds: int
+    auto_advance_on_all_answers: bool = True
+    first_answer_ends_round: bool = False
+    wrong_answer_points_others: bool = False
 
 
 class WebSocketHandler:
@@ -264,6 +267,9 @@ class WebSocketHandler:
                 countdown_seconds=self.default_config.countdown_seconds,
                 answer_time_seconds=self.default_config.answer_time_seconds,
                 pause_between_rounds_seconds=self.default_config.pause_between_rounds_seconds,
+                auto_advance_on_all_answers=self.default_config.auto_advance_on_all_answers,
+                first_answer_ends_round=self.default_config.first_answer_ends_round,
+                wrong_answer_points_others=self.default_config.wrong_answer_points_others,
             )
 
             game = self.game_room.create_game(game_id, config)
@@ -542,6 +548,9 @@ class WebSocketHandler:
             countdown_seconds=msg.countdown_seconds,
             answer_time_seconds=msg.answer_time_seconds,
             pause_between_rounds_seconds=msg.pause_between_rounds_seconds,
+            auto_advance_on_all_answers=msg.auto_advance_on_all_answers,
+            first_answer_ends_round=msg.first_answer_ends_round,
+            wrong_answer_points_others=msg.wrong_answer_points_others,
         )
 
         await self.broadcast_players_update(game.id)
@@ -626,6 +635,9 @@ class WebSocketHandler:
                         "countdown_seconds": game.config.countdown_seconds,
                         "answer_time_seconds": game.config.answer_time_seconds,
                         "pause_between_rounds_seconds": game.config.pause_between_rounds_seconds,
+                        "auto_advance_on_all_answers": game.config.auto_advance_on_all_answers,
+                        "first_answer_ends_round": game.config.first_answer_ends_round,
+                        "wrong_answer_points_others": game.config.wrong_answer_points_others,
                     }
                 },
             )
@@ -672,6 +684,9 @@ class WebSocketHandler:
                     "countdown_seconds": game.config.countdown_seconds,
                     "answer_time_seconds": game.config.answer_time_seconds,
                     "pause_between_rounds_seconds": game.config.pause_between_rounds_seconds,
+                    "auto_advance_on_all_answers": game.config.auto_advance_on_all_answers,
+                    "first_answer_ends_round": game.config.first_answer_ends_round,
+                    "wrong_answer_points_others": game.config.wrong_answer_points_others,
                 },
                 "players": [
                     {
@@ -719,6 +734,9 @@ class WebSocketHandler:
                         "countdown_seconds": game.config.countdown_seconds,
                         "answer_time_seconds": game.config.answer_time_seconds,
                         "pause_between_rounds_seconds": game.config.pause_between_rounds_seconds,
+                        "auto_advance_on_all_answers": game.config.auto_advance_on_all_answers,
+                        "first_answer_ends_round": game.config.first_answer_ends_round,
+                        "wrong_answer_points_others": game.config.wrong_answer_points_others,
                     },
                     "players": [
                         {

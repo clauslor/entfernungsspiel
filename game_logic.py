@@ -43,6 +43,7 @@ class GameLogic:
         game.current_round = 0
         game.answers = {}
         game.answer_submissions = {}
+        game.round_resolution_in_progress = False
         game.status = GameStatus.ACTIVE
 
         question = await self._assign_random_question(game)
@@ -146,6 +147,7 @@ class GameLogic:
             game.answers = {}
             game.answer_submissions = {}
             game.answer_submission_history = {}
+            game.round_resolution_in_progress = False
             game.status = GameStatus.ACTIVE
             game.pause_reason = None
 
@@ -284,6 +286,14 @@ class GameLogic:
 
         logger.info(f"Game {game_id}: Received guess from {game.players[player_id].name}: {guess} km")
 
+        should_end_after_first = game.config.first_answer_ends_round and is_first_submission
+        all_players_answered = len(game.answers) >= len(game.players)
+        should_end_after_all = game.config.auto_advance_on_all_answers and all_players_answered
+        if (should_end_after_first or should_end_after_all) and not game.round_resolution_in_progress:
+            if game.answer_deadline_task and not game.answer_deadline_task.done():
+                game.answer_deadline_task.cancel()
+            await self.evaluate_answers(game_id)
+
         return {
             "guess": guess,
             "submitted_at": submitted_at.isoformat(),
@@ -337,6 +347,10 @@ class GameLogic:
         game = self.game_room.get_game(game_id)
         if not game or game.status != GameStatus.ACTIVE or not game.current_question:
             return
+        if game.round_resolution_in_progress:
+            return
+
+        game.round_resolution_in_progress = True
 
         question = game.current_question
         correct_distance = question.distance
@@ -388,6 +402,16 @@ class GameLogic:
         if not game.warmup_active:
             winner.score += 1
             round_deltas[winner_id] = 1
+
+            if game.config.wrong_answer_points_others:
+                for submitted_player_id, submitted_guess in game.answers.items():
+                    if submitted_guess == correct_distance:
+                        continue
+                    for other_player in game.players.values():
+                        if other_player.id == submitted_player_id:
+                            continue
+                        other_player.score += 1
+                        round_deltas[other_player.id] = round_deltas.get(other_player.id, 0) + 1
 
         round_review = {
             "round": game.current_round,

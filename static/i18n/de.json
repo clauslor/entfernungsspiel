@@ -78,10 +78,28 @@
     "countdownLabel": "Countdown (s)",
     "answerTimeLabel": "Antwortzeit (s)",
     "pauseTimeLabel": "Pause zwischen Runden (s)",
-    "applyButton": "Einstellungen speichern"
+    "applyButton": "Einstellungen speichern",
+    "autoAdvanceAllAnsweredLabel": "Wenn alle geantwortet haben, sofort nächste Frage starten",
+    "firstAnswerEndsRoundLabel": "Erste Antwort beendet die Runde",
+    "wrongAnswerPointsOthersLabel": "Falsche Antworten geben allen anderen je 1 Punkt"
   },
   "players": {
     "title": "👥 Online Spieler"
+  },
+  "lobbyGuide": {
+    "title": "📘 Spielanleitung",
+    "intro": "Alles Wichtige vor dem Start:",
+    "rulesTitle": "Spielregeln",
+    "rule1": "Jede Runde: Distanz zwischen zwei Städten schätzen.",
+    "rule2": "Standard: Wer am nächsten dran ist, bekommt 1 Punkt.",
+    "rule3": "Der Host kann Sonderregeln aktivieren (z. B. erste Antwort beendet Runde).",
+    "rule4": "Nach allen Runden gewinnt der Spieler mit den meisten Punkten.",
+    "uiTitle": "UI bedienen",
+    "ui1": "Name setzen, dann Spiel erstellen oder über Code + PIN beitreten.",
+    "ui2": "Host: Einstellungen prüfen/anpassen und ggf. sperren.",
+    "ui3": "Alle Spieler klicken Bereit, dann startet die Runde.",
+    "ui4": "Antwort im Feld eingeben und mit Antwort absenden bestätigen.",
+    "ui5": "Shortcuts: N Name, J Join-Code, G direkt zum Eingabefeld."
   },
   "messages": {
     "title": "💬 Spiel-Chat",
@@ -193,6 +211,9 @@
     "solution": "Lösung",
     "km": "km",
     "winner": "Gewinner",
+    "firstPlace": "🥇 1. Platz: {name} ({score})",
+    "secondPlace": "🥈 2. Platz: {name} ({score})",
+    "thirdPlace": "🥉 3. Platz: {name} ({score})",
     "noDetailsAvailable": "Keine Rundendetails verfügbar.",
     "noValidAnswer": "Keine gültige Antwort eingegangen.",
     "scored": "Gewertet wurde:",
