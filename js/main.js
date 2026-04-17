@@ -608,13 +608,14 @@ function ensureLeafletMap() {
   attachLeafletResizeObserver(container);
 
   if (!gameMap) {
+    let projection25832;
     try {
       proj4.defs("EPSG:25832", "+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs");
       if (ol.proj.proj4 && typeof ol.proj.proj4.register === "function") {
         ol.proj.proj4.register(proj4);
       }
 
-      let projection25832 = ol.proj.get("EPSG:25832");
+      projection25832 = ol.proj.get("EPSG:25832");
       if (!projection25832) {
         projection25832 = new ol.proj.Projection({
           code: "EPSG:25832",
@@ -660,10 +661,23 @@ function ensureLeafletMap() {
       source: gameMapFeatureSource,
     });
 
+    const defaultControls =
+      typeof ol.control.defaults === "function"
+        ? ol.control.defaults()
+        : (ol.control.defaults && typeof ol.control.defaults.defaults === "function"
+          ? ol.control.defaults.defaults()
+          : ol.control.defaults === undefined
+            ? null
+            : null);
+    if (!defaultControls) {
+      console.error("[Map] OpenLayers default controls factory is unavailable");
+      return null;
+    }
+
     gameMap = new ol.Map({
       target: container,
       layers: [gameMapBaseLayer, gameMapFallbackLayer, gameMapFeatureLayer],
-      controls: ol.control.defaults().extend([
+      controls: defaultControls.extend([
         new ol.control.ScaleLine({
           units: "metric",
           bar: true,
