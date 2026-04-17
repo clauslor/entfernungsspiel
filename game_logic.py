@@ -33,24 +33,29 @@ class GameLogic:
         self.ws_handler = ws_handler
 
     def _should_use_road_variant(self) -> bool:
-        if not config.GRAPHHOPPER_API_KEY:
-            return False
         chance = max(0.0, min(1.0, float(config.ROAD_DISTANCE_QUESTION_CHANCE)))
         return random.random() < chance
 
+    def _routing_provider(self) -> str:
+        return (getattr(config, "ROUTING_PROVIDER", "osrm") or "osrm").strip().lower()
+
     async def _try_get_road_route(self, question: CityPair) -> Optional[Dict[str, object]]:
+        provider = self._routing_provider()
+        provider_for_cache = provider if provider in {"osrm", "graphhopper"} else "auto"
+        profile_for_cache = config.GRAPHHOPPER_PROFILE
+
         with SessionLocal() as db:
             cached_distance = get_cached_route_distance_km(
                 db,
                 city_pair_id=question.id,
-                provider="graphhopper",
-                profile=config.GRAPHHOPPER_PROFILE,
+                provider=provider_for_cache,
+                profile=profile_for_cache,
             )
             cached_points = get_cached_route_points(
                 db,
                 city_pair_id=question.id,
-                provider="graphhopper",
-                profile=config.GRAPHHOPPER_PROFILE,
+                provider=provider_for_cache,
+                profile=profile_for_cache,
             )
 
         if cached_distance is not None and cached_points:
@@ -67,6 +72,8 @@ class GameLogic:
             question.lon2,
             config.GRAPHHOPPER_API_KEY,
             config.GRAPHHOPPER_PROFILE,
+            provider,
+            config.OSRM_BASE_URL,
         )
         if route_data is None:
             return None
@@ -77,19 +84,21 @@ class GameLogic:
             return None
 
         with SessionLocal() as db:
+            used_provider = str(route_data.get("provider") or provider_for_cache)
+            used_profile = str(route_data.get("profile") or profile_for_cache)
             upsert_route_distance_km(
                 db,
                 city_pair_id=question.id,
                 distance_km=distance_km,
-                provider="graphhopper",
-                profile=config.GRAPHHOPPER_PROFILE,
+                provider=used_provider,
+                profile=used_profile,
             )
             upsert_route_points(
                 db,
                 city_pair_id=question.id,
                 points=points,
-                provider="graphhopper",
-                profile=config.GRAPHHOPPER_PROFILE,
+                provider=used_provider,
+                profile=used_profile,
             )
         return {
             "distance_km": distance_km,
@@ -116,6 +125,12 @@ class GameLogic:
                 question.distance = int(road_route["distance_km"])
                 question.question_variant = "road"
                 question.route_points = road_route.get("points") or []
+            else:
+                logger.info(
+                    "Road-variant requested for %s -> %s but no route was available (missing API key or route lookup failed).",
+                    question.city1,
+                    question.city2,
+                )
 
         return question
 

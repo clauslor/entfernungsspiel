@@ -165,6 +165,14 @@ DEFAULT_PAUSE_BETWEEN_ROUNDS=3
 # Logging
 LOG_LEVEL=INFO
 LOG_FILE=server.log
+
+# Routing provider (for road-distance questions)
+# osrm (free, no API key) | graphhopper | auto
+ROUTING_PROVIDER=osrm
+OSRM_BASE_URL=https://router.project-osrm.org
+GRAPHHOPPER_API_KEY=
+GRAPHHOPPER_PROFILE=car
+ROAD_DISTANCE_QUESTION_CHANCE=1.0
 ```
 
 ### Game Configuration (Admin Panel)

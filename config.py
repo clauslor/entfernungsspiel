@@ -26,9 +26,11 @@ class Config:
     LOG_FILE: str = os.getenv("LOG_FILE", "server.log")
 
     # External routing (optional)
+    ROUTING_PROVIDER: str = os.getenv("ROUTING_PROVIDER", "osrm")
+    OSRM_BASE_URL: str = os.getenv("OSRM_BASE_URL", "https://router.project-osrm.org")
     GRAPHHOPPER_API_KEY: str = os.getenv("GRAPHHOPPER_API_KEY", "")
     GRAPHHOPPER_PROFILE: str = os.getenv("GRAPHHOPPER_PROFILE", "car")
-    ROAD_DISTANCE_QUESTION_CHANCE: float = float(os.getenv("ROAD_DISTANCE_QUESTION_CHANCE", "0.35"))
+    ROAD_DISTANCE_QUESTION_CHANCE: float = float(os.getenv("ROAD_DISTANCE_QUESTION_CHANCE", "1.0"))
 
     # Admin
     ADMIN_USER: str = os.getenv("ADMIN_USER", "admin")
