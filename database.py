@@ -50,6 +50,18 @@ class DBHighScore(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
 
 
+class DBSortCitiesQuestion(Base):
+    __tablename__ = "sort_cities_questions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    prompt = Column(String)
+    option1 = Column(String)
+    option2 = Column(String)
+    option3 = Column(String)
+    option4 = Column(String)
+    correct_order = Column(String)  # Comma-separated city names in correct order
+
+
 def init_db():
     """Initialize database tables"""
     Base.metadata.create_all(bind=engine)
@@ -69,6 +81,11 @@ def get_city_pairs(db) -> List[DBCityPair]:
     return db.query(DBCityPair).all()
 
 
+def get_sort_cities_questions(db) -> List[DBSortCitiesQuestion]:
+    """Get all sort-cities questions from database"""
+    return db.query(DBSortCitiesQuestion).all()
+
+
 def add_city_pair(db, city1: str, city2: str, distance: int, lat1: float, lon1: float, lat2: float, lon2: float) -> DBCityPair:
     """Add a new city pair to database"""
     city_pair = DBCityPair(city1=city1, city2=city2, distance=distance, lat1=lat1, lon1=lon1, lat2=lat2, lon2=lon2)
@@ -76,6 +93,30 @@ def add_city_pair(db, city1: str, city2: str, distance: int, lat1: float, lon1: 
     db.commit()
     db.refresh(city_pair)
     return city_pair
+
+
+def add_sort_cities_question(
+    db,
+    prompt: str,
+    option1: str,
+    option2: str,
+    option3: str,
+    option4: str,
+    correct_order: str,
+) -> DBSortCitiesQuestion:
+    """Add a sort-cities question to database"""
+    question = DBSortCitiesQuestion(
+        prompt=prompt,
+        option1=option1,
+        option2=option2,
+        option3=option3,
+        option4=option4,
+        correct_order=correct_order,
+    )
+    db.add(question)
+    db.commit()
+    db.refresh(question)
+    return question
 
 
 def save_game_result(db, result_data: dict):
@@ -142,3 +183,36 @@ def init_default_city_pairs(db):
 
         for city1, city2, distance, lat1, lon1, lat2, lon2 in default_pairs:
             add_city_pair(db, city1, city2, distance, lat1, lon1, lat2, lon2)
+
+
+def init_default_sort_cities_questions(db):
+    """Initialize database with default sort-cities questions"""
+    if db.query(DBSortCitiesQuestion).count() == 0:
+        default_sort_questions = [
+            {
+                "prompt": "Sortiere diese Staedte von Nord nach Sued",
+                "options": ["Hamburg", "Berlin", "Muenchen", "Koeln"],
+                "correct_order": ["Hamburg", "Berlin", "Koeln", "Muenchen"],
+            },
+            {
+                "prompt": "Sortiere diese Staedte von West nach Ost",
+                "options": ["Koeln", "Hamburg", "Berlin", "Dresden"],
+                "correct_order": ["Koeln", "Hamburg", "Berlin", "Dresden"],
+            },
+            {
+                "prompt": "Sortiere diese Staedte von Nord nach Sued",
+                "options": ["Rostock", "Leipzig", "Frankfurt", "Stuttgart"],
+                "correct_order": ["Rostock", "Leipzig", "Frankfurt", "Stuttgart"],
+            },
+        ]
+
+        for entry in default_sort_questions:
+            add_sort_cities_question(
+                db,
+                prompt=entry["prompt"],
+                option1=entry["options"][0],
+                option2=entry["options"][1],
+                option3=entry["options"][2],
+                option4=entry["options"][3],
+                correct_order=",".join(entry["correct_order"]),
+            )

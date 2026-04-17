@@ -20,6 +20,7 @@ let countdownRemainingSeconds = 0;
 let answerHintTimerId = null;
 let guessSubmissionPending = false;
 let guessLockedForRound = false;
+let currentQuestionType = "distance";
 
 const DEFAULT_MAP_VIEW = {
   center: [51.1657, 10.4515],
@@ -324,6 +325,102 @@ function resetAnswerSubmissionState() {
   clearAnswerSubmissionHint();
 }
 
+function setQuestionMode(questionType) {
+  currentQuestionType = questionType === "sort_cities" ? "sort_cities" : "distance";
+
+  const distanceArea = document.getElementById("distanceQuestionArea");
+  const sortArea = document.getElementById("sortQuestionArea");
+  const guessInput = document.getElementById("guessInput");
+
+  if (distanceArea) {
+    distanceArea.style.display = currentQuestionType === "distance" ? "block" : "none";
+  }
+  if (sortArea) {
+    sortArea.style.display = currentQuestionType === "sort_cities" ? "block" : "none";
+  }
+
+  if (guessInput) {
+    guessInput.placeholder = currentQuestionType === "sort_cities" ? "Order wird oben gesetzt" : "Distance in km";
+    guessInput.readOnly = currentQuestionType === "sort_cities";
+    guessInput.value = currentQuestionType === "sort_cities" ? "" : guessInput.value;
+  }
+}
+
+function updateSortButtonsState() {
+  const rows = Array.from(document.querySelectorAll("#sortCitiesList .sort-city-item"));
+  rows.forEach((row, index) => {
+    const up = row.querySelector(".sort-up");
+    const down = row.querySelector(".sort-down");
+    if (up) up.disabled = index === 0;
+    if (down) down.disabled = index === rows.length - 1;
+  });
+}
+
+function moveSortCity(index, delta) {
+  const list = document.getElementById("sortCitiesList");
+  if (!list) return;
+
+  const rows = Array.from(list.children);
+  const targetIndex = index + delta;
+  if (targetIndex < 0 || targetIndex >= rows.length) return;
+
+  const currentRow = rows[index];
+  const targetRow = rows[targetIndex];
+  if (delta < 0) {
+    list.insertBefore(currentRow, targetRow);
+  } else {
+    list.insertBefore(targetRow, currentRow);
+  }
+
+  updateSortButtonsState();
+}
+
+function getSortAnswerOrder() {
+  return Array.from(document.querySelectorAll("#sortCitiesList .sort-city-name")).map((node) => node.textContent.trim());
+}
+
+function renderSortQuestion(prompt, options) {
+  const promptEl = document.getElementById("sortQuestionPrompt");
+  const list = document.getElementById("sortCitiesList");
+  if (!list || !promptEl) return;
+
+  promptEl.textContent = prompt || "Sortiere die Staedte in die richtige Reihenfolge";
+  list.innerHTML = "";
+
+  (options || []).forEach((city, idx) => {
+    const item = document.createElement("li");
+    item.className = "sort-city-item";
+    item.innerHTML = `
+      <span class="sort-city-name">${city}</span>
+      <span class="sort-city-controls">
+        <button type="button" class="sort-move-btn sort-up" aria-label="Nach oben">▲</button>
+        <button type="button" class="sort-move-btn sort-down" aria-label="Nach unten">▼</button>
+      </span>
+    `;
+
+    const upBtn = item.querySelector(".sort-up");
+    const downBtn = item.querySelector(".sort-down");
+    if (upBtn) {
+      upBtn.addEventListener("click", () => {
+        const rows = Array.from(list.children);
+        const rowIndex = rows.indexOf(item);
+        moveSortCity(rowIndex, -1);
+      });
+    }
+    if (downBtn) {
+      downBtn.addEventListener("click", () => {
+        const rows = Array.from(list.children);
+        const rowIndex = rows.indexOf(item);
+        moveSortCity(rowIndex, 1);
+      });
+    }
+
+    list.appendChild(item);
+  });
+
+  updateSortButtonsState();
+}
+
 function formatSubmissionTime(isoValue) {
   if (!isoValue) return "-";
 
@@ -363,7 +460,11 @@ function renderRoundHistory(roundHistory) {
 
     const meta = document.createElement("div");
     meta.className = "round-review-meta";
-    meta.textContent = `Loesung: ${round.correct_distance} km | Gewinner: ${round.winner}`;
+    if (round.correct_order && Array.isArray(round.correct_order)) {
+      meta.textContent = `Loesung: ${round.correct_order.join(" > ")} | Gewinner: ${round.winner}`;
+    } else {
+      meta.textContent = `Loesung: ${round.correct_distance} km | Gewinner: ${round.winner}`;
+    }
 
     card.appendChild(question);
     card.appendChild(meta);
@@ -381,7 +482,8 @@ function renderRoundHistory(roundHistory) {
       if (submission.final_guess === null || submission.final_guess === undefined) {
         finalEntry.textContent = "Keine gueltige Antwort eingegangen.";
       } else {
-        finalEntry.textContent = `Gewertet wurde: ${submission.final_guess} km um ${formatSubmissionTime(submission.final_submitted_at)}`;
+        const suffix = typeof submission.final_guess === "number" ? " km" : "";
+        finalEntry.textContent = `Gewertet wurde: ${submission.final_guess}${suffix} um ${formatSubmissionTime(submission.final_submitted_at)}`;
       }
 
       const logList = document.createElement("ul");
@@ -396,7 +498,8 @@ function renderRoundHistory(roundHistory) {
         receivedAnswers.forEach((answer, index) => {
           const item = document.createElement("li");
           const prefix = index === receivedAnswers.length - 1 ? "Letzte Antwort" : `Antwort ${index + 1}`;
-          item.textContent = `${prefix}: ${answer.guess} km um ${formatSubmissionTime(answer.submitted_at)}`;
+          const answerDisplay = answer.answer_display || answer.answer || "-";
+          item.textContent = `${prefix}: ${answerDisplay} um ${formatSubmissionTime(answer.submitted_at)}`;
           logList.appendChild(item);
         });
       }
@@ -582,15 +685,22 @@ function handleJsonMessage(msg) {
         `Max Rounds: ${msg.config.max_rounds}, Answer Time: ${msg.config.answer_time_seconds}s, Pause: ${msg.config.pause_between_rounds_seconds}s`;
     }
   } else if (msg.type === "new_question") {
+    setQuestionMode(msg.question_type || "distance");
     appendMessage(`🟡 Round ${msg.round}/${msg.max_rounds}: ${msg.question}`);
-    document.getElementById("city1").textContent = `${msg.cities[0]}`;
-    document.getElementById("city2").textContent = `${msg.cities[1]}`;
+
+    if (currentQuestionType === "sort_cities") {
+      renderSortQuestion(msg.question, msg.options || msg.cities || []);
+    } else {
+      document.getElementById("city1").textContent = `${msg.cities[0]}`;
+      document.getElementById("city2").textContent = `${msg.cities[1]}`;
+      if (msg.coordinates) {
+        renderQuestionMap(msg.coordinates);
+      }
+    }
+
     document.getElementById("guessInput").value = "";
     resetAnswerSubmissionState();
     document.getElementById("guessInput").focus();
-    if (msg.coordinates) {
-      renderQuestionMap(msg.coordinates);
-    }
     document.getElementById("countdownText").textContent = "Answer time remaining";
     startManagedCountdown(msg.time_limit);
   } else if (msg.type === "game_status") {
@@ -601,8 +711,8 @@ function handleJsonMessage(msg) {
     setGuessControlsDisabled(false);
     showAnswerSubmissionHint(
       msg.updated
-        ? `Antwort aktualisiert: ${msg.guess} km um ${formatSubmissionTime(msg.submitted_at)}`
-        : `Antwort registriert: ${msg.guess} km um ${formatSubmissionTime(msg.submitted_at)}`,
+        ? `Antwort aktualisiert: ${msg.answer_display || "-"} um ${formatSubmissionTime(msg.submitted_at)}`
+        : `Antwort registriert: ${msg.answer_display || "-"} um ${formatSubmissionTime(msg.submitted_at)}`,
       "success",
       2200,
     );
@@ -626,9 +736,15 @@ function handleJsonMessage(msg) {
     const summary = msg.standings
       .map((s) => `${s.player_name}: ${s.score} (${s.delta >= 0 ? "+" : ""}${s.delta})`)
       .join(" | ");
-    appendMessage(
-      `🏁 Runde ${msg.round}: ${msg.winner} gewinnt. Distanz: ${msg.correct_distance} km. ${summary}`,
-    );
+    if (msg.question_type === "sort_cities") {
+      appendMessage(
+        `🏁 Runde ${msg.round}: ${msg.winner} gewinnt. Richtige Reihenfolge: ${(msg.correct_order || []).join(" > ")}. ${summary}`,
+      );
+    } else {
+      appendMessage(
+        `🏁 Runde ${msg.round}: ${msg.winner} gewinnt. Distanz: ${msg.correct_distance} km. ${summary}`,
+      );
+    }
   } else if (msg.type === "warmup_started") {
     appendMessage(`🔥 Warmup gestartet (${msg.time_limit}s)`);
   } else if (msg.type === "warmup_result") {
@@ -1105,21 +1221,31 @@ function backToLobby() {
 }
 
 function sendGuess() {
-  const guess = document.getElementById("guessInput").value.trim();
-  if (!guess) return alert("Please enter a distance.");
-
-  const guessNum = parseInt(guess);
-  if (isNaN(guessNum) || guessNum < 0)
-    return alert("Please enter a valid number.");
-
   if (guessSubmissionPending || guessLockedForRound) {
     return;
   }
 
-  const message = { type: "submit_answer", data: { guess: guessNum } };
+  let message;
+  if (currentQuestionType === "sort_cities") {
+    const sortedCities = getSortAnswerOrder();
+    if (!sortedCities || sortedCities.length !== 4) {
+      return alert("Please sort all 4 cities first.");
+    }
+    message = { type: "submit_answer", data: { sorted_cities: sortedCities } };
+  } else {
+    const guess = document.getElementById("guessInput").value.trim();
+    if (!guess) return alert("Please enter a distance.");
+
+    const guessNum = parseInt(guess);
+    if (isNaN(guessNum) || guessNum < 0)
+      return alert("Please enter a valid number.");
+
+    message = { type: "submit_answer", data: { guess: guessNum } };
+  }
+
   guessSubmissionPending = true;
   setGuessControlsDisabled(true);
-  showAnswerSubmissionHint(`Antwort ${guessNum} km wird gesendet...`, "pending");
+  showAnswerSubmissionHint("Antwort wird gesendet...", "pending");
   sendMessage(message);
 }
 

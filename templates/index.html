@@ -47,18 +47,26 @@
                 <section class="card question-card" id="questionCard">
                     <h2 class="card-title">❓ Current Question</h2>
                     <div class="question-content">
-                        <p class="question-text">What is the distance between:</p>
-                        <div class="cities-container">
-                            <div class="city city-from">
-                                <div id="city1" class="city-name">-</div>
+                        <div id="distanceQuestionArea">
+                            <p class="question-text">What is the distance between:</p>
+                            <div class="cities-container">
+                                <div class="city city-from">
+                                    <div id="city1" class="city-name">-</div>
+                                </div>
+                                <div class="city-separator">↔</div>
+                                <div class="city city-to">
+                                    <div id="city2" class="city-name">-</div>
+                                </div>
                             </div>
-                            <div class="city-separator">↔</div>
-                            <div class="city city-to">
-                                <div id="city2" class="city-name">-</div>
+                            <div class="map-container" id="mapContainer">
+                                <div id="mapPlaceholder" class="map-placeholder">Die Karte erscheint mit der naechsten Frage.</div>
                             </div>
                         </div>
-                        <div class="map-container" id="mapContainer">
-                            <div id="mapPlaceholder" class="map-placeholder">Die Karte erscheint mit der naechsten Frage.</div>
+
+                        <div id="sortQuestionArea" class="sort-question-area">
+                            <p id="sortQuestionPrompt" class="question-text"></p>
+                            <ul id="sortCitiesList" class="sort-cities-list"></ul>
+                            <p class="sort-question-help">Sortiere die Staedte mit den Pfeilen in die richtige Reihenfolge und sende dann deine Antwort.</p>
                         </div>
                     </div>
                 </section>

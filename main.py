@@ -17,7 +17,7 @@ from typing import Optional
 from models import GameState, GameConfig, GameRoom, GameStatus
 from game_logic import GameLogic
 from websocket_handlers import WebSocketHandler
-from database import init_db, get_db, get_high_scores, get_game_history, add_city_pair, get_city_pairs, init_default_city_pairs
+from database import init_db, get_db, get_high_scores, get_game_history, add_city_pair, get_city_pairs, init_default_city_pairs, init_default_sort_cities_questions
 from config import config
 
 # Initialize logging
@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 init_db()
 with next(get_db()) as db:
     init_default_city_pairs(db)
+    init_default_sort_cities_questions(db)
 
 # Initialize FastAPI app
 app = FastAPI(

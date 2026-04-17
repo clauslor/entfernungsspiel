@@ -14,6 +14,11 @@ class GameStatus(Enum):
     FINISHED = "finished"
 
 
+class QuestionType(Enum):
+    DISTANCE = "distance"
+    SORT_CITIES = "sort_cities"
+
+
 @dataclass
 class GameConfig:
     max_rounds: int = 5
@@ -62,6 +67,15 @@ class Question:
     id: uuid
     question: CityPair
 
+
+@dataclass
+class SortCitiesQuestion:
+    id: int
+    prompt: str
+    options: List[str]
+    correct_order: List[str]
+    question_id: str
+
 @dataclass
 class GameState:
     id: str
@@ -69,8 +83,10 @@ class GameState:
     config: GameConfig = field(default_factory=GameConfig)
     status: GameStatus = GameStatus.WAITING
     settings_locked: bool = False
+    current_question_type: QuestionType = QuestionType.DISTANCE
     current_round: int = 0
     current_question: Optional[CityPair] = None
+    current_sort_question: Optional[SortCitiesQuestion] = None
     answers: Dict[str, int] = field(default_factory=dict)
     answer_submissions: Dict[str, datetime] = field(default_factory=dict)
     answer_submission_history: Dict[str, List[Dict]] = field(default_factory=dict)
@@ -89,6 +105,8 @@ class GameState:
         self.status = GameStatus.WAITING
         self.current_round = 0
         self.current_question = None
+        self.current_sort_question = None
+        self.current_question_type = QuestionType.DISTANCE
         self.answers = {}
         self.answer_submissions = {}
         self.answer_submission_history = {}

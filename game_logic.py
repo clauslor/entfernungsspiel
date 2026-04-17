@@ -3,8 +3,8 @@ import asyncio
 from typing import List, Dict, Tuple, Optional
 from datetime import datetime
 import statistics
-from models import GameState, Player, CityPair, GameStatus, GameRoom
-from database import get_city_pairs, save_game_result, save_high_score, SessionLocal, DBGameResult
+from models import GameState, Player, CityPair, SortCitiesQuestion, GameStatus, GameRoom, QuestionType
+from database import get_city_pairs, get_sort_cities_questions, save_game_result, save_high_score, SessionLocal, DBGameResult
 import uuid
 from config import config
 import logging
@@ -148,6 +148,8 @@ class GameLogic:
             game.answer_submission_history = {}
             game.status = GameStatus.ACTIVE
             game.pause_reason = None
+            game.current_question = None
+            game.current_sort_question = None
 
             question = await self._assign_random_question(game)
             if not question:
@@ -171,8 +173,18 @@ class GameLogic:
             logger.error(f"Error in next_round for game {game_id}: {e}", exc_info=True)
             return False
 
-    async def _assign_random_question(self, game: GameState) -> Optional[CityPair]:
-        """Load and assign a random city pair for a game."""
+    async def _assign_random_question(self, game: GameState) -> Optional[object]:
+        """Load and assign a random question for a game."""
+        # Keep classic distance questions as primary, but include sort-cities rounds.
+        next_type = QuestionType.SORT_CITIES if random.random() < 0.35 else QuestionType.DISTANCE
+        if next_type == QuestionType.SORT_CITIES:
+            sort_question = await self._assign_sort_cities_question(game)
+            if sort_question:
+                return sort_question
+        return await self._assign_distance_question(game)
+
+    async def _assign_distance_question(self, game: GameState) -> Optional[CityPair]:
+        """Load and assign a random distance city pair for a game."""
         with SessionLocal() as db:
             city_pairs = get_city_pairs(db)
             if not city_pairs:
@@ -180,6 +192,8 @@ class GameLogic:
                 return None
 
             db_city_pair = random.choice(city_pairs)
+            game.current_question_type = QuestionType.DISTANCE
+            game.current_sort_question = None
             game.current_question = CityPair(
                 id=db_city_pair.id,
                 city1=db_city_pair.city1,
@@ -193,6 +207,30 @@ class GameLogic:
             )
         return game.current_question
 
+    async def _assign_sort_cities_question(self, game: GameState) -> Optional[SortCitiesQuestion]:
+        """Load and assign a sort-cities question for a game."""
+        with SessionLocal() as db:
+            sort_questions = get_sort_cities_questions(db)
+            if not sort_questions:
+                logger.warning(f"No sort-cities questions available for game {game.id}")
+                return None
+
+            row = random.choice(sort_questions)
+            options = [row.option1, row.option2, row.option3, row.option4]
+            random.shuffle(options)
+            correct_order = [city.strip() for city in row.correct_order.split(",") if city.strip()]
+
+            game.current_question_type = QuestionType.SORT_CITIES
+            game.current_question = None
+            game.current_sort_question = SortCitiesQuestion(
+                id=row.id,
+                prompt=row.prompt,
+                options=options,
+                correct_order=correct_order,
+                question_id=str(uuid.uuid4().hex[:8]),
+            )
+        return game.current_sort_question
+
     async def broadcast_question(self, game_id: str):
         """Broadcast current question to all players in the game"""
         try:
@@ -201,32 +239,48 @@ class GameLogic:
                 return
                 
             game = self.game_room.get_game(game_id)
-            if not game or not game.current_question:
+            if not game:
                 return
-            
-            question = game.current_question
-            data = {
-                "question_id": str(question.question_id),
-                "round": game.current_round,
-                "max_rounds": game.config.max_rounds,
-                "time_limit": game.config.answer_time_seconds,
-                "cities": [question.city1, question.city2],
-                "city1": question.city1,
-                "city2": question.city2,
-                "question": f"Wie weit ist es von {question.city1} nach {question.city2}? (in km)",
-                "coordinates": {
-                    "from": {
-                        "name": question.city1,
-                        "lat": question.lat1,
-                        "lon": question.lon1,
+
+            if game.current_question_type == QuestionType.SORT_CITIES and game.current_sort_question:
+                q = game.current_sort_question
+                data = {
+                    "question_id": str(q.question_id),
+                    "question_type": QuestionType.SORT_CITIES.value,
+                    "round": game.current_round,
+                    "max_rounds": game.config.max_rounds,
+                    "time_limit": game.config.answer_time_seconds,
+                    "question": q.prompt,
+                    "options": q.options,
+                    "cities": q.options,
+                }
+            elif game.current_question:
+                question = game.current_question
+                data = {
+                    "question_id": str(question.question_id),
+                    "question_type": QuestionType.DISTANCE.value,
+                    "round": game.current_round,
+                    "max_rounds": game.config.max_rounds,
+                    "time_limit": game.config.answer_time_seconds,
+                    "cities": [question.city1, question.city2],
+                    "city1": question.city1,
+                    "city2": question.city2,
+                    "question": f"Wie weit ist es von {question.city1} nach {question.city2}? (in km)",
+                    "coordinates": {
+                        "from": {
+                            "name": question.city1,
+                            "lat": question.lat1,
+                            "lon": question.lon1,
+                        },
+                        "to": {
+                            "name": question.city2,
+                            "lat": question.lat2,
+                            "lon": question.lon2,
+                        },
                     },
-                    "to": {
-                        "name": question.city2,
-                        "lat": question.lat2,
-                        "lon": question.lon2,
-                    },
-                },
-            }
+                }
+            else:
+                return
             
             # Broadcast to all players in the game
             await self.ws_handler.broadcast_to_game(game_id, "new_question", data)
@@ -253,39 +307,80 @@ class GameLogic:
 
         await self.evaluate_answers(game_id)
 
-    async def submit_answer(self, game_id: str, player_id: str, guess: int) -> Optional[Dict]:
+    async def submit_answer(self, game_id: str, player_id: str, answer_data: Dict[str, object]) -> Optional[Dict]:
         """Submit player's answer"""
         game = self.game_room.get_game(game_id)
         if not game or game.status != GameStatus.ACTIVE or player_id not in game.players:
             return None
 
-        if guess < 0 or guess > 3000:
-            if self.ws_handler:
-                await self.ws_handler.send_error(player_id, "Guess out of allowed range (0-3000 km)")
-            return None
+        answer_value: object
+        answer_display: str
+
+        if game.current_question_type == QuestionType.SORT_CITIES:
+            sorted_cities = answer_data.get("sorted_cities")
+            if not isinstance(sorted_cities, list) or len(sorted_cities) != 4:
+                if self.ws_handler:
+                    await self.ws_handler.send_error(player_id, "Submit a valid ordered list of 4 cities")
+                return None
+
+            normalized = [str(city).strip() for city in sorted_cities if str(city).strip()]
+            if len(normalized) != 4 or len(set(normalized)) != 4:
+                if self.ws_handler:
+                    await self.ws_handler.send_error(player_id, "Ordered list must contain 4 unique cities")
+                return None
+
+            if not game.current_sort_question:
+                if self.ws_handler:
+                    await self.ws_handler.send_error(player_id, "No active sort question")
+                return None
+
+            expected_cities = set(game.current_sort_question.correct_order)
+            if set(normalized) != expected_cities:
+                if self.ws_handler:
+                    await self.ws_handler.send_error(player_id, "Ordered list must use the shown 4 cities")
+                return None
+
+            answer_value = normalized
+            answer_display = " > ".join(normalized)
+        else:
+            guess = answer_data.get("guess")
+            if not isinstance(guess, int):
+                if self.ws_handler:
+                    await self.ws_handler.send_error(player_id, "Guess is required for distance questions")
+                return None
+
+            if guess < 0 or guess > 3000:
+                if self.ws_handler:
+                    await self.ws_handler.send_error(player_id, "Guess out of allowed range (0-3000 km)")
+                return None
+
+            answer_value = guess
+            answer_display = f"{guess} km"
 
         is_first_submission = player_id not in game.answer_submissions
-        game.answers[player_id] = guess
+        game.answers[player_id] = answer_value
         submitted_at = datetime.now()
         game.answer_submissions[player_id] = submitted_at
         if player_id not in game.answer_submission_history:
             game.answer_submission_history[player_id] = []
         game.answer_submission_history[player_id].append(
             {
-                "guess": guess,
+                "answer": answer_value,
+                "answer_display": answer_display,
                 "submitted_at": submitted_at.isoformat(),
             }
         )
 
         latency_ms = None
-        if game.question_started_at and is_first_submission:
+        if game.current_question_type == QuestionType.DISTANCE and game.question_started_at and is_first_submission:
             latency_ms = int((submitted_at - game.question_started_at).total_seconds() * 1000)
-            await self._update_bot_signals(game, player_id, guess, latency_ms)
+            await self._update_bot_signals(game, player_id, int(answer_value), latency_ms)
 
-        logger.info(f"Game {game_id}: Received guess from {game.players[player_id].name}: {guess} km")
+        logger.info(f"Game {game_id}: Received answer from {game.players[player_id].name}: {answer_display}")
 
         return {
-            "guess": guess,
+            "answer": answer_value,
+            "answer_display": answer_display,
             "submitted_at": submitted_at.isoformat(),
             "updated": not is_first_submission,
         }
@@ -335,7 +430,14 @@ class GameLogic:
     async def evaluate_answers(self, game_id: str):
         """Evaluate all submitted answers"""
         game = self.game_room.get_game(game_id)
-        if not game or game.status != GameStatus.ACTIVE or not game.current_question:
+        if not game or game.status != GameStatus.ACTIVE:
+            return
+
+        if game.current_question_type == QuestionType.SORT_CITIES and game.current_sort_question:
+            await self._evaluate_sort_cities_answers(game_id)
+            return
+
+        if not game.current_question:
             return
 
         question = game.current_question
@@ -484,6 +586,121 @@ class GameLogic:
                 await self.ws_handler.broadcast_players_update(game_id)
             return
 
+        await self.pause_and_continue(game_id)
+
+    async def _evaluate_sort_cities_answers(self, game_id: str):
+        """Evaluate sort-cities question answers."""
+        game = self.game_room.get_game(game_id)
+        if not game or game.status != GameStatus.ACTIVE or not game.current_sort_question:
+            return
+
+        question = game.current_sort_question
+        correct_order = question.correct_order
+
+        empty_round_review = {
+            "round": game.current_round,
+            "question": question.prompt,
+            "cities": question.options,
+            "correct_order": correct_order,
+            "winner": "Keine Antwort",
+            "submissions": [
+                {
+                    "player_id": player.id,
+                    "player_name": player.name,
+                    "final_guess": None,
+                    "final_submitted_at": None,
+                    "received_answers": game.answer_submission_history.get(player.id, []),
+                }
+                for player in game.players.values()
+            ],
+        }
+
+        if len(game.answers) < 1:
+            logger.info(f"Game {game_id}: No valid sort answers received")
+            game.round_history.append(empty_round_review)
+            await self.pause_and_continue(game_id)
+            return
+
+        scoring: Dict[str, int] = {}
+        for pid, submitted in game.answers.items():
+            if not isinstance(submitted, list):
+                scoring[pid] = 0
+                continue
+            scoring[pid] = sum(1 for idx, city in enumerate(submitted) if idx < len(correct_order) and city == correct_order[idx])
+
+        top_score = max(scoring.values())
+        candidate_ids = [pid for pid, s in scoring.items() if s == top_score]
+        candidate_ids.sort(key=lambda pid: game.answer_submissions.get(pid, datetime.max))
+        winner_id = candidate_ids[0]
+        winner = game.players[winner_id]
+
+        round_deltas: Dict[str, int] = {pid: 0 for pid in game.players.keys()}
+        winner.score += 1
+        round_deltas[winner_id] = 1
+
+        round_review = {
+            "round": game.current_round,
+            "question": question.prompt,
+            "cities": question.options,
+            "correct_order": correct_order,
+            "winner": winner.name,
+            "submissions": [],
+        }
+
+        for player in game.players.values():
+            submission_events = game.answer_submission_history.get(player.id, [])
+            final_answer = game.answers.get(player.id)
+            round_review["submissions"].append(
+                {
+                    "player_id": player.id,
+                    "player_name": player.name,
+                    "final_guess": " > ".join(final_answer) if isinstance(final_answer, list) else None,
+                    "final_submitted_at": game.answer_submissions.get(player.id).isoformat() if player.id in game.answer_submissions else None,
+                    "received_answers": submission_events,
+                }
+            )
+
+        result_data = {
+            "game_id": game_id,
+            "player_name": winner.name,
+            "guess": int(top_score),
+            "correct_distance": int(len(correct_order)),
+            "accuracy_percentage": round((top_score / max(1, len(correct_order))) * 100, 2),
+            "city1": correct_order[0] if len(correct_order) > 0 else "-",
+            "city2": correct_order[1] if len(correct_order) > 1 else "-",
+            "round_number": game.current_round,
+        }
+
+        with SessionLocal() as db:
+            save_game_result(db, result_data)
+
+        if self.ws_handler:
+            standings = sorted(
+                game.players.values(),
+                key=lambda p: p.score,
+                reverse=True,
+            )
+            await self.ws_handler.broadcast_to_game(
+                game_id,
+                "round_result",
+                {
+                    "question_type": QuestionType.SORT_CITIES.value,
+                    "round": game.current_round,
+                    "winner": winner.name,
+                    "correct_order": correct_order,
+                    "standings": [
+                        {
+                            "player_id": p.id,
+                            "player_name": p.name,
+                            "score": p.score,
+                            "delta": round_deltas.get(p.id, 0),
+                        }
+                        for p in standings
+                    ],
+                },
+            )
+
+        game.round_history.append(round_review)
         await self.pause_and_continue(game_id)
 
     async def pause_and_continue(self, game_id: str):

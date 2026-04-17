@@ -1,7 +1,7 @@
 import json
 import logging
 import asyncio
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from fastapi import WebSocket
 from models import Player, GameRoom, GameConfig, GameStatus
 from game_logic import GameLogic
@@ -25,7 +25,8 @@ class SetReadyMessage(BaseModel):
 
 
 class SubmitAnswerMessage(BaseModel):
-    guess: int
+    guess: Optional[int] = None
+    sorted_cities: Optional[List[str]] = None
 
 
 class CreateGameMessage(BaseModel):
@@ -502,14 +503,21 @@ class WebSocketHandler:
             player = self.game_room.players.get(player_id)
             if player and player.game_id:
                 game = self.game_room.get_game(player.game_id)
-                if game and game.current_question:
-                    submission_info = await self.game_logic.submit_answer(player.game_id, player_id, answer_msg.guess)
+                if game and (game.current_question or game.current_sort_question):
+                    submission_info = await self.game_logic.submit_answer(
+                        player.game_id,
+                        player_id,
+                        {
+                            "guess": answer_msg.guess,
+                            "sorted_cities": answer_msg.sorted_cities,
+                        },
+                    )
                     if submission_info:
                         await self.send_to_player(
                             player_id,
                             {
                                 "type": "answer_received",
-                                "guess": submission_info["guess"],
+                                "answer_display": submission_info["answer_display"],
                                 "submitted_at": submission_info["submitted_at"],
                                 "updated": submission_info["updated"],
                             },
