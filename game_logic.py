@@ -151,7 +151,14 @@ class GameLogic:
             game.status = GameStatus.ACTIVE
             game.pause_reason = None
 
-            question = await self._assign_random_question(game)
+            # Use pre-loaded question if available, otherwise load fresh
+            if game.next_question_preloaded:
+                question = game.next_question_preloaded
+                game.current_question = question
+                game.next_question_preloaded = None
+            else:
+                question = await self._assign_random_question(game)
+            
             if not question:
                 await self.end_game(game_id)
                 return False
@@ -194,6 +201,27 @@ class GameLogic:
                 question_id=str(uuid.uuid4().hex[:8]),
             )
         return game.current_question
+
+    async def _assign_random_question_for_preload(self, game: GameState) -> Optional[CityPair]:
+        """Load a random city pair WITHOUT modifying game.current_question (for pre-loading)."""
+        with SessionLocal() as db:
+            city_pairs = get_city_pairs(db)
+            if not city_pairs:
+                logger.error(f"No city pairs available for pre-load in game {game.id}")
+                return None
+
+            db_city_pair = random.choice(city_pairs)
+            return CityPair(
+                id=db_city_pair.id,
+                city1=db_city_pair.city1,
+                city2=db_city_pair.city2,
+                distance=db_city_pair.distance,
+                lat1=db_city_pair.lat1,
+                lon1=db_city_pair.lon1,
+                lat2=db_city_pair.lat2,
+                lon2=db_city_pair.lon2,
+                question_id=str(uuid.uuid4().hex[:8]),
+            )
 
     async def broadcast_question(self, game_id: str):
         """Broadcast current question to all players in the game"""
@@ -517,13 +545,26 @@ class GameLogic:
         await self.pause_and_continue(game_id)
 
     async def pause_and_continue(self, game_id: str):
-        """Pause between rounds"""
+        """Pause between rounds and pre-load next question during pause"""
         game = self.game_room.get_game(game_id)
         if not game:
             return
 
         game.status = GameStatus.PAUSED
-        await asyncio.sleep(game.config.pause_between_rounds_seconds)
+
+        # Enforce minimum pause time (1.5s) to allow client map rendering
+        pause_seconds = max(1.5, game.config.pause_between_rounds_seconds)
+        
+        # Pre-load next question during pause in separate variable
+        if game.current_round < game.config.max_rounds:
+            next_question = await self._assign_random_question_for_preload(game)
+            if next_question:
+                game.next_question_preloaded = next_question
+            else:
+                logger.error(f"Failed to pre-load next question for game {game_id}")
+        
+        # Wait for pause period
+        await asyncio.sleep(pause_seconds)
         await self.next_round(game_id)
 
     async def end_game(self, game_id: str):

@@ -249,7 +249,8 @@ function isMapContainerReady(container) {
   }
 
   const rect = container.getBoundingClientRect();
-  return rect.width > 100 && rect.height > 100;
+  // Lower threshold: 80x80 instead of 100x100 for faster initialization on small screens
+  return rect.width >= 80 && rect.height >= 80;
 }
 
 function queueMapPreparation(attempt = 0) {
@@ -276,6 +277,11 @@ function queueMapPreparation(attempt = 0) {
 
     prepareMapForGameplay();
     scheduleLeafletResize();
+    
+    // Render the map immediately after map is ready
+    if (pendingQuestionCoordinates) {
+      renderQuestionMap(pendingQuestionCoordinates);
+    }
   }, delayMs);
 }
 
@@ -293,13 +299,7 @@ function prepareMapForGameplay() {
     return;
   }
 
-  if (pendingQuestionCoordinates) {
-    const coordinates = pendingQuestionCoordinates;
-    pendingQuestionCoordinates = null;
-    renderQuestionMap(coordinates);
-    return;
-  }
-
+  // If no features yet, center map on default location
   if (gameMapFeatureSource.getFeatures().length === 0) {
     const center25832 = ol.proj.transform(
       [DEFAULT_MAP_VIEW.center[1], DEFAULT_MAP_VIEW.center[0]],
@@ -309,8 +309,6 @@ function prepareMapForGameplay() {
     map.getView().setCenter(center25832);
     map.getView().setZoom(6);
   }
-
-  scheduleLeafletResize();
 }
 
 function redrawLeafletMap() {
@@ -913,7 +911,14 @@ function handleJsonMessage(msg) {
     currentGameStatus = "active";
     currentRoundNumber = msg.round || currentRoundNumber;
     currentMaxRounds = msg.max_rounds || currentMaxRounds;
+    
+    // Update UI layout
     updateUILayout();
+
+    // START MAP PREPARATION IMMEDIATELY (do not wait for updateUILayout)
+    if (msg.coordinates) {
+      queueMapPreparation();
+    }
 
     // Generate localized question text
     const localizedQuestion = t("question.distanceTemplate", {
@@ -926,9 +931,12 @@ function handleJsonMessage(msg) {
     document.getElementById("guessInput").value = "";
     resetAnswerSubmissionState();
     document.getElementById("guessInput").focus();
+    
+    // Store coordinates for rendering when map is ready (renderQuestionMap will be called by queueMapPreparation)
     if (msg.coordinates) {
-      renderQuestionMap(msg.coordinates);
+      pendingQuestionCoordinates = msg.coordinates;
     }
+    
     document.getElementById("countdownText").textContent = t("countdown.answerTimeRemaining");
     startManagedCountdown(msg.time_limit);
   } else if (msg.type === "game_status") {

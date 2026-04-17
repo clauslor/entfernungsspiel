@@ -75,6 +75,7 @@ class GameState:
     settings_locked: bool = False
     current_round: int = 0
     current_question: Optional[CityPair] = None
+    next_question_preloaded: Optional[CityPair] = None
     answers: Dict[str, int] = field(default_factory=dict)
     answer_submissions: Dict[str, datetime] = field(default_factory=dict)
     answer_submission_history: Dict[str, List[Dict]] = field(default_factory=dict)
@@ -100,6 +101,7 @@ class GameState:
         self.status = GameStatus.WAITING
         self.current_round = 0
         self.current_question = None
+        self.next_question_preloaded = None
         self.answers = {}
         self.answer_submissions = {}
         self.answer_submission_history = {}
