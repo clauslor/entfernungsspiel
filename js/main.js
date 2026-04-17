@@ -695,6 +695,7 @@ function handleJsonMessage(msg) {
     appendMessage(`⏳ ${t("messages.countdownStarting", { seconds: msg.countdown })}`);
     document.getElementById("countdownText").textContent = t("countdown.startingIn");
     renderCountdownValue(msg.countdown);
+    updateUILayout();
   } else if (msg.type === "game_started") {
     currentGameStatus = "active";
     updateHostControls();
@@ -708,9 +709,14 @@ function handleJsonMessage(msg) {
           pauseSeconds: msg.config.pause_between_rounds_seconds,
         });
     }
+    updateUILayout();
   } else if (msg.type === "new_question") {
+    // Ensure gameplay panels are visible for every fresh round (including new game sessions)
+    currentGameStatus = "active";
     currentRoundNumber = msg.round || currentRoundNumber;
     currentMaxRounds = msg.max_rounds || currentMaxRounds;
+    updateUILayout();
+
     // Generate localized question text
     const localizedQuestion = t("question.distanceTemplate", {
       city1: msg.cities[0],
@@ -756,9 +762,11 @@ function handleJsonMessage(msg) {
     document.getElementById("countdownText").textContent = t("countdown.paused");
     pauseManagedCountdown(msg.remaining_seconds);
   } else if (msg.type === "game_resumed") {
+    currentGameStatus = "active";
     appendMessage(`▶️ ${t("messages.roundResumed")}`);
     document.getElementById("countdownText").textContent = t("countdown.answerTimeRemaining");
     startManagedCountdown(msg.remaining_seconds);
+    updateUILayout();
   } else if (msg.type === "round_result") {
     const summary = msg.standings
       .map((s) => `${s.player_name}: ${s.score} (${s.delta >= 0 ? "+" : ""}${s.delta})`)
@@ -772,7 +780,9 @@ function handleJsonMessage(msg) {
       }),
     );
   } else if (msg.type === "warmup_started") {
+    currentGameStatus = "warmup";
     appendMessage(`🔥 ${t("messages.warmupStarted")} (${msg.time_limit}s)`);
+    updateUILayout();
   } else if (msg.type === "warmup_result") {
     appendMessage(`🔥 ${t("messages.warmupEnded")}: ${msg.message || ""}`);
   } else if (msg.type === "bot_suspected") {
@@ -1023,7 +1033,7 @@ function cleanupGameResources() {
   const mapContainer = document.getElementById("mapContainer");
   if (mapContainer) {
     mapContainer.classList.remove("has-map");
-    mapContainer.innerHTML = '<div id="mapPlaceholder" class="map-placeholder" data-i18n="mapPlaceholder">Die Karte erscheint mit der naechsten Frage.</div>';
+    mapContainer.innerHTML = `<div id="mapPlaceholder" class="map-placeholder" data-i18n="mapPlaceholder">${t("mapPlaceholder")}</div>`;
   }
   
   // Clear messages
@@ -1035,6 +1045,8 @@ function cleanupGameResources() {
   // Clear game-specific state
   currentPlayers = [];
   currentGameStatus = "waiting";
+  currentRoundNumber = null;
+  currentMaxRounds = null;
   
   // Reset all answer-related state
   resetAnswerSubmissionState();
