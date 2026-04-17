@@ -7,10 +7,15 @@
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', path='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('css', path='style.css') }}">
 </head>
-<body>
-    <div class="container">
-        <h1>Admin Panel - Kilometer Knobelei</h1>
-        <p>Logged in as: {{ username }}</p>
+<body class="admin-page">
+    <div class="container admin-shell">
+        <header class="admin-header card">
+            <div class="admin-header-main">
+                <h1>Admin Panel - Kilometer Knobelei</h1>
+                <p>Steuere Spielregeln, Fragenpool und Auswertungen zentral an einem Ort.</p>
+            </div>
+            <div class="admin-user-badge">Logged in as: {{ username }}</div>
+        </header>
 
         {% if error %}
         <div class="error-message">
@@ -24,25 +29,19 @@
         </div>
         {% endif %}
 
-        <div class="admin-section">
+        <div class="admin-section card admin-card">
             <h2>Game Configuration</h2>
             <form action="/admin" method="post">
-                <div class="form-group">
+                <div class="form-group admin-form-grid">
                     <label for="max_rounds">Max Rounds:</label>
                     <input type="number" id="max_rounds" name="max_rounds" value="{{ config.max_rounds }}" min="1" max="50" required>
-                </div>
 
-                <div class="form-group">
                     <label for="countdown">Initial Countdown (seconds):</label>
                     <input type="number" id="countdown" name="countdown" value="{{ config.countdown_seconds }}" min="1" max="60" required>
-                </div>
 
-                <div class="form-group">
                     <label for="answer_time">Answer Time (seconds):</label>
                     <input type="number" id="answer_time" name="answer_time" value="{{ config.answer_time_seconds }}" min="5" max="300" required>
-                </div>
 
-                <div class="form-group">
                     <label for="pause_between_rounds">Pause Between Rounds (seconds):</label>
                     <input type="number" id="pause_between_rounds" name="pause_between_rounds" value="{{ config.pause_between_rounds_seconds }}" min="1" max="30" required>
                 </div>
@@ -51,43 +50,41 @@
             </form>
         </div>
 
-        <div class="admin-section">
+        <div class="admin-section card admin-card">
             <h2>City Pairs Management</h2>
-            <button onclick="showAddCityForm()" class="btn btn-secondary">Add New City Pair</button>
+            <div class="admin-toolbar">
+                <button onclick="showAddCityForm()" class="btn btn-secondary">Add New City Pair</button>
+            </div>
 
             <div id="add-city-form" class="admin-hidden">
                 <h3>Add New City Pair</h3>
                 <form onsubmit="addCityPair(event)">
-                    <div class="form-group">
+                    <div class="form-group admin-form-grid">
                         <label for="city1">City 1:</label>
                         <input type="text" id="city1" required>
-                    </div>
-                    <div class="form-group">
+
                         <label for="city2">City 2:</label>
                         <input type="text" id="city2" required>
-                    </div>
-                    <div class="form-group">
+
                         <label for="distance">Distance (km):</label>
                         <input type="number" id="distance" min="1" required>
-                    </div>
-                    <div class="form-group">
+
                         <label for="lat1">City 1 Latitude:</label>
                         <input type="number" id="lat1" step="0.000001" min="-90" max="90" required>
-                    </div>
-                    <div class="form-group">
+
                         <label for="lon1">City 1 Longitude:</label>
                         <input type="number" id="lon1" step="0.000001" min="-180" max="180" required>
-                    </div>
-                    <div class="form-group">
+
                         <label for="lat2">City 2 Latitude:</label>
                         <input type="number" id="lat2" step="0.000001" min="-90" max="90" required>
-                    </div>
-                    <div class="form-group">
+
                         <label for="lon2">City 2 Longitude:</label>
                         <input type="number" id="lon2" step="0.000001" min="-180" max="180" required>
                     </div>
-                    <button type="submit" class="btn btn-primary">Add City Pair</button>
-                    <button type="button" onclick="hideAddCityForm()" class="btn btn-secondary">Cancel</button>
+                    <div class="admin-toolbar">
+                        <button type="submit" class="btn btn-primary">Add City Pair</button>
+                        <button type="button" onclick="hideAddCityForm()" class="btn btn-secondary">Cancel</button>
+                    </div>
                 </form>
             </div>
 
@@ -103,32 +100,32 @@
                 </form>
             </div>
 
-            <div id="city-pairs-list">
+            <div id="city-pairs-list" class="admin-data-list">
                 <p>Loading city pairs...</p>
             </div>
         </div>
 
-        <div class="admin-section">
+        <div class="admin-section card admin-card">
             <h2>Question Suggestions</h2>
             <p>Generate new Germany-only city-pair questions from a city catalog (minimum population: 30,000).</p>
             <div class="admin-suggestion-controls">
                 <button onclick="loadSuggestions()" class="btn btn-primary">Load Suggestions</button>
             </div>
-            <div id="suggestions-list">
+            <div id="suggestions-list" class="admin-data-list">
                 <p>No suggestions loaded yet.</p>
             </div>
         </div>
 
-        <div class="admin-section">
+        <div class="admin-section card admin-card">
             <h2>High Scores</h2>
-            <div id="high-scores">
+            <div id="high-scores" class="admin-data-list">
                 <p>Loading high scores...</p>
             </div>
         </div>
 
-        <div class="admin-section">
+        <div class="admin-section card admin-card">
             <h2>Game History</h2>
-            <div id="game-history">
+            <div id="game-history" class="admin-data-list">
                 <p>Loading game history...</p>
             </div>
         </div>

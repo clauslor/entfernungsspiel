@@ -9,10 +9,11 @@ let currentIsHost = false;
 let totalTime;
 let isConnected = false;
 let restorePendingJoinGameId = "";
-let leafletMap = null;
-let leafletLayerGroup = null;
-let leafletTileLayer = null;
-let leafletResizeObserver = null;
+let gameMap = null;
+let gameMapBaseLayer = null;
+let gameMapFeatureLayer = null;
+let gameMapFeatureSource = null;
+let gameMapResizeObserver = null;
 let pendingMapPreparationTimeoutId = null;
 let countdownTimerId = null;
 let countdownEndTime = null;
@@ -270,34 +271,26 @@ function prepareMapForGameplay() {
   const map = ensureLeafletMap();
   if (!map) return;
 
-  if (!leafletLayerGroup) {
-    leafletLayerGroup = L.featureGroup().addTo(map);
-  }
-
-  if (leafletLayerGroup.getLayers().length === 0) {
-    map.setView(DEFAULT_MAP_VIEW.center, DEFAULT_MAP_VIEW.zoom, {
-      animate: false,
-    });
+  if (gameMapFeatureSource && gameMapFeatureSource.getFeatures().length === 0) {
+    const center25832 = ol.proj.transform(
+      [DEFAULT_MAP_VIEW.center[1], DEFAULT_MAP_VIEW.center[0]],
+      "EPSG:4326",
+      "EPSG:25832",
+    );
+    map.getView().setCenter(center25832);
+    map.getView().setZoom(6);
   }
 
   scheduleLeafletResize();
 }
 
 function redrawLeafletMap() {
-  if (!leafletMap) return;
-
-  leafletMap.invalidateSize({
-    pan: false,
-    debounceMoveend: true,
-  });
-
-  if (leafletTileLayer && typeof leafletTileLayer.redraw === "function") {
-    leafletTileLayer.redraw();
-  }
+  if (!gameMap) return;
+  gameMap.updateSize();
 }
 
 function scheduleLeafletResize() {
-  if (!leafletMap) return;
+  if (!gameMap) return;
 
   setTimeout(() => {
     redrawLeafletMap();
@@ -313,11 +306,11 @@ function scheduleLeafletResize() {
 }
 
 function attachLeafletResizeObserver(container) {
-  if (!container || leafletResizeObserver || typeof ResizeObserver === "undefined") {
+  if (!container || gameMapResizeObserver || typeof ResizeObserver === "undefined") {
     return;
   }
 
-  leafletResizeObserver = new ResizeObserver((entries) => {
+  gameMapResizeObserver = new ResizeObserver((entries) => {
     for (const entry of entries) {
       if (entry.target !== container) continue;
       const { width, height } = entry.contentRect;
@@ -327,7 +320,7 @@ function attachLeafletResizeObserver(container) {
     }
   });
 
-  leafletResizeObserver.observe(container);
+  gameMapResizeObserver.observe(container);
 }
 
 function focusAndSelect(elementId) {
@@ -541,9 +534,22 @@ function renderRoundHistory(roundHistory) {
   });
 }
 
+function createOrtsschildSvgDataUri(cityName) {
+  const label = escapeXml(formatCityLabel(cityName));
+  const svg = `
+<svg xmlns="http://www.w3.org/2000/svg" width="190" height="64" viewBox="0 0 190 64" role="img" aria-label="Ortsschild ${label}">
+  <rect x="4" y="4" width="150" height="40" rx="2" fill="#facc15" stroke="#111827" stroke-width="4"/>
+  <rect x="0" y="44" width="8" height="20" rx="1" fill="#475569"/>
+  <rect x="150" y="44" width="8" height="20" rx="1" fill="#475569"/>
+  <text x="79" y="31" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" fill="#111827">${label}</text>
+</svg>`.trim();
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
 function ensureLeafletMap() {
   const container = document.getElementById("mapContainer");
-  if (!container || typeof L === "undefined") {
+  if (!container || typeof ol === "undefined" || typeof proj4 === "undefined") {
     return null;
   }
 
@@ -553,35 +559,99 @@ function ensureLeafletMap() {
 
   attachLeafletResizeObserver(container);
 
-  if (!leafletMap) {
-    leafletMap = L.map(container, {
-      zoomControl: true,
-      attributionControl: true,
-      fadeAnimation: false,
-      zoomAnimation: false,
+  if (!gameMap) {
+    proj4.defs("EPSG:25832", "+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs");
+    if (ol.proj.proj4 && typeof ol.proj.proj4.register === "function") {
+      ol.proj.proj4.register(proj4);
+    }
+
+    let projection25832 = ol.proj.get("EPSG:25832");
+    if (!projection25832) {
+      projection25832 = new ol.proj.Projection({
+        code: "EPSG:25832",
+        units: "m",
+        extent: [200000, 5200000, 1000000, 6200000],
+      });
+      ol.proj.addProjection(projection25832);
+    }
+
+    if (!ol.proj.get("EPSG:25832")) {
+      return null;
+    }
+
+    gameMapBaseLayer = new ol.layer.Tile({
+      source: new ol.source.XYZ({
+        // basemap.de Web Raster as robust fallback/base layer
+        url: "https://sgx.geodatenzentrum.de/wmts_basemapde/tile/1.0.0/de_basemapde_web_raster_farbe/default/GLOBAL_WEBMERCATOR/{z}/{y}/{x}.png",
+        attributions: "© basemap.de / BKG",
+        crossOrigin: "anonymous",
+      }),
     });
 
-    leafletTileLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 18,
-      attribution: "&copy; OpenStreetMap contributors",
-      keepBuffer: 4,
-      updateWhenIdle: true,
-      updateWhenZooming: false,
-    }).addTo(leafletMap);
-
-    leafletLayerGroup = L.featureGroup().addTo(leafletMap);
-    leafletMap.setView(DEFAULT_MAP_VIEW.center, DEFAULT_MAP_VIEW.zoom, {
-      animate: false,
+    gameMapFeatureSource = new ol.source.Vector();
+    gameMapFeatureLayer = new ol.layer.Vector({
+      source: gameMapFeatureSource,
     });
-    leafletMap.whenReady(() => {
-      scheduleLeafletResize();
+
+    gameMap = new ol.Map({
+      target: container,
+      layers: [gameMapBaseLayer, gameMapFeatureLayer],
+      controls: ol.control.defaults().extend([
+        new ol.control.ScaleLine({
+          units: "metric",
+          bar: true,
+          text: true,
+          minWidth: 120,
+        }),
+      ]),
+      view: new ol.View({
+        projection: projection25832,
+        center: ol.proj.transform(
+          [DEFAULT_MAP_VIEW.center[1], DEFAULT_MAP_VIEW.center[0]],
+          "EPSG:4326",
+          "EPSG:25832",
+        ),
+        zoom: 6,
+        minZoom: 4,
+        maxZoom: 18,
+      }),
     });
   }
 
   container.classList.add("has-map");
   scheduleLeafletResize();
 
-  return leafletMap;
+  return gameMap;
+}
+
+function escapeXml(text) {
+  return String(text || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function formatCityLabel(cityName, maxLength = 18) {
+  const safeName = String(cityName || "").trim();
+  if (safeName.length <= maxLength) {
+    return safeName;
+  }
+  return `${safeName.slice(0, maxLength - 1)}…`;
+}
+
+function createOrtsschildIcon(cityName) {
+  return new ol.style.Style({
+    image: new ol.style.Icon({
+      src: createOrtsschildSvgDataUri(cityName),
+      anchor: [0.5, 1],
+      anchorXUnits: "fraction",
+      anchorYUnits: "fraction",
+      imgSize: [190, 64],
+      scale: 0.84,
+    }),
+  });
 }
 
 function renderQuestionMap(coordinates) {
@@ -594,41 +664,53 @@ function renderQuestionMap(coordinates) {
     return;
   }
 
-  if (!leafletLayerGroup) {
-    leafletLayerGroup = L.featureGroup().addTo(map);
-  }
+  if (!gameMapFeatureSource) return;
 
-  leafletLayerGroup.clearLayers();
+  gameMapFeatureSource.clear();
 
-  const fromPoint = [coordinates.from.lat, coordinates.from.lon];
-  const toPoint = [coordinates.to.lat, coordinates.to.lon];
+  const fromPoint = ol.proj.transform(
+    [coordinates.from.lon, coordinates.from.lat],
+    "EPSG:4326",
+    "EPSG:25832",
+  );
+  const toPoint = ol.proj.transform(
+    [coordinates.to.lon, coordinates.to.lat],
+    "EPSG:4326",
+    "EPSG:25832",
+  );
 
-  const fromMarker = L.marker(fromPoint).bindPopup(coordinates.from.name);
-  const toMarker = L.marker(toPoint).bindPopup(coordinates.to.name);
-  const line = L.polyline([fromPoint, toPoint], {
-    color: "#16a34a",
-    weight: 4,
-    opacity: 0.85,
-  });
+  const fromFeature = new ol.Feature({ geometry: new ol.geom.Point(fromPoint) });
+  fromFeature.setStyle(createOrtsschildIcon(coordinates.from.name));
 
-  leafletLayerGroup.addLayer(fromMarker);
-  leafletLayerGroup.addLayer(toMarker);
-  leafletLayerGroup.addLayer(line);
+  const toFeature = new ol.Feature({ geometry: new ol.geom.Point(toPoint) });
+  toFeature.setStyle(createOrtsschildIcon(coordinates.to.name));
 
-  const bounds = L.latLngBounds([fromPoint, toPoint]);
-  map.flyToBounds(bounds.pad(0.45), {
-    animate: false,
+  const lineFeature = new ol.Feature({ geometry: new ol.geom.LineString([fromPoint, toPoint]) });
+  lineFeature.setStyle(
+    new ol.style.Style({
+      stroke: new ol.style.Stroke({
+        color: "#16a34a",
+        width: 4,
+      }),
+    }),
+  );
+
+  gameMapFeatureSource.addFeatures([lineFeature, fromFeature, toFeature]);
+
+  const extent = gameMapFeatureSource.getExtent();
+  map.getView().fit(extent, {
+    padding: [24, 24, 24, 24],
     duration: 0,
-    padding: [24, 24],
+    maxZoom: 12,
   });
   scheduleLeafletResize();
 
   setTimeout(() => {
     redrawLeafletMap();
-    map.flyToBounds(bounds.pad(0.45), {
-      animate: false,
+    map.getView().fit(extent, {
+      padding: [24, 24, 24, 24],
       duration: 0,
-      padding: [24, 24],
+      maxZoom: 12,
     });
   }, 50);
 }
@@ -1077,24 +1159,22 @@ function clearStoredGame() {
 function cleanupGameResources() {
   // Thorough cleanup of game resources after game ends
   
-  // Cleanup Leaflet map
-  if (leafletResizeObserver) {
-    leafletResizeObserver.disconnect();
-    leafletResizeObserver = null;
+  // Cleanup map
+  if (gameMapResizeObserver) {
+    gameMapResizeObserver.disconnect();
+    gameMapResizeObserver = null;
   }
   
-  if (leafletMap) {
-    if (leafletLayerGroup) {
-      leafletLayerGroup.clearLayers();
-      leafletMap.removeLayer(leafletLayerGroup);
-    }
-    if (leafletTileLayer) {
-      leafletMap.removeLayer(leafletTileLayer);
-    }
-    leafletMap.remove();
-    leafletMap = null;
-    leafletLayerGroup = null;
-    leafletTileLayer = null;
+  if (gameMapFeatureSource) {
+    gameMapFeatureSource.clear();
+  }
+
+  if (gameMap) {
+    gameMap.setTarget(null);
+    gameMap = null;
+    gameMapBaseLayer = null;
+    gameMapFeatureLayer = null;
+    gameMapFeatureSource = null;
   }
   
   // Clear map container
