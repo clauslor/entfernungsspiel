@@ -20,6 +20,8 @@ let countdownRemainingSeconds = 0;
 let answerHintTimerId = null;
 let guessSubmissionPending = false;
 let guessLockedForRound = false;
+let currentRoundNumber = null;
+let currentMaxRounds = null;
 
 const DEFAULT_MAP_VIEW = {
   center: [51.1657, 10.4515],
@@ -130,6 +132,95 @@ function updateUILayout() {
     setTimeout(() => focusAndSelect("guessInput"), 0);
     queueMapPreparation();
   }
+
+  updateMatchHud();
+}
+
+function getLocalizedPhaseLabel() {
+  const status = (currentGameStatus || "waiting").toLowerCase();
+  if (!currentGameId) return t("hud.phases.lobby");
+  if (["active", "playing", "warmup"].includes(status)) return t("hud.phases.active");
+  if (status === "countdown") return t("hud.phases.countdown");
+  if (status === "finished") return t("hud.phases.finished");
+  return t("hud.phases.waiting");
+}
+
+function updateMatchHud() {
+  const hud = document.getElementById("matchHud");
+  if (!hud) return;
+
+  const phaseEl = document.getElementById("hudPhase");
+  const gameEl = document.getElementById("hudGame");
+  const roundEl = document.getElementById("hudRound");
+  const playersEl = document.getElementById("hudPlayers");
+
+  if (phaseEl) phaseEl.textContent = getLocalizedPhaseLabel();
+  if (gameEl) gameEl.textContent = currentGameId || "-";
+  if (roundEl) {
+    roundEl.textContent = currentRoundNumber && currentMaxRounds
+      ? `${currentRoundNumber}/${currentMaxRounds}`
+      : "-";
+  }
+  if (playersEl) playersEl.textContent = String(currentPlayers.length || 0);
+}
+
+function translateServerMessage(rawMessage) {
+  if (!rawMessage || typeof rawMessage !== "string") {
+    return t("serverErrors.generic");
+  }
+
+  const exactMap = {
+    "Unknown message type": "serverErrors.unknownMessageType",
+    "Invalid message format": "serverErrors.invalidMessageFormat",
+    "Invalid JSON": "serverErrors.invalidJson",
+    "Internal server error": "serverErrors.internalServerError",
+    "Invalid game creation data": "serverErrors.invalidGameCreationData",
+    "Invalid PIN": "serverErrors.invalidPin",
+    "Host has locked the lobby": "serverErrors.hostLockedLobby",
+    "Invalid game join data": "serverErrors.invalidGameJoinData",
+    "Player not registered": "serverErrors.playerNotRegistered",
+    "Invalid name format": "serverErrors.invalidNameFormat",
+    "Error setting name": "serverErrors.errorSettingName",
+    "Invalid ready status": "serverErrors.invalidReadyStatus",
+    "Invalid kick request": "serverErrors.invalidKickRequest",
+    "You are not in a game": "serverErrors.notInGame",
+    "Only host can kick players": "serverErrors.onlyHostKick",
+    "Players can only be kicked before countdown": "serverErrors.kickBeforeCountdown",
+    "Host cannot kick themselves": "serverErrors.hostCannotKickSelf",
+    "Player not found in this game": "serverErrors.playerNotFoundInGame",
+    "Invalid lock settings request": "serverErrors.invalidLockSettingsRequest",
+    "Only host can lock settings": "serverErrors.onlyHostLockSettings",
+    "Settings can only be changed before countdown": "serverErrors.settingsOnlyBeforeCountdown",
+    "Only host can start warmup": "serverErrors.onlyHostStartWarmup",
+    "Warmup only available before countdown": "serverErrors.warmupOnlyBeforeCountdown",
+    "Could not start warmup": "serverErrors.couldNotStartWarmup",
+    "No active question": "serverErrors.noActiveQuestion",
+    "Not in a game": "serverErrors.notInGame",
+    "Invalid answer format": "serverErrors.invalidAnswerFormat",
+    "Failed to start game": "serverErrors.failedToStartGame",
+    "You were removed by the host": "serverErrors.removedByHost",
+  };
+
+  if (exactMap[rawMessage]) {
+    return t(exactMap[rawMessage]);
+  }
+
+  const gameNotFoundMatch = rawMessage.match(/^Game\s+(.+)\s+not found$/);
+  if (gameNotFoundMatch) {
+    return t("serverErrors.gameNotFound", { gameId: gameNotFoundMatch[1] });
+  }
+
+  const cannotJoinMatch = rawMessage.match(/^Cannot join game\s+(.+)$/);
+  if (cannotJoinMatch) {
+    return t("serverErrors.cannotJoinGame", { gameId: cannotJoinMatch[1] });
+  }
+
+  const gameErrorMatch = rawMessage.match(/^Game error:\s*(.+)$/);
+  if (gameErrorMatch) {
+    return t("serverErrors.gameError", { details: gameErrorMatch[1] });
+  }
+
+  return rawMessage;
 }
 
 function isMapContainerReady(container) {
@@ -279,7 +370,7 @@ function pauseManagedCountdown(remainingSeconds) {
   renderCountdownValue(countdownRemainingSeconds);
 }
 
-function resetCountdownDisplay(labelText = "Waiting to start...") {
+function resetCountdownDisplay(labelText = t("countdown.waiting")) {
   clearCountdownTimer();
   countdownEndTime = null;
   countdownRemainingSeconds = 0;
@@ -533,13 +624,11 @@ function handleJsonMessage(msg) {
     if (startedGamesCounter) {
       startedGamesCounter.textContent = String(msg.started_games_count || 0);
     }
-    appendMessage(
-      `📋 Lobby info received. Active games: ${msg.active_games.length}`,
-    );
+    appendMessage(t("messages.lobbyInfo", { count: msg.active_games.length }));
     if (msg.active_games.length > 0) {
-      appendMessage("Available games:\n");
+      appendMessage(t("messages.availableGames"));
       msg.active_games.forEach((game) => {
-        appendMessage(`  - Game ${game.id} (${game.player_count} players)`);
+        appendMessage(t("messages.gameListEntry", { gameId: game.id, players: game.player_count }));
       });
     }
     renderLobbyGames(msg.active_games);
@@ -591,9 +680,10 @@ function handleJsonMessage(msg) {
     }
     
     document.getElementById("gameInfo").style.display = "block";
-    appendMessage(
-      `📊 Game info - Status: ${msg.status || "unknown"}, Players: ${msg.players.length}`,
-    );
+    appendMessage(t("messages.gameInfoStatusPlayers", {
+      status: msg.status || t("messages.unknownStatus"),
+      players: msg.players.length,
+    }));
     updateGameList(msg.game_id, msg.players);
     updateGameSettings(msg.game_id, msg.config);
     document.getElementById("inGameButtons").style.display = "block";
@@ -610,10 +700,17 @@ function handleJsonMessage(msg) {
     updateHostControls();
     appendMessage(`🎮 ${t("messages.gameStarted")}`);
     if (msg.config) {
+      currentMaxRounds = msg.config.max_rounds || currentMaxRounds;
       document.getElementById("rulesText").textContent =
-        `Max Rounds: ${msg.config.max_rounds}, Answer Time: ${msg.config.answer_time_seconds}s, Pause: ${msg.config.pause_between_rounds_seconds}s`;
+        t("messages.settingsSummary", {
+          maxRounds: msg.config.max_rounds,
+          answerSeconds: msg.config.answer_time_seconds,
+          pauseSeconds: msg.config.pause_between_rounds_seconds,
+        });
     }
   } else if (msg.type === "new_question") {
+    currentRoundNumber = msg.round || currentRoundNumber;
+    currentMaxRounds = msg.max_rounds || currentMaxRounds;
     // Generate localized question text
     const localizedQuestion = t("question.distanceTemplate", {
       city1: msg.cities[0],
@@ -631,29 +728,32 @@ function handleJsonMessage(msg) {
     document.getElementById("countdownText").textContent = t("countdown.answerTimeRemaining");
     startManagedCountdown(msg.time_limit);
   } else if (msg.type === "game_status") {
-    appendMessage(`📈 Status: ${msg.status}`);
+    appendMessage(t("messages.statusValue", { status: msg.status }));
   } else if (msg.type === "answer_received") {
     guessSubmissionPending = false;
     guessLockedForRound = false;
     setGuessControlsDisabled(false);
     showAnswerSubmissionHint(
       msg.updated
-        ? `Antwort aktualisiert: ${msg.guess} km um ${formatSubmissionTime(msg.submitted_at)}`
-        : `Antwort registriert: ${msg.guess} km um ${formatSubmissionTime(msg.submitted_at)}`,
+        ? t("messages.answerUpdated", { guess: msg.guess, time: formatSubmissionTime(msg.submitted_at) })
+        : t("messages.answerRegistered", { guess: msg.guess, time: formatSubmissionTime(msg.submitted_at) }),
       "success",
       2200,
     );
   } else if (msg.type === "countdown") {
     const val = msg.value || "...";
-    document.getElementById("countdownText").textContent = `Countdown: ${val}`;
+    document.getElementById("countdownText").textContent = `${t("countdown.countdownLabel")}: ${val}`;
     if (typeof msg.value === "number") {
       document.getElementById("countdown").textContent = String(msg.value);
     }
   } else if (msg.type === "game_paused") {
     appendMessage(
-      `⏸️ Runde pausiert (${msg.grace_seconds}s): ${msg.player_name || "Spieler"} reconnecting...`,
+      t("messages.gamePausedReconnect", {
+        seconds: msg.grace_seconds,
+        playerName: msg.player_name || t("playerSetup.player"),
+      }),
     );
-    document.getElementById("countdownText").textContent = "Paused - waiting for reconnect";
+    document.getElementById("countdownText").textContent = t("countdown.paused");
     pauseManagedCountdown(msg.remaining_seconds);
   } else if (msg.type === "game_resumed") {
     appendMessage(`▶️ ${t("messages.roundResumed")}`);
@@ -664,7 +764,12 @@ function handleJsonMessage(msg) {
       .map((s) => `${s.player_name}: ${s.score} (${s.delta >= 0 ? "+" : ""}${s.delta})`)
       .join(" | ");
     appendMessage(
-      `🏁 Runde ${msg.round}: ${msg.winner} gewinnt. Distanz: ${msg.correct_distance} km. ${summary}`,
+      t("messages.roundResult", {
+        round: msg.round,
+        winner: msg.winner,
+        distance: msg.correct_distance,
+        summary,
+      }),
     );
   } else if (msg.type === "warmup_started") {
     appendMessage(`🔥 ${t("messages.warmupStarted")} (${msg.time_limit}s)`);
@@ -675,7 +780,7 @@ function handleJsonMessage(msg) {
       `🚨 Bot-Verdacht: ${msg.player_name} (Score ${msg.suspicion_score}, schnelle Antworten: ${msg.fast_answers})`,
     );
   } else if (msg.type === "kicked") {
-    appendMessage("🚫 Du wurdest vom Host aus dem Spiel entfernt");
+    appendMessage(`🚫 ${translateServerMessage(msg.message || "You were removed by the host")}`);
     cleanupGameResources();
     clearStoredGame();
     document.getElementById("inGameButtons").style.display = "none";
@@ -685,13 +790,13 @@ function handleJsonMessage(msg) {
     resetCountdownDisplay();
   } else if (msg.type === "player_joined") {
     // Note: Player joined message doesn't include full player data, so we'll wait for game_info update
-    appendMessage(`👋 ${msg.player} joined the game`);
+    appendMessage(t("messages.playerJoined", { playerName: msg.player || "-" }));
   } else if (msg.type === "player_left") {
     // Remove player from local state
     currentPlayers = currentPlayers.filter((p) => p.id !== msg.player_id);
     // Re-render player lists
     updateGameList(currentGameId, currentPlayers);
-    appendMessage(`👋 Player left the game`);
+    appendMessage(t("messages.playerLeft"));
   } else if (msg.type === "player_ready_changed") {
     // Update local player state
     const playerIndex = currentPlayers.findIndex((p) => p.id === msg.player_id);
@@ -700,9 +805,7 @@ function handleJsonMessage(msg) {
       // Re-render player lists
       updateGameList(currentGameId, currentPlayers);
     }
-    appendMessage(
-      `${msg.ready ? "✓" : "✕"} Player is ${msg.ready ? "ready" : "not ready"}`,
-    );
+    appendMessage(msg.ready ? t("messages.playerReady") : t("messages.playerNotReady"));
   } else if (msg.type === "player_updated") {
     const playerIndex = currentPlayers.findIndex((p) => p.id === msg.player_id);
     if (playerIndex !== -1) {
@@ -715,7 +818,7 @@ function handleJsonMessage(msg) {
       currentPlayers[playerIndex].tab_away = true;
       updateGameList(currentGameId, currentPlayers);
     }
-    appendMessage(`❗ ${msg.name || "A player"} left the browser tab`);
+    appendMessage(t("messages.playerTabLeft", { playerName: msg.name || "-" }));
   } else if (msg.type === "session_restored") {
     currentPlayerId = msg.player_id;
     playerName = msg.name || playerName;
@@ -733,19 +836,20 @@ function handleJsonMessage(msg) {
     }
     updateUILayout();
   } else if (msg.type === "error") {
-    appendMessage(`❌ Error: ${msg.message}`);
+    const localizedServerMessage = translateServerMessage(msg.message);
+    appendMessage(`❌ ${localizedServerMessage}`);
     if (guessSubmissionPending || guessLockedForRound) {
       guessSubmissionPending = false;
       guessLockedForRound = false;
       setGuessControlsDisabled(false);
-      showAnswerSubmissionHint(msg.message || "Antwort konnte nicht registriert werden", "error", 3500);
+      showAnswerSubmissionHint(localizedServerMessage || t("messages.answerSubmitFailed"), "error", 3500);
     }
     if (msg.message && msg.message.includes("Cannot join game")) {
       clearStoredGame();
     }
   } else if (msg.type === "game_finished") {
     // Show game finished modal with results
-    document.getElementById("winnerName").textContent = msg.winner || "Unknown";
+    document.getElementById("winnerName").textContent = msg.winner || t("messages.unknownPlayer");
 
     const scoresTableBody = document.getElementById("scoresTableBody");
     scoresTableBody.innerHTML = "";
@@ -789,14 +893,14 @@ function handleJsonMessage(msg) {
     modal.style.display = "flex";
 
     // Still log to messages for reference
-    appendMessage(`🎉 Game finished! Winner: ${msg.winner}`);
+    appendMessage(t("messages.gameFinishedWinner", { winner: msg.winner || "-" }));
     document.getElementById("inGameButtons").style.display = "none";
     document.getElementById("gameInfo").style.display = "none";
     currentGameStatus = "finished";
     updateHostControls();
     clearStoredGame();
     updateUILayout();
-    resetCountdownDisplay("Game finished");
+    resetCountdownDisplay(t("gameEnd.title"));
   } else if (msg.type === "name_set") {
     currentPlayerId = msg.player_id;
     localStorage.setItem(STORAGE_KEYS.PLAYER_ID, currentPlayerId);
@@ -805,16 +909,23 @@ function handleJsonMessage(msg) {
       joinGameById(restorePendingJoinGameId);
     }
     restorePendingJoinGameId = "";
-    appendMessage(`✅ Your name set to: ${msg.name}`);
+    appendMessage(t("messages.nameSet", { name: msg.name }));
   }
+
+  updateMatchHud();
 }
 function set_countdown(countdownLimitSeconds) {
   startManagedCountdown(countdownLimitSeconds);
 }
 function updateGameSettings(game_id, config) {
   if (config) {
+    currentMaxRounds = config.max_rounds || currentMaxRounds;
     document.getElementById("rulesText").textContent =
-      `Max Rounds: ${config.max_rounds}, Answer Time: ${config.answer_time_seconds}s, Pause: ${config.pause_between_rounds_seconds}s`;
+      t("messages.settingsSummary", {
+        maxRounds: config.max_rounds,
+        answerSeconds: config.answer_time_seconds,
+        pauseSeconds: config.pause_between_rounds_seconds,
+      });
   }
 }
 function updateGameList(game_id, players) {
@@ -946,7 +1057,9 @@ function updateHostControls() {
   const showHostControls = currentIsHost && currentGameStatus === "waiting";
   warmupBtn.style.display = showHostControls ? "inline-block" : "none";
   lockBtn.style.display = showHostControls ? "inline-block" : "none";
-  lockBtn.textContent = currentSettingsLocked ? "🔓 Unlock Settings" : "🔒 Lock Settings";
+  lockBtn.textContent = currentSettingsLocked
+    ? t("messages.unlockSettings")
+    : t("messages.lockSettings");
 }
 
 function kickPlayer(targetPlayerId) {
@@ -989,7 +1102,7 @@ function renderLobbyGames(activeGames) {
 
   if (waitingGames.length === 0) {
     const empty = document.createElement("li");
-    empty.textContent = "No open games right now.";
+    empty.textContent = t("messages.noOpenGames");
     list.appendChild(empty);
     return;
   }
@@ -1019,7 +1132,7 @@ function joinGameById(gameId, pin = "") {
     payload.pin = pin;
   }
   sendMessage({ type: "join_game", data: payload });
-  appendMessage(`Joining game ${gameId}...`);
+  appendMessage(t("messages.joiningGame", { gameId }));
 }
 
 function notifyTabLeaving() {
@@ -1100,7 +1213,7 @@ function registerKeyboardUX() {
 
 function setPlayerName() {
   const nameInput = document.getElementById("playerName").value.trim();
-  if (!nameInput) return alert("Name cannot be empty.");
+  if (!nameInput) return alert(t("messages.nameCannotBeEmpty"));
   playerName = nameInput;
   localStorage.setItem(STORAGE_KEYS.PLAYER_NAME, playerName);
 
@@ -1133,7 +1246,7 @@ function createGame() {
     },
   };
   sendMessage(message);
-  appendMessage("Creating new game...");
+  appendMessage(t("messages.creatingGame"));
 }
 
 function showJoinGame() {
@@ -1156,7 +1269,7 @@ function hideJoinGame() {
 function joinGame() {
   const gameId = document.getElementById("gameIdInput").value.trim();
   const pin = document.getElementById("gamePinInput").value.trim();
-  if (!gameId) return alert("Please enter a game ID.");
+  if (!gameId) return alert(t("messages.enterGameId"));
 
   joinGameById(gameId, pin);
   hideJoinGame();
@@ -1171,7 +1284,7 @@ function setReady() {
     currentPlayers[playerIndex].ready = true;
     updateGameList(currentGameId, currentPlayers);
   }
-  appendMessage("You are now ready!");
+  appendMessage(t("messages.youAreReady"));
 }
 
 function changeLanguage(langCode) {
@@ -1194,7 +1307,7 @@ function leaveGame() {
   updateHostControls();
   updateUILayout();
   resetCountdownDisplay();
-  appendMessage("You left the game.");
+  appendMessage(t("messages.youLeftGame"));
 }
 
 function playAgain() {
@@ -1219,16 +1332,16 @@ function backToLobby() {
   clearStoredGame();
   updateUILayout();
   resetCountdownDisplay();
-  appendMessage("Back to lobby. Ready to create or join a new game!");
+  appendMessage(t("messages.backToLobbyReady"));
 }
 
 function sendGuess() {
   const guess = document.getElementById("guessInput").value.trim();
-  if (!guess) return alert("Please enter a distance.");
+  if (!guess) return alert(t("messages.enterDistance"));
 
   const guessNum = parseInt(guess);
   if (isNaN(guessNum) || guessNum < 0)
-    return alert("Please enter a valid number.");
+    return alert(t("messages.enterValidNumber"));
 
   if (guessSubmissionPending || guessLockedForRound) {
     return;
@@ -1237,7 +1350,7 @@ function sendGuess() {
   const message = { type: "submit_answer", data: { guess: guessNum } };
   guessSubmissionPending = true;
   setGuessControlsDisabled(true);
-  showAnswerSubmissionHint(`Antwort ${guessNum} km wird gesendet...`, "pending");
+  showAnswerSubmissionHint(t("messages.answerSending", { guess: guessNum }), "pending");
   sendMessage(message);
 }
 
@@ -1245,20 +1358,20 @@ function updateAnswer() {
   resetAnswerSubmissionState();
   document.getElementById("guessInput").value = "";
   document.getElementById("guessInput").focus();
-  appendMessage("📝 You can now update your answer");
+  appendMessage(t("messages.canUpdateAnswer"));
 }
 
 function keepAnswer() {
   resetAnswerSubmissionState();
   document.getElementById("guessInput").value = "";
-  appendMessage("✅ Answer locked in! Waiting for other players...");
+  appendMessage(t("messages.answerLockedWaiting"));
 }
 
 function sendMessage(msg) {
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify(msg));
   } else {
-    appendMessage("❌ Not connected to server");
+    appendMessage(`❌ ${t("messages.notConnected")}`);
   }
 }
 
