@@ -136,7 +136,7 @@ header.header {
 
 main.game-layout {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 20px;
     margin-bottom: 30px;
 }
@@ -147,6 +147,14 @@ main.game-layout.lobby-mode {
 
 main.game-layout.lobby-mode .game-column {
     display: none;
+}
+
+.game-column {
+    grid-column: 1 / -1;
+}
+
+.info-column {
+    grid-column: 1 / -1;
 }
 
 #lobbyControls {
