@@ -917,27 +917,50 @@ function handleJsonMessage(msg) {
     currentGameStatus = "active";
     currentRoundNumber = msg.round || currentRoundNumber;
     currentMaxRounds = msg.max_rounds || currentMaxRounds;
+
+    const cityFrom = msg.city1 || msg.cities?.[0] || msg.coordinates?.from?.name || "-";
+    const cityTo = msg.city2 || msg.cities?.[1] || msg.coordinates?.to?.name || "-";
+    const coordinates = msg.coordinates
+      && msg.coordinates.from
+      && msg.coordinates.to
+      && Number.isFinite(Number(msg.coordinates.from.lat))
+      && Number.isFinite(Number(msg.coordinates.from.lon))
+      && Number.isFinite(Number(msg.coordinates.to.lat))
+      && Number.isFinite(Number(msg.coordinates.to.lon))
+      ? {
+        from: {
+          name: msg.coordinates.from.name || cityFrom,
+          lat: Number(msg.coordinates.from.lat),
+          lon: Number(msg.coordinates.from.lon),
+        },
+        to: {
+          name: msg.coordinates.to.name || cityTo,
+          lat: Number(msg.coordinates.to.lat),
+          lon: Number(msg.coordinates.to.lon),
+        },
+      }
+      : null;
     
     // Update UI layout
     updateUILayout();
 
     // Store coordinates FIRST before starting map preparation
-    if (msg.coordinates) {
-      pendingQuestionCoordinates = msg.coordinates;
+    if (coordinates) {
+      pendingQuestionCoordinates = coordinates;
       // START MAP PREPARATION IMMEDIATELY (do not wait for updateUILayout)
       queueMapPreparation();
       // Fast path: try rendering immediately; queueMapPreparation remains fallback.
-      renderQuestionMap(msg.coordinates);
+      renderQuestionMap(coordinates);
     }
 
     // Generate localized question text
     const localizedQuestion = t("question.distanceTemplate", {
-      city1: msg.cities[0],
-      city2: msg.cities[1]
+      city1: cityFrom,
+      city2: cityTo
     });
     appendMessage(`🟡 ${t("messages.roundUpdate")} ${msg.round}/${msg.max_rounds}: ${localizedQuestion}`);
-    document.getElementById("city1").textContent = `${msg.cities[0]}`;
-    document.getElementById("city2").textContent = `${msg.cities[1]}`;
+    document.getElementById("city1").textContent = cityFrom;
+    document.getElementById("city2").textContent = cityTo;
     document.getElementById("guessInput").value = "";
     resetAnswerSubmissionState();
     document.getElementById("guessInput").focus();
