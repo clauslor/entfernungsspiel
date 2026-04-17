@@ -243,14 +243,19 @@ function translateServerMessage(rawMessage) {
 function isMapContainerReady(container) {
   if (!container) return false;
 
-  // Check if element is actually in DOM and visible
-  if (!container.offsetParent && container.style.display !== "block") {
+  // Ensure element is attached to DOM and not explicitly hidden.
+  if (!document.body.contains(container)) {
+    return false;
+  }
+
+  const styles = window.getComputedStyle(container);
+  if (styles.display === "none" || styles.visibility === "hidden") {
     return false;
   }
 
   const rect = container.getBoundingClientRect();
-  // Lower threshold: 80x80 instead of 100x100 for faster initialization on small screens
-  return rect.width >= 80 && rect.height >= 80;
+  // Keep threshold permissive so small/transitioning layouts do not block map startup.
+  return rect.width >= 40 && rect.height >= 40;
 }
 
 function queueMapPreparation(attempt = 0) {
@@ -259,18 +264,19 @@ function queueMapPreparation(attempt = 0) {
     pendingMapPreparationTimeoutId = null;
   }
 
-  // First attempt should be immediate, subsequent attempts with backoff
-  const delayMs = attempt === 0 ? 10 : Math.min(60, 20 + attempt * 5);
+  // First attempt should be immediate, subsequent attempts with backoff.
+  // Keep retry window long enough for slower devices/layout reflows.
+  const delayMs = attempt === 0 ? 10 : Math.min(150, 25 + attempt * 10);
 
   pendingMapPreparationTimeoutId = setTimeout(() => {
     pendingMapPreparationTimeoutId = null;
 
     const container = document.getElementById("mapContainer");
     if (!isMapContainerReady(container)) {
-      if (attempt < 15) {
+      if (attempt < 40) {
         queueMapPreparation(attempt + 1);
       } else {
-        console.warn("[Map] Map preparation timeout after 15 attempts");
+        console.warn("[Map] Map preparation timeout after 40 attempts");
       }
       return;
     }
@@ -920,6 +926,8 @@ function handleJsonMessage(msg) {
       pendingQuestionCoordinates = msg.coordinates;
       // START MAP PREPARATION IMMEDIATELY (do not wait for updateUILayout)
       queueMapPreparation();
+      // Fast path: try rendering immediately; queueMapPreparation remains fallback.
+      renderQuestionMap(msg.coordinates);
     }
 
     // Generate localized question text
