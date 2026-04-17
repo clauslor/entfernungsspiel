@@ -108,6 +108,17 @@
         </div>
 
         <div class="admin-section">
+            <h2>Question Suggestions</h2>
+            <p>Generate possible new city-pair questions from existing city coordinates.</p>
+            <div class="admin-suggestion-controls">
+                <button onclick="loadSuggestions()" class="btn btn-primary">Load Suggestions</button>
+            </div>
+            <div id="suggestions-list">
+                <p>No suggestions loaded yet.</p>
+            </div>
+        </div>
+
+        <div class="admin-section">
             <h2>High Scores</h2>
             <div id="high-scores">
                 <p>Loading high scores...</p>
@@ -127,6 +138,8 @@
     </div>
 
     <script>
+        let suggestionCache = [];
+
         // Load data on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadCityPairs();
@@ -250,6 +263,84 @@
             } catch (error) {
                 console.error('Error loading city pairs:', error);
                 document.getElementById('city-pairs-list').innerHTML = '<p>Error loading city pairs</p>';
+            }
+        }
+
+        function renderSuggestions() {
+            const container = document.getElementById('suggestions-list');
+            if (!suggestionCache.length) {
+                container.innerHTML = '<p>No suggestions available.</p>';
+                return;
+            }
+
+            const html = suggestionCache.map((s, index) =>
+                `<div class="suggestion-item">
+                    <div class="suggestion-main">
+                        <strong>${s.city1} - ${s.city2}</strong>
+                        <span>${s.distance} km | score: ${s.quality_score}</span>
+                    </div>
+                    <div class="suggestion-coords">
+                        (${s.lat1}, ${s.lon1}) -> (${s.lat2}, ${s.lon2})
+                    </div>
+                    <button class="btn btn-secondary" onclick="acceptSuggestion(${index})">Accept</button>
+                </div>`
+            ).join('');
+
+            container.innerHTML = html;
+        }
+
+        async function loadSuggestions() {
+            try {
+                const response = await fetch('/api/city-pairs/suggestions?limit=30');
+                const data = await response.json();
+                if (!response.ok) {
+                    alert(`Error loading suggestions: ${data.detail || 'Unknown error'}`);
+                    return;
+                }
+
+                suggestionCache = data.suggestions || [];
+                renderSuggestions();
+            } catch (error) {
+                console.error('Error loading suggestions:', error);
+                alert('Error loading suggestions');
+            }
+        }
+
+        async function acceptSuggestion(index) {
+            const suggestion = suggestionCache[index];
+            if (!suggestion) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/city-pairs', {
+                    method: 'POST',
+                    body: new URLSearchParams({
+                        city1: suggestion.city1,
+                        city2: suggestion.city2,
+                        distance: suggestion.distance,
+                        lat1: suggestion.lat1,
+                        lon1: suggestion.lon1,
+                        lat2: suggestion.lat2,
+                        lon2: suggestion.lon2,
+                    }),
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    }
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    alert(`Error accepting suggestion: ${data.detail || 'Unknown error'}`);
+                    return;
+                }
+
+                suggestionCache.splice(index, 1);
+                renderSuggestions();
+                loadCityPairs();
+            } catch (error) {
+                console.error('Error accepting suggestion:', error);
+                alert('Error accepting suggestion');
             }
         }
 

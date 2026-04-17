@@ -14,8 +14,10 @@ import io
 import os
 import logging
 import secrets
+import math
+import random
 from dataclasses import asdict
-from typing import Optional
+from typing import Optional, Dict, Tuple, List
 
 from models import GameState, GameConfig, GameRoom, GameStatus
 from game_logic import GameLogic
@@ -88,6 +90,103 @@ def authenticate_admin(credentials: HTTPBasicCredentials = Depends(security)):
             headers={"WWW-Authenticate": "Basic"},
         )
     return credentials.username
+
+
+def _normalize_pair_key(city1: str, city2: str) -> Tuple[str, str]:
+    a = (city1 or "").strip().lower()
+    b = (city2 or "").strip().lower()
+    return (a, b) if a <= b else (b, a)
+
+
+def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    radius_km = 6371.0
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+    a = (
+        math.sin(delta_phi / 2) ** 2
+        + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
+    )
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return radius_km * c
+
+
+def _build_city_pair_suggestions(
+    city_pairs,
+    limit: int,
+    min_distance: int,
+    max_distance: int,
+) -> List[Dict]:
+    existing_pair_keys = {
+        _normalize_pair_key(cp.city1, cp.city2)
+        for cp in city_pairs
+        if cp.city1 and cp.city2
+    }
+
+    cities_by_name: Dict[str, Tuple[float, float]] = {}
+    for cp in city_pairs:
+        for city_name, lat, lon in [
+            (cp.city1, cp.lat1, cp.lon1),
+            (cp.city2, cp.lat2, cp.lon2),
+        ]:
+            if city_name is None or lat is None or lon is None:
+                continue
+            if city_name not in cities_by_name:
+                cities_by_name[city_name] = (float(lat), float(lon))
+
+    city_items = list(cities_by_name.items())
+    if len(city_items) < 2:
+        return []
+
+    # Prevent heavy O(n^2) work with very large city lists.
+    max_city_pool = 280
+    if len(city_items) > max_city_pool:
+        city_items = random.sample(city_items, max_city_pool)
+    else:
+        random.shuffle(city_items)
+
+    suggestions = []
+    suggested_keys = set()
+
+    for i in range(len(city_items)):
+        city1, (lat1, lon1) = city_items[i]
+        for j in range(i + 1, len(city_items)):
+            city2, (lat2, lon2) = city_items[j]
+
+            pair_key = _normalize_pair_key(city1, city2)
+            if pair_key in existing_pair_keys or pair_key in suggested_keys:
+                continue
+
+            distance = int(round(_haversine_km(lat1, lon1, lat2, lon2)))
+            if distance < min_distance or distance > max_distance:
+                continue
+
+            # Prefer medium-range distances for better playability.
+            target = 900
+            score = max(0, 1000 - abs(distance - target))
+
+            suggestions.append(
+                {
+                    "city1": city1,
+                    "city2": city2,
+                    "distance": distance,
+                    "lat1": round(lat1, 6),
+                    "lon1": round(lon1, 6),
+                    "lat2": round(lat2, 6),
+                    "lon2": round(lon2, 6),
+                    "quality_score": score,
+                }
+            )
+            suggested_keys.add(pair_key)
+
+            if len(suggestions) >= max(limit * 5, 100):
+                break
+        if len(suggestions) >= max(limit * 5, 100):
+            break
+
+    suggestions.sort(key=lambda s: s["quality_score"], reverse=True)
+    return suggestions[:limit]
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -195,6 +294,44 @@ async def get_city_pairs_api(db=Depends(get_db)):
                 "lon2": cp.lon2,
             } for cp in city_pairs
         ]
+    }
+
+
+@app.get("/api/city-pairs/suggestions")
+async def get_city_pair_suggestions_api(
+    limit: int = 30,
+    min_distance: int = 80,
+    max_distance: int = 2800,
+    db=Depends(get_db),
+    username: str = Depends(authenticate_admin),
+):
+    """Suggest new city pairs derived from already known cities in the database."""
+    safe_limit = max(1, min(limit, 200))
+    safe_min_distance = max(1, min(min_distance, 10000))
+    safe_max_distance = max(safe_min_distance, min(max_distance, 10000))
+
+    city_pairs = get_city_pairs(db)
+    suggestions = _build_city_pair_suggestions(
+        city_pairs,
+        safe_limit,
+        safe_min_distance,
+        safe_max_distance,
+    )
+
+    logger.info(
+        "Generated %s city pair suggestions for admin user %s",
+        len(suggestions),
+        username,
+    )
+
+    return {
+        "suggestions": suggestions,
+        "count": len(suggestions),
+        "filters": {
+            "limit": safe_limit,
+            "min_distance": safe_min_distance,
+            "max_distance": safe_max_distance,
+        },
     }
 
 

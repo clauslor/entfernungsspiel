@@ -1708,6 +1708,32 @@ main.game-layout.lobby-mode .messages-container {
     margin-top: 16px;
 }
 
+.admin-suggestion-controls {
+    margin: 10px 0 14px 0;
+}
+
+.suggestion-item {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    background: #f8fafc;
+    display: grid;
+    gap: 6px;
+}
+
+.suggestion-main {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.suggestion-coords {
+    font-size: 0.9em;
+    color: var(--text-secondary);
+}
+
 /* ========================================
    PHASE-BASED HUD REDESIGN
    ======================================== */
