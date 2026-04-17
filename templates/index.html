@@ -187,18 +187,26 @@
                             <label class="host-settings-field">
                                 <span data-i18n="settings.maxRoundsLabel">Max. Runden</span>
                                 <input type="number" id="settingMaxRounds" min="1" max="20" step="1" inputmode="numeric">
+                                <span class="field-hint">1 – 20</span>
                             </label>
                             <label class="host-settings-field">
                                 <span data-i18n="settings.countdownLabel">Countdown (s)</span>
                                 <input type="number" id="settingCountdown" min="1" max="30" step="1" inputmode="numeric">
+                                <span class="field-hint">1 – 30 s</span>
                             </label>
                             <label class="host-settings-field">
                                 <span data-i18n="settings.answerTimeLabel">Antwortzeit (s)</span>
                                 <input type="number" id="settingAnswerTime" min="5" max="180" step="1" inputmode="numeric">
+                                <span class="field-hint">5 – 180 s</span>
+                                <label id="noTimeLimitRow" class="no-time-limit-row" style="display:none">
+                                    <input type="checkbox" id="settingNoTimeLimit">
+                                    <span data-i18n="settings.noTimeLimitLabel">Kein Zeitlimit</span>
+                                </label>
                             </label>
                             <label class="host-settings-field">
                                 <span data-i18n="settings.pauseTimeLabel">Pause zwischen Runden (s)</span>
                                 <input type="number" id="settingPauseTime" min="1" max="30" step="1" inputmode="numeric">
+                                <span class="field-hint">1 – 30 s</span>
                             </label>
                         </div>
                         <div class="host-settings-options">
@@ -213,6 +221,10 @@
                             <label class="host-settings-toggle">
                                 <input type="checkbox" id="settingWrongAnswerPointsOthers">
                                 <span data-i18n="settings.wrongAnswerPointsOthersLabel">Falsche Antworten geben allen anderen je 1 Punkt</span>
+                            </label>
+                            <label class="host-settings-toggle">
+                                <input type="checkbox" id="settingKickOnDisconnect">
+                                <span data-i18n="settings.kickOnDisconnectLabel">Spieler wird gekickt wenn er das Tab schließt (statt Pause)</span>
                             </label>
                         </div>
                         <div class="host-settings-actions">

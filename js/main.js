@@ -43,6 +43,28 @@ const STORAGE_KEYS = {
 document.addEventListener("DOMContentLoaded", async () => {
   await initializeI18n();
   updateUILanguage();
+
+  // Wire "Kein Zeitlimit" toggle visibility based on firstAnswerEndsRound checkbox
+  const firstAnswerEl = document.getElementById("settingFirstAnswerEndsRound");
+  const noTimeLimitRowEl = document.getElementById("noTimeLimitRow");
+  const noTimeLimitInputEl = document.getElementById("settingNoTimeLimit");
+  const answerTimeInputEl = document.getElementById("settingAnswerTime");
+
+  if (firstAnswerEl && noTimeLimitRowEl) {
+    firstAnswerEl.addEventListener("change", () => {
+      applyNoTimeLimitVisibility(firstAnswerEl.checked);
+      if (!firstAnswerEl.checked && noTimeLimitInputEl) {
+        noTimeLimitInputEl.checked = false;
+        if (answerTimeInputEl) answerTimeInputEl.disabled = false;
+      }
+    });
+  }
+  if (noTimeLimitInputEl && answerTimeInputEl) {
+    noTimeLimitInputEl.addEventListener("change", () => {
+      answerTimeInputEl.disabled = noTimeLimitInputEl.checked;
+    });
+  }
+
   connect();
 });
 
@@ -1304,11 +1326,19 @@ function updateGameSettings(game_id, config) {
     const wrongAnswerPointsOthersInput = document.getElementById("settingWrongAnswerPointsOthers");
     if (maxRoundsInput) maxRoundsInput.value = config.max_rounds;
     if (countdownInput) countdownInput.value = config.countdown_seconds;
-    if (answerTimeInput) answerTimeInput.value = config.answer_time_seconds;
     if (pauseTimeInput) pauseTimeInput.value = config.pause_between_rounds_seconds;
     if (autoAdvanceAllAnsweredInput) autoAdvanceAllAnsweredInput.checked = !!config.auto_advance_on_all_answers;
     if (firstAnswerEndsRoundInput) firstAnswerEndsRoundInput.checked = !!config.first_answer_ends_round;
     if (wrongAnswerPointsOthersInput) wrongAnswerPointsOthersInput.checked = !!config.wrong_answer_points_others;
+    // Handle no-time-limit flag (answer_time_seconds == 0)
+    const noTimeLimit = config.answer_time_seconds === 0;
+    const noTimeLimitInput = document.getElementById("settingNoTimeLimit");
+    if (noTimeLimitInput) noTimeLimitInput.checked = noTimeLimit;
+    if (answerTimeInput) {
+      answerTimeInput.value = noTimeLimit ? "" : config.answer_time_seconds;
+      answerTimeInput.disabled = noTimeLimit;
+    }
+    applyNoTimeLimitVisibility(!!config.first_answer_ends_round);
     if (currentIsHost) {
       localStorage.setItem(STORAGE_KEYS.CREATOR_SETTINGS, JSON.stringify(config));
     }
@@ -1475,20 +1505,29 @@ function updateHostControls() {
   [
     document.getElementById("settingMaxRounds"),
     document.getElementById("settingCountdown"),
-    document.getElementById("settingAnswerTime"),
     document.getElementById("settingPauseTime"),
     document.getElementById("settingAutoAdvanceAllAnswered"),
     document.getElementById("settingFirstAnswerEndsRound"),
     document.getElementById("settingWrongAnswerPointsOthers"),
+    document.getElementById("settingNoTimeLimit"),
   ].forEach((inputEl) => {
     if (inputEl) {
       inputEl.disabled = !canEditSettings;
     }
   });
+  // answerTime is conditionally disabled by noTimeLimit; only re-enable when canEdit AND not noTimeLimit
+  const answerTimeEl = document.getElementById("settingAnswerTime");
+  const noTimeLimitEl = document.getElementById("settingNoTimeLimit");
+  if (answerTimeEl) answerTimeEl.disabled = !canEditSettings || !!(noTimeLimitEl?.checked);
 
   if (saveSettingsBtn) {
     saveSettingsBtn.disabled = !canEditSettings;
   }
+}
+
+function applyNoTimeLimitVisibility(firstAnswerEndsRound) {
+  const row = document.getElementById("noTimeLimitRow");
+  if (row) row.style.display = firstAnswerEndsRound ? "" : "none";
 }
 
 function saveGameSettings() {
@@ -1498,15 +1537,25 @@ function saveGameSettings() {
 
   const maxRounds = parseInt(document.getElementById("settingMaxRounds")?.value || "", 10);
   const countdownSeconds = parseInt(document.getElementById("settingCountdown")?.value || "", 10);
-  const answerTimeSeconds = parseInt(document.getElementById("settingAnswerTime")?.value || "", 10);
+  const noTimeLimit = !!document.getElementById("settingNoTimeLimit")?.checked;
+  const firstAnswerEndsRound = !!document.getElementById("settingFirstAnswerEndsRound")?.checked;
+  const answerTimeSeconds = noTimeLimit ? 0 : parseInt(document.getElementById("settingAnswerTime")?.value || "", 10);
   const pauseBetweenRoundsSeconds = parseInt(document.getElementById("settingPauseTime")?.value || "", 10);
   const autoAdvanceOnAllAnswers = !!document.getElementById("settingAutoAdvanceAllAnswered")?.checked;
-  const firstAnswerEndsRound = !!document.getElementById("settingFirstAnswerEndsRound")?.checked;
   const wrongAnswerPointsOthers = !!document.getElementById("settingWrongAnswerPointsOthers")?.checked;
 
-  const values = [maxRounds, countdownSeconds, answerTimeSeconds, pauseBetweenRoundsSeconds];
-  if (values.some((v) => Number.isNaN(v))) {
-    alert(t("messages.invalidSettingsInput"));
+  const ranges = [
+    { value: maxRounds,               min: 1,  max: 20,  label: "Max. Runden" },
+    { value: countdownSeconds,         min: 1,  max: 30,  label: "Countdown" },
+    { value: pauseBetweenRoundsSeconds,min: 1,  max: 30,  label: "Pause" },
+  ];
+  if (!noTimeLimit) {
+    ranges.push({ value: answerTimeSeconds, min: 5, max: 180, label: "Antwortzeit" });
+  }
+  const invalid = ranges.filter((r) => Number.isNaN(r.value) || r.value < r.min || r.value > r.max);
+  if (invalid.length > 0) {
+    const details = invalid.map((r) => `${r.label}: ${r.min}–${r.max}`).join(", ");
+    alert(`Ungültige Einstellungswerte.\nErlaubte Bereiche: ${details}`);
     return;
   }
 

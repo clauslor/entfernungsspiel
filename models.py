@@ -24,6 +24,8 @@ class GameConfig:
     auto_advance_on_all_answers: bool = True
     first_answer_ends_round: bool = False
     wrong_answer_points_others: bool = False
+    # "pause": pause game while player is away (default); "kick": remove player immediately
+    disconnect_behavior: str = "pause"
 
 
 

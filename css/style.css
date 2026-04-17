@@ -1056,6 +1056,12 @@ main.game-layout.lobby-mode .game-column {
     color: #64748b;
 }
 
+.field-hint {
+    font-size: 0.78rem;
+    color: var(--text-muted, #94a3b8);
+    line-height: 1;
+}
+
 .host-settings-actions {
     margin-top: 12px;
     display: flex;
