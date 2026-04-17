@@ -915,8 +915,10 @@ function handleJsonMessage(msg) {
     // Update UI layout
     updateUILayout();
 
-    // START MAP PREPARATION IMMEDIATELY (do not wait for updateUILayout)
+    // Store coordinates FIRST before starting map preparation
     if (msg.coordinates) {
+      pendingQuestionCoordinates = msg.coordinates;
+      // START MAP PREPARATION IMMEDIATELY (do not wait for updateUILayout)
       queueMapPreparation();
     }
 
@@ -931,11 +933,6 @@ function handleJsonMessage(msg) {
     document.getElementById("guessInput").value = "";
     resetAnswerSubmissionState();
     document.getElementById("guessInput").focus();
-    
-    // Store coordinates for rendering when map is ready (renderQuestionMap will be called by queueMapPreparation)
-    if (msg.coordinates) {
-      pendingQuestionCoordinates = msg.coordinates;
-    }
     
     document.getElementById("countdownText").textContent = t("countdown.answerTimeRemaining");
     startManagedCountdown(msg.time_limit);
