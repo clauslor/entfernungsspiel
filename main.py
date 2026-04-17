@@ -2,12 +2,15 @@ from urllib import request
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, Form, HTTPException, Depends
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
+from fastapi import UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 import asyncio
 import json
+import csv
+import io
 import os
 import logging
 import secrets
@@ -185,7 +188,11 @@ async def get_city_pairs_api(db=Depends(get_db)):
                 "id": cp.id,
                 "city1": cp.city1,
                 "city2": cp.city2,
-                "distance": cp.distance
+                "distance": cp.distance,
+                "lat1": cp.lat1,
+                "lon1": cp.lon1,
+                "lat2": cp.lat2,
+                "lon2": cp.lon2,
             } for cp in city_pairs
         ]
     }
@@ -196,22 +203,107 @@ async def add_city_pair_api(
     city1: str = Form(...),
     city2: str = Form(...),
     distance: int = Form(..., gt=0),
+    lat1: float = Form(..., ge=-90, le=90),
+    lon1: float = Form(..., ge=-180, le=180),
+    lat2: float = Form(..., ge=-90, le=90),
+    lon2: float = Form(..., ge=-180, le=180),
     db=Depends(get_db),
     username: str = Depends(authenticate_admin)
 ):
     """Add a new city pair (admin only)"""
     try:
-        city_pair = add_city_pair(db, city1, city2, distance)
+        city_pair = add_city_pair(db, city1, city2, distance, lat1, lon1, lat2, lon2)
         logger.info(f"New city pair added by {username}: {city1} - {city2} = {distance}km")
         return {"message": "City pair added successfully", "city_pair": {
             "id": city_pair.id,
             "city1": city_pair.city1,
             "city2": city_pair.city2,
-            "distance": city_pair.distance
+            "distance": city_pair.distance,
+            "lat1": city_pair.lat1,
+            "lon1": city_pair.lon1,
+            "lat2": city_pair.lat2,
+            "lon2": city_pair.lon2,
         }}
     except Exception as e:
         logger.error(f"Error adding city pair: {e}")
         raise HTTPException(status_code=400, detail="Error adding city pair")
+
+
+@app.post("/api/city-pairs/import-csv")
+async def import_city_pairs_csv_api(
+    file: UploadFile = File(...),
+    db=Depends(get_db),
+    username: str = Depends(authenticate_admin),
+):
+    """Import city pairs from CSV (admin only).
+
+    Required CSV columns: city1, city2, distance, lat1, lon1, lat2, lon2
+    """
+    if not file.filename or not file.filename.lower().endswith(".csv"):
+        raise HTTPException(status_code=400, detail="Please upload a CSV file")
+
+    try:
+        raw = await file.read()
+        content = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=400, detail="CSV must be UTF-8 encoded")
+
+    reader = csv.DictReader(io.StringIO(content))
+    required_columns = {"city1", "city2", "distance", "lat1", "lon1", "lat2", "lon2"}
+
+    if not reader.fieldnames:
+        raise HTTPException(status_code=400, detail="CSV is empty or missing header row")
+
+    missing_columns = sorted(required_columns - set(reader.fieldnames))
+    if missing_columns:
+        raise HTTPException(
+            status_code=400,
+            detail=f"CSV missing required columns: {', '.join(missing_columns)}",
+        )
+
+    inserted = 0
+    errors = []
+
+    for line_number, row in enumerate(reader, start=2):
+        if not row or all((value or "").strip() == "" for value in row.values()):
+            continue
+
+        try:
+            city1 = (row.get("city1") or "").strip()
+            city2 = (row.get("city2") or "").strip()
+            distance = int(float((row.get("distance") or "").strip()))
+            lat1 = float((row.get("lat1") or "").strip())
+            lon1 = float((row.get("lon1") or "").strip())
+            lat2 = float((row.get("lat2") or "").strip())
+            lon2 = float((row.get("lon2") or "").strip())
+
+            if not city1 or not city2:
+                raise ValueError("city1/city2 must not be empty")
+            if distance <= 0:
+                raise ValueError("distance must be > 0")
+            if not (-90 <= lat1 <= 90 and -90 <= lat2 <= 90):
+                raise ValueError("latitude must be between -90 and 90")
+            if not (-180 <= lon1 <= 180 and -180 <= lon2 <= 180):
+                raise ValueError("longitude must be between -180 and 180")
+
+            add_city_pair(db, city1, city2, distance, lat1, lon1, lat2, lon2)
+            inserted += 1
+        except Exception as exc:
+            errors.append(f"Line {line_number}: {exc}")
+
+    logger.info(
+        "CSV city-pair import by %s: inserted=%s errors=%s",
+        username,
+        inserted,
+        len(errors),
+    )
+
+    return {
+        "message": "CSV import completed",
+        "inserted": inserted,
+        "errors": errors[:50],
+        "error_count": len(errors),
+    }
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

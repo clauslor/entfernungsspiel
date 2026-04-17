@@ -1697,6 +1697,18 @@ main.game-layout.lobby-mode .messages-container {
 }
 
 /* ========================================
+   ADMIN UTILITIES
+   ======================================== */
+
+.admin-hidden {
+    display: none;
+}
+
+.admin-import-section {
+    margin-top: 16px;
+}
+
+/* ========================================
    PHASE-BASED HUD REDESIGN
    ======================================== */
 

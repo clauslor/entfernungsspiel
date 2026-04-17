@@ -54,7 +54,7 @@
             <h2>City Pairs Management</h2>
             <button onclick="showAddCityForm()" class="btn btn-secondary">Add New City Pair</button>
 
-            <div id="add-city-form" style="display: none;">
+            <div id="add-city-form" class="admin-hidden">
                 <h3>Add New City Pair</h3>
                 <form onsubmit="addCityPair(event)">
                     <div class="form-group">
@@ -69,8 +69,36 @@
                         <label for="distance">Distance (km):</label>
                         <input type="number" id="distance" min="1" required>
                     </div>
+                    <div class="form-group">
+                        <label for="lat1">City 1 Latitude:</label>
+                        <input type="number" id="lat1" step="0.000001" min="-90" max="90" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lon1">City 1 Longitude:</label>
+                        <input type="number" id="lon1" step="0.000001" min="-180" max="180" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lat2">City 2 Latitude:</label>
+                        <input type="number" id="lat2" step="0.000001" min="-90" max="90" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lon2">City 2 Longitude:</label>
+                        <input type="number" id="lon2" step="0.000001" min="-180" max="180" required>
+                    </div>
                     <button type="submit" class="btn btn-primary">Add City Pair</button>
                     <button type="button" onclick="hideAddCityForm()" class="btn btn-secondary">Cancel</button>
+                </form>
+            </div>
+
+            <div class="admin-section admin-import-section">
+                <h3>CSV Import</h3>
+                <p>Required columns: city1, city2, distance, lat1, lon1, lat2, lon2</p>
+                <form onsubmit="importCityPairsCsv(event)">
+                    <div class="form-group">
+                        <label for="csvFile">CSV File:</label>
+                        <input type="file" id="csvFile" accept=".csv" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Import CSV</button>
                 </form>
             </div>
 
@@ -120,6 +148,10 @@
             const city1 = document.getElementById('city1').value;
             const city2 = document.getElementById('city2').value;
             const distance = document.getElementById('distance').value;
+            const lat1 = document.getElementById('lat1').value;
+            const lon1 = document.getElementById('lon1').value;
+            const lat2 = document.getElementById('lat2').value;
+            const lon2 = document.getElementById('lon2').value;
 
             try {
                 const response = await fetch('/api/city-pairs', {
@@ -127,7 +159,11 @@
                     body: new URLSearchParams({
                         city1: city1,
                         city2: city2,
-                        distance: distance
+                        distance: distance,
+                        lat1: lat1,
+                        lon1: lon1,
+                        lat2: lat2,
+                        lon2: lon2,
                     }),
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
@@ -142,12 +178,59 @@
                     document.getElementById('city1').value = '';
                     document.getElementById('city2').value = '';
                     document.getElementById('distance').value = '';
+                    document.getElementById('lat1').value = '';
+                    document.getElementById('lon1').value = '';
+                    document.getElementById('lat2').value = '';
+                    document.getElementById('lon2').value = '';
                 } else {
-                    alert('Error adding city pair');
+                    const err = await response.json();
+                    alert(`Error adding city pair: ${err.detail || 'Unknown error'}`);
                 }
             } catch (error) {
                 console.error('Error:', error);
                 alert('Error adding city pair');
+            }
+        }
+
+        async function importCityPairsCsv(event) {
+            event.preventDefault();
+            const fileInput = document.getElementById('csvFile');
+            const file = fileInput.files && fileInput.files[0];
+            if (!file) {
+                alert('Please select a CSV file.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/city-pairs/import-csv', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const result = await response.json();
+                if (!response.ok) {
+                    alert(`CSV import failed: ${result.detail || 'Unknown error'}`);
+                    return;
+                }
+
+                let message = `CSV import completed. Inserted: ${result.inserted}.`;
+                if (result.error_count > 0) {
+                    message += ` Errors: ${result.error_count}.`;
+                }
+                alert(message);
+
+                if (result.error_count > 0 && result.errors && result.errors.length > 0) {
+                    console.warn('CSV import row errors:', result.errors);
+                }
+
+                fileInput.value = '';
+                loadCityPairs();
+            } catch (error) {
+                console.error('CSV import error:', error);
+                alert('Error importing CSV');
             }
         }
 
@@ -159,6 +242,7 @@
                 const html = data.city_pairs.map(cp =>
                     `<div class="city-pair">
                         <strong>${cp.city1} - ${cp.city2}:</strong> ${cp.distance} km
+                        <span> | (${cp.lat1}, ${cp.lon1}) -> (${cp.lat2}, ${cp.lon2})</span>
                     </div>`
                 ).join('');
 
