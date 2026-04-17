@@ -643,6 +643,7 @@ main.game-layout.lobby-mode .game-column {
 .city-name {
     font-size: 1.5em;
     font-weight: 700;
+    font-family: "Gidole", "DIN 1451", "DIN 1451 Mittelschrift", "Bahnschrift", "Arial Narrow", Arial, sans-serif;
     color: var(--text-primary);
     text-align: center;
 }
@@ -765,7 +766,7 @@ main.game-layout.lobby-mode .game-column {
     justify-content: center;
     padding: 0 10px;
     color: #111827;
-    font-family: "DIN 1451 Mittelschrift", "Bahnschrift", "Arial Narrow", Arial, sans-serif;
+    font-family: "Gidole", "DIN 1451", "DIN 1451 Mittelschrift", "Bahnschrift", "Arial Narrow", Arial, sans-serif;
     font-size: var(--ortsschild-font-size, 24px);
     font-weight: 700;
     letter-spacing: 0.05em;
