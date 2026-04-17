@@ -986,7 +986,10 @@ function renderLobbyGames(activeGames) {
     link.textContent = `${game.id} (${game.player_count} players)`;
     link.onclick = (event) => {
       event.preventDefault();
-      joinGameById(game.id);
+      // Pre-fill the game ID and show the join form
+      document.getElementById("gameIdInput").value = game.id;
+      document.getElementById("gamePinInput").value = "";
+      showJoinGame();
     };
     item.appendChild(link);
     list.appendChild(item);
@@ -1120,7 +1123,13 @@ function createGame() {
 
 function showJoinGame() {
   document.getElementById("joinGameForm").style.display = "block";
-  setTimeout(() => focusAndSelect("gameIdInput"), 0);
+  // If Game ID is already filled, focus on PIN input; otherwise focus on Game ID input
+  const gameIdInput = document.getElementById("gameIdInput");
+  if (gameIdInput.value.trim()) {
+    setTimeout(() => focusAndSelect("gamePinInput"), 0);
+  } else {
+    setTimeout(() => focusAndSelect("gameIdInput"), 0);
+  }
 }
 
 function hideJoinGame() {
