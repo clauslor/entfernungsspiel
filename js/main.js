@@ -60,7 +60,12 @@ function connect() {
     const data = event.data;
     try {
       const msg = JSON.parse(data);
-      handleJsonMessage(msg);
+      try {
+        handleJsonMessage(msg);
+      } catch (err) {
+        console.error("Error in handleJsonMessage:", err, "payload:", msg);
+        appendMessage(`❌ ${t("messages.connectionError")}`);
+      }
     } catch {
       appendMessage(data);
     }
@@ -970,13 +975,20 @@ function handleJsonMessage(msg) {
       city2: cityTo
     });
     appendMessage(`🟡 ${t("messages.roundUpdate")} ${msg.round}/${msg.max_rounds}: ${localizedQuestion}`);
-    document.getElementById("city1").textContent = cityFrom;
-    document.getElementById("city2").textContent = cityTo;
-    document.getElementById("guessInput").value = "";
+    const city1El = document.getElementById("city1");
+    const city2El = document.getElementById("city2");
+    const guessInputEl = document.getElementById("guessInput");
+    const countdownTextEl = document.getElementById("countdownText");
+
+    if (city1El) city1El.textContent = cityFrom;
+    if (city2El) city2El.textContent = cityTo;
+    if (guessInputEl) guessInputEl.value = "";
     resetAnswerSubmissionState();
-    document.getElementById("guessInput").focus();
+    if (guessInputEl) guessInputEl.focus();
     
-    document.getElementById("countdownText").textContent = t("countdown.answerTimeRemaining");
+    if (countdownTextEl) {
+      countdownTextEl.textContent = t("countdown.answerTimeRemaining");
+    }
     startManagedCountdown(msg.time_limit);
   } else if (msg.type === "game_status") {
     appendMessage(t("messages.statusValue", { status: msg.status }));
