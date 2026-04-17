@@ -196,7 +196,11 @@ function translateServerMessage(rawMessage) {
     "Player not found in this game": "serverErrors.playerNotFoundInGame",
     "Invalid lock settings request": "serverErrors.invalidLockSettingsRequest",
     "Only host can lock settings": "serverErrors.onlyHostLockSettings",
+    "Invalid update settings request": "serverErrors.invalidUpdateSettingsRequest",
+    "Only host can update settings": "serverErrors.onlyHostUpdateSettings",
     "Settings can only be changed before countdown": "serverErrors.settingsOnlyBeforeCountdown",
+    "Settings are locked": "serverErrors.settingsLocked",
+    "Invalid settings values": "serverErrors.invalidSettingsValues",
     "Only host can start warmup": "serverErrors.onlyHostStartWarmup",
     "Warmup only available before countdown": "serverErrors.warmupOnlyBeforeCountdown",
     "Could not start warmup": "serverErrors.couldNotStartWarmup",
@@ -656,6 +660,16 @@ function handleJsonMessage(msg) {
     ];
     document.getElementById("gameIdDisplay").textContent = msg.game_id;
     document.getElementById("gameInfo").style.display = "block";
+
+    const pinSection = document.getElementById("pinSection");
+    if (msg.pin) {
+      pinSection.classList.add("visible");
+      document.getElementById("gamePinDisplay").textContent = msg.pin;
+    } else {
+      pinSection.classList.remove("visible");
+      document.getElementById("gamePinDisplay").textContent = "-";
+    }
+
     document.getElementById("inGameButtons").style.display = "block";
     document.getElementById("inGamePlayerList").innerHTML =
       `<li>⏳ ${playerName} (you)</li>`;
@@ -714,6 +728,7 @@ function handleJsonMessage(msg) {
       document.getElementById("rulesText").textContent =
         t("messages.settingsSummary", {
           maxRounds: msg.config.max_rounds,
+          countdownSeconds: msg.config.countdown_seconds,
           answerSeconds: msg.config.answer_time_seconds,
           pauseSeconds: msg.config.pause_between_rounds_seconds,
         });
@@ -942,10 +957,20 @@ function updateGameSettings(game_id, config) {
     document.getElementById("rulesText").textContent =
       t("messages.settingsSummary", {
         maxRounds: config.max_rounds,
+        countdownSeconds: config.countdown_seconds,
         answerSeconds: config.answer_time_seconds,
         pauseSeconds: config.pause_between_rounds_seconds,
       });
+    const maxRoundsInput = document.getElementById("settingMaxRounds");
+    const countdownInput = document.getElementById("settingCountdown");
+    const answerTimeInput = document.getElementById("settingAnswerTime");
+    const pauseTimeInput = document.getElementById("settingPauseTime");
+    if (maxRoundsInput) maxRoundsInput.value = config.max_rounds;
+    if (countdownInput) countdownInput.value = config.countdown_seconds;
+    if (answerTimeInput) answerTimeInput.value = config.answer_time_seconds;
+    if (pauseTimeInput) pauseTimeInput.value = config.pause_between_rounds_seconds;
   }
+  updateHostControls();
 }
 function updateGameList(game_id, players) {
   // Update right sidebar player list
@@ -1073,14 +1098,64 @@ function cleanupGameResources() {
 function updateHostControls() {
   const warmupBtn = document.getElementById("warmupBtn");
   const lockBtn = document.getElementById("lockSettingsBtn");
+  const hostSettingsEditor = document.getElementById("hostSettingsEditor");
+  const saveSettingsBtn = document.getElementById("saveSettingsBtn");
   if (!warmupBtn || !lockBtn) return;
 
   const showHostControls = currentIsHost && currentGameStatus === "waiting";
+  const canEditSettings = showHostControls && !currentSettingsLocked;
   warmupBtn.style.display = showHostControls ? "inline-block" : "none";
   lockBtn.style.display = showHostControls ? "inline-block" : "none";
   lockBtn.textContent = currentSettingsLocked
     ? t("messages.unlockSettings")
     : t("messages.lockSettings");
+
+  if (hostSettingsEditor) {
+    hostSettingsEditor.classList.toggle("visible", showHostControls);
+  }
+
+  [
+    document.getElementById("settingMaxRounds"),
+    document.getElementById("settingCountdown"),
+    document.getElementById("settingAnswerTime"),
+    document.getElementById("settingPauseTime"),
+  ].forEach((inputEl) => {
+    if (inputEl) {
+      inputEl.disabled = !canEditSettings;
+    }
+  });
+
+  if (saveSettingsBtn) {
+    saveSettingsBtn.disabled = !canEditSettings;
+  }
+}
+
+function saveGameSettings() {
+  if (!currentIsHost || currentGameStatus !== "waiting" || currentSettingsLocked) {
+    return;
+  }
+
+  const maxRounds = parseInt(document.getElementById("settingMaxRounds")?.value || "", 10);
+  const countdownSeconds = parseInt(document.getElementById("settingCountdown")?.value || "", 10);
+  const answerTimeSeconds = parseInt(document.getElementById("settingAnswerTime")?.value || "", 10);
+  const pauseBetweenRoundsSeconds = parseInt(document.getElementById("settingPauseTime")?.value || "", 10);
+
+  const values = [maxRounds, countdownSeconds, answerTimeSeconds, pauseBetweenRoundsSeconds];
+  if (values.some((v) => Number.isNaN(v))) {
+    alert(t("messages.invalidSettingsInput"));
+    return;
+  }
+
+  sendMessage({
+    type: "update_settings",
+    data: {
+      max_rounds: maxRounds,
+      countdown_seconds: countdownSeconds,
+      answer_time_seconds: answerTimeSeconds,
+      pause_between_rounds_seconds: pauseBetweenRoundsSeconds,
+    },
+  });
+  appendMessage(t("messages.settingsUpdateSent"));
 }
 
 function kickPlayer(targetPlayerId) {

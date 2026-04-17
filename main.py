@@ -40,7 +40,7 @@ with next(get_db()) as db:
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="Entfernungsspiel API",
+    title="Kilometer Knobelei API",
     description="A multiplayer distance guessing game",
     version="2.0.0"
 )
@@ -146,8 +146,14 @@ def _build_city_pair_suggestions(
     else:
         random.shuffle(city_items)
 
-    suggestions = []
     suggested_keys = set()
+    usage_count: Dict[str, int] = {}
+    max_usage_per_city = 3
+    buckets: Dict[str, List[Dict]] = {
+        "short": [],
+        "medium": [],
+        "long": [],
+    }
 
     for i in range(len(city_items)):
         city1, (lat1, lon1) = city_items[i]
@@ -158,6 +164,9 @@ def _build_city_pair_suggestions(
             if pair_key in existing_pair_keys or pair_key in suggested_keys:
                 continue
 
+            if usage_count.get(city1, 0) >= max_usage_per_city or usage_count.get(city2, 0) >= max_usage_per_city:
+                continue
+
             distance = int(round(_haversine_km(lat1, lon1, lat2, lon2)))
             if distance < min_distance or distance > max_distance:
                 continue
@@ -166,27 +175,51 @@ def _build_city_pair_suggestions(
             target = 900
             score = max(0, 1000 - abs(distance - target))
 
-            suggestions.append(
-                {
-                    "city1": city1,
-                    "city2": city2,
-                    "distance": distance,
-                    "lat1": round(lat1, 6),
-                    "lon1": round(lon1, 6),
-                    "lat2": round(lat2, 6),
-                    "lon2": round(lon2, 6),
-                    "quality_score": score,
-                }
-            )
-            suggested_keys.add(pair_key)
+            suggestion = {
+                "city1": city1,
+                "city2": city2,
+                "distance": distance,
+                "lat1": round(lat1, 6),
+                "lon1": round(lon1, 6),
+                "lat2": round(lat2, 6),
+                "lon2": round(lon2, 6),
+                "quality_score": score,
+            }
 
-            if len(suggestions) >= max(limit * 5, 100):
+            if distance < 500:
+                buckets["short"].append(suggestion)
+            elif distance < 1400:
+                buckets["medium"].append(suggestion)
+            else:
+                buckets["long"].append(suggestion)
+
+            suggested_keys.add(pair_key)
+            usage_count[city1] = usage_count.get(city1, 0) + 1
+            usage_count[city2] = usage_count.get(city2, 0) + 1
+
+            if len(suggested_keys) >= max(limit * 5, 100):
                 break
-        if len(suggestions) >= max(limit * 5, 100):
+        if len(suggested_keys) >= max(limit * 5, 100):
             break
 
-    suggestions.sort(key=lambda s: s["quality_score"], reverse=True)
-    return suggestions[:limit]
+    for bucket in buckets.values():
+        bucket.sort(key=lambda s: s["quality_score"], reverse=True)
+
+    # Interleave buckets for more variety
+    merged: List[Dict] = []
+    bucket_order = ["short", "medium", "long"]
+    while len(merged) < limit and any(buckets[b] for b in bucket_order):
+        for b in bucket_order:
+            if buckets[b] and len(merged) < limit:
+                merged.append(buckets[b].pop(0))
+
+    # Fallback if one bucket dominated
+    if len(merged) < limit:
+        remainder = buckets["short"] + buckets["medium"] + buckets["long"]
+        remainder.sort(key=lambda s: s["quality_score"], reverse=True)
+        merged.extend(remainder[: limit - len(merged)])
+
+    return merged[:limit]
 
 
 @app.get("/", response_class=HTMLResponse)

@@ -1,6 +1,6 @@
 {
   "common": {
-    "title": "🌍 Distance Game",
+    "title": "🌍 Kilometer Knobelei",
     "subtitle": "Guess the distance between two cities!",
     "ok": "OK",
     "cancel": "Cancel",
@@ -72,7 +72,13 @@
   },
   "settings": {
     "title": "⚙️ Settings",
-    "waiting": "Waiting for game settings..."
+    "waiting": "Waiting for game settings...",
+    "editorTitle": "Game Settings (Host)",
+    "maxRoundsLabel": "Max rounds",
+    "countdownLabel": "Countdown (s)",
+    "answerTimeLabel": "Answer time (s)",
+    "pauseTimeLabel": "Pause between rounds (s)",
+    "applyButton": "Save settings"
   },
   "players": {
     "title": "👥 Players Online"
@@ -109,7 +115,7 @@
     "playerTabLeft": "❗ {playerName} left the browser tab",
     "gameFinishedWinner": "🎉 Game finished! Winner: {winner}",
     "nameSet": "✅ Your name is now: {name}",
-    "settingsSummary": "Max Rounds: {maxRounds}, Answer Time: {answerSeconds}s, Pause: {pauseSeconds}s",
+    "settingsSummary": "Max Rounds: {maxRounds}, Countdown: {countdownSeconds}s, Answer Time: {answerSeconds}s, Pause: {pauseSeconds}s",
     "answerUpdated": "Answer updated: {guess} km at {time}",
     "answerRegistered": "Answer registered: {guess} km at {time}",
     "gamePausedReconnect": "⏸️ Round paused ({seconds}s): {playerName} reconnecting...",
@@ -129,7 +135,9 @@
     "answerLockedWaiting": "✅ Answer locked in! Waiting for other players...",
     "notConnected": "Not connected to server",
     "lockSettings": "🔒 Lock Settings",
-    "unlockSettings": "🔓 Unlock Settings"
+    "unlockSettings": "🔓 Unlock Settings",
+    "invalidSettingsInput": "Please enter valid values for all settings.",
+    "settingsUpdateSent": "⚙️ Updating settings..."
     ,"unknownStatus": "unknown"
     ,"unknownPlayer": "Unknown"
   },
@@ -157,7 +165,11 @@
     "playerNotFoundInGame": "Player was not found in this game.",
     "invalidLockSettingsRequest": "Invalid lock settings request.",
     "onlyHostLockSettings": "Only the host can lock settings.",
+    "invalidUpdateSettingsRequest": "Invalid update settings request.",
+    "onlyHostUpdateSettings": "Only the host can update settings.",
     "settingsOnlyBeforeCountdown": "Settings can only be changed before countdown.",
+    "settingsLocked": "Settings are currently locked.",
+    "invalidSettingsValues": "Invalid settings values.",
     "onlyHostStartWarmup": "Only the host can start warmup.",
     "warmupOnlyBeforeCountdown": "Warmup is only available before countdown.",
     "couldNotStartWarmup": "Could not start warmup.",

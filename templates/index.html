@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Entfernungsspiel - Guess the Distance Game</title>
+    <title>Kilometer Knobelei - Guess the Distance Game</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
@@ -16,7 +16,7 @@
         <!-- Header -->
         <header class="header">
             <div class="header-content">
-                <h1 class="title" data-i18n="common.title">🌍 Entfernungsspiel</h1>
+                <h1 class="title" data-i18n="common.title">🌍 Kilometer Knobelei</h1>
                 <p class="subtitle" data-i18n="common.subtitle">Guess the distance between two cities!</p>
                 <div class="header-stats" aria-live="polite">
                     <div class="header-stat-pill">
@@ -160,6 +160,30 @@
                 <section class="card rules-card" id="rulesCard">
                     <h2 class="card-title" data-i18n="settings.title">⚙️ Settings</h2>
                     <p id="rulesText" class="settings-text" data-i18n="settings.waiting">Waiting for game settings...</p>
+                    <div id="hostSettingsEditor" class="host-settings-editor" aria-live="polite">
+                        <h3 class="host-settings-title" data-i18n="settings.editorTitle">Spiel-Einstellungen (Host)</h3>
+                        <div class="host-settings-grid">
+                            <label class="host-settings-field">
+                                <span data-i18n="settings.maxRoundsLabel">Max. Runden</span>
+                                <input type="number" id="settingMaxRounds" min="1" max="20" step="1" inputmode="numeric">
+                            </label>
+                            <label class="host-settings-field">
+                                <span data-i18n="settings.countdownLabel">Countdown (s)</span>
+                                <input type="number" id="settingCountdown" min="1" max="30" step="1" inputmode="numeric">
+                            </label>
+                            <label class="host-settings-field">
+                                <span data-i18n="settings.answerTimeLabel">Antwortzeit (s)</span>
+                                <input type="number" id="settingAnswerTime" min="5" max="180" step="1" inputmode="numeric">
+                            </label>
+                            <label class="host-settings-field">
+                                <span data-i18n="settings.pauseTimeLabel">Pause zwischen Runden (s)</span>
+                                <input type="number" id="settingPauseTime" min="1" max="30" step="1" inputmode="numeric">
+                            </label>
+                        </div>
+                        <div class="host-settings-actions">
+                            <button id="saveSettingsBtn" onclick="saveGameSettings()" class="btn btn-primary" data-i18n="settings.applyButton">Einstellungen speichern</button>
+                        </div>
+                    </div>
                 </section>
 
                 <!-- Players Card -->

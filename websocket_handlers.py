@@ -46,6 +46,13 @@ class LockSettingsMessage(BaseModel):
     locked: bool
 
 
+class UpdateSettingsMessage(BaseModel):
+    max_rounds: int
+    countdown_seconds: int
+    answer_time_seconds: int
+    pause_between_rounds_seconds: int
+
+
 class WebSocketHandler:
     def __init__(self, game_room: GameRoom, game_logic: GameLogic, default_config: Optional[GameConfig] = None):
         self.game_room = game_room
@@ -218,6 +225,8 @@ class WebSocketHandler:
                 await self.handle_kick_player(player_id, message.data)
             elif msg_type == "lock_settings":
                 await self.handle_lock_settings(player_id, message.data)
+            elif msg_type == "update_settings":
+                await self.handle_update_settings(player_id, message.data)
             elif msg_type == "start_warmup":
                 await self.handle_start_warmup(player_id)
             elif msg_type == "submit_answer":
@@ -264,7 +273,10 @@ class WebSocketHandler:
             self.game_room.add_player_to_game(player, game_id)
 
             logger.info("Player %s created game %s", player.name, game_id)
-            await self.send_to_player(player_id, {"type": "game_created", "game_id": game_id})
+            await self.send_to_player(
+                player_id,
+                {"type": "game_created", "game_id": game_id, "pin": game.pin},
+            )
             await self.send_game_info(player_id, game_id)
             await self.broadcast_lobby_info_all()
 
@@ -484,6 +496,54 @@ class WebSocketHandler:
             return
 
         game.settings_locked = msg.locked
+        await self.broadcast_players_update(game.id)
+
+    async def handle_update_settings(self, player_id: str, data: Dict[str, Any]):
+        """Host can update game settings before countdown starts."""
+        try:
+            msg = UpdateSettingsMessage.parse_obj(data)
+        except ValidationError:
+            await self.send_error(player_id, "Invalid update settings request")
+            return
+
+        host_player = self.game_room.players.get(player_id)
+        if not host_player or not host_player.game_id:
+            await self.send_error(player_id, "You are not in a game")
+            return
+
+        game = self.game_room.get_game(host_player.game_id)
+        if not game or game.host_player_id != player_id:
+            await self.send_error(player_id, "Only host can update settings")
+            return
+
+        if game.status != GameStatus.WAITING:
+            await self.send_error(player_id, "Settings can only be changed before countdown")
+            return
+
+        if game.settings_locked:
+            await self.send_error(player_id, "Settings are locked")
+            return
+
+        if not (1 <= msg.max_rounds <= 20):
+            await self.send_error(player_id, "Invalid settings values")
+            return
+        if not (1 <= msg.countdown_seconds <= 30):
+            await self.send_error(player_id, "Invalid settings values")
+            return
+        if not (5 <= msg.answer_time_seconds <= 180):
+            await self.send_error(player_id, "Invalid settings values")
+            return
+        if not (1 <= msg.pause_between_rounds_seconds <= 30):
+            await self.send_error(player_id, "Invalid settings values")
+            return
+
+        game.config = GameConfig(
+            max_rounds=msg.max_rounds,
+            countdown_seconds=msg.countdown_seconds,
+            answer_time_seconds=msg.answer_time_seconds,
+            pause_between_rounds_seconds=msg.pause_between_rounds_seconds,
+        )
+
         await self.broadcast_players_update(game.id)
 
     async def handle_start_warmup(self, player_id: str):

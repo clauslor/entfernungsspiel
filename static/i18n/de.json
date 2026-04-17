@@ -1,6 +1,6 @@
 {
   "common": {
-    "title": "🌍 Entfernungsspiel",
+    "title": "🌍 Kilometer Knobelei",
     "subtitle": "Errate die Entfernung zwischen zwei Städten!",
     "ok": "OK",
     "cancel": "Abbrechen",
@@ -72,7 +72,13 @@
   },
   "settings": {
     "title": "⚙️ Einstellungen",
-    "waiting": "Warte auf Spiel-Einstellungen..."
+    "waiting": "Warte auf Spiel-Einstellungen...",
+    "editorTitle": "Spiel-Einstellungen (Host)",
+    "maxRoundsLabel": "Max. Runden",
+    "countdownLabel": "Countdown (s)",
+    "answerTimeLabel": "Antwortzeit (s)",
+    "pauseTimeLabel": "Pause zwischen Runden (s)",
+    "applyButton": "Einstellungen speichern"
   },
   "players": {
     "title": "👥 Online Spieler"
@@ -109,7 +115,7 @@
     "playerTabLeft": "❗ {playerName} hat den Browser-Tab verlassen",
     "gameFinishedWinner": "🎉 Spiel beendet! Gewinner: {winner}",
     "nameSet": "✅ Dein Name ist jetzt: {name}",
-    "settingsSummary": "Max Runden: {maxRounds}, Antwortzeit: {answerSeconds}s, Pause: {pauseSeconds}s",
+    "settingsSummary": "Max Runden: {maxRounds}, Countdown: {countdownSeconds}s, Antwortzeit: {answerSeconds}s, Pause: {pauseSeconds}s",
     "answerUpdated": "Antwort aktualisiert: {guess} km um {time}",
     "answerRegistered": "Antwort registriert: {guess} km um {time}",
     "gamePausedReconnect": "⏸️ Runde pausiert ({seconds}s): {playerName} verbindet sich wieder...",
@@ -129,7 +135,9 @@
     "answerLockedWaiting": "✅ Antwort fixiert! Warte auf die anderen Spieler...",
     "notConnected": "Keine Verbindung zum Server",
     "lockSettings": "🔒 Einstellungen sperren",
-    "unlockSettings": "🔓 Einstellungen entsperren"
+    "unlockSettings": "🔓 Einstellungen entsperren",
+    "invalidSettingsInput": "Bitte gib gültige Werte für alle Einstellungen ein.",
+    "settingsUpdateSent": "⚙️ Einstellungen werden aktualisiert..."
     ,"unknownStatus": "unbekannt"
     ,"unknownPlayer": "Unbekannt"
   },
@@ -157,7 +165,11 @@
     "playerNotFoundInGame": "Spieler wurde in diesem Spiel nicht gefunden.",
     "invalidLockSettingsRequest": "Ungültige Anfrage zum Sperren der Einstellungen.",
     "onlyHostLockSettings": "Nur der Host kann Einstellungen sperren.",
+    "invalidUpdateSettingsRequest": "Ungültige Anfrage zum Aktualisieren der Einstellungen.",
+    "onlyHostUpdateSettings": "Nur der Host kann Einstellungen ändern.",
     "settingsOnlyBeforeCountdown": "Einstellungen können nur vor dem Countdown geändert werden.",
+    "settingsLocked": "Einstellungen sind aktuell gesperrt.",
+    "invalidSettingsValues": "Ungültige Einstellungswerte.",
     "onlyHostStartWarmup": "Nur der Host kann Warmup starten.",
     "warmupOnlyBeforeCountdown": "Warmup ist nur vor dem Countdown verfügbar.",
     "couldNotStartWarmup": "Warmup konnte nicht gestartet werden.",
