@@ -585,23 +585,22 @@ function renderRoundHistory(roundHistory) {
 }
 
 function clearMapOverlays() {
-  if (!gameMap || !gameMapOverlays.length) {
-    gameMapOverlays = [];
-    return;
+  if (gameMap && gameMapOverlays.length) {
+    gameMapOverlays.forEach((overlay) => {
+      gameMap.removeOverlay(overlay);
+    });
   }
-
-  gameMapOverlays.forEach((overlay) => {
-    gameMap.removeOverlay(overlay);
-  });
   gameMapOverlays = [];
+  const ortsschildContainer = document.getElementById("ortsschildContainer");
+  if (ortsschildContainer) ortsschildContainer.innerHTML = "";
 }
 
 function getOrtsschildLayout(cityName) {
   const label = String(cityName || "").trim();
   const labelLength = Math.max(1, label.length);
   const useLargeTemplate = labelLength > 14;
-  const mapContainer = document.getElementById("mapContainer");
-  const containerWidth = mapContainer ? mapContainer.clientWidth : 0;
+  const refContainer = document.getElementById("ortsschildContainer") || document.getElementById("mapContainer");
+  const containerWidth = refContainer ? refContainer.clientWidth : 0;
   const isMobile = window.matchMedia("(max-width: 768px)").matches;
 
   // Keep strict 3:2 proportions based on requested templates: 900x600 / 1260x840.
@@ -610,9 +609,10 @@ function getOrtsschildLayout(cityName) {
   const displayScale = useLargeTemplate ? 0.22 : 0.24;
   let displayWidth = Math.round(templateWidth * displayScale);
 
-  // Mobile fine-tuning: keep both labels readable without overwhelming a small map.
+  // Mobile fine-tuning: keep both labels readable without overwhelming the container.
+  // Two plates sit side by side so each can use at most ~44% of total width.
   if (containerWidth > 0) {
-    const maxByContainer = Math.floor(containerWidth * (isMobile ? 0.36 : 0.3));
+    const maxByContainer = Math.floor(containerWidth * (isMobile ? 0.44 : 0.44));
     displayWidth = Math.min(displayWidth, maxByContainer);
   }
   displayWidth = Math.max(isMobile ? 116 : 148, displayWidth);
@@ -633,8 +633,9 @@ function getOrtsschildLayout(cityName) {
   };
 }
 
-function createOrtsschildOverlay(cityName, coordinate, variant) {
-  if (!gameMap || !coordinate) return null;
+function createOrtsschildOverlay(cityName, variant) {
+  const container = document.getElementById("ortsschildContainer");
+  if (!container) return null;
 
   const layout = getOrtsschildLayout(cityName);
 
@@ -654,18 +655,9 @@ function createOrtsschildOverlay(cityName, coordinate, variant) {
 
   plate.appendChild(text);
   wrapper.appendChild(plate);
+  container.appendChild(wrapper);
 
-  const overlay = new ol.Overlay({
-    element: wrapper,
-    position: coordinate,
-    positioning: "bottom-center",
-    offset: [0, -18],
-    stopEvent: false,
-  });
-
-  gameMap.addOverlay(overlay);
-  gameMapOverlays.push(overlay);
-  return overlay;
+  return wrapper;
 }
 
 function ensureLeafletMap() {
@@ -868,8 +860,8 @@ function renderQuestionMap(coordinates) {
     );
 
     gameMapFeatureSource.addFeatures([lineFeature, fromFeature, toFeature]);
-    createOrtsschildOverlay(coordinates.from.name, fromPoint, "from");
-    createOrtsschildOverlay(coordinates.to.name, toPoint, "to");
+    createOrtsschildOverlay(coordinates.from.name, "from");
+    createOrtsschildOverlay(coordinates.to.name, "to");
 
     const extent = gameMapFeatureSource.getExtent();
     map.getView().fit(extent, {

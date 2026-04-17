@@ -719,24 +719,37 @@ main.game-layout.lobby-mode .game-column {
 }
 
 
+.ortsschild-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 16px;
+    padding: 8px 0 4px;
+    flex-wrap: wrap;
+    min-height: 0;
+}
+
+.ortsschild-container:empty {
+    display: none;
+}
+
 .ortsschild-overlay {
-    position: relative;
+    display: flex;
+    align-items: flex-end;
     pointer-events: none;
-    width: 0;
-    height: 0;
 }
 
 .ortsschild-plate {
-    position: absolute;
-    left: 50%;
-    bottom: 0;
+    position: relative;
     width: var(--ortsschild-width, 216px);
     height: var(--ortsschild-height, 144px);
-    transform: translate(-50%, -100%);
     border: max(3px, calc(var(--ortsschild-height, 144px) * 0.06)) solid #111827;
     border-radius: max(4px, calc(var(--ortsschild-height, 144px) * 0.045));
     background: #facc15;
     box-shadow: 0 5px 12px rgba(15, 23, 42, 0.24);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .ortsschild-plate::before,
@@ -745,11 +758,10 @@ main.game-layout.lobby-mode .game-column {
 }
 
 .ortsschild-text {
-    position: absolute;
-    inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 100%;
     padding: 0 calc(var(--ortsschild-width, 216px) * 0.1);
     color: #111827;
     font-family: "Gidole", "DIN 1451", "DIN 1451 Mittelschrift", "Bahnschrift", "Arial Narrow", Arial, sans-serif;
@@ -763,6 +775,10 @@ main.game-layout.lobby-mode .game-column {
 }
 
 @media (max-width: 768px) {
+    .ortsschild-container {
+        gap: 10px;
+    }
+
     .ortsschild-plate {
         box-shadow: 0 3px 8px rgba(15, 23, 42, 0.18);
     }
