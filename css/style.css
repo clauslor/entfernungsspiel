@@ -609,14 +609,6 @@ main.game-layout.lobby-mode .game-column {
     margin-bottom: 20px;
 }
 
-.cities-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 15px;
-    padding: 20px 0;
-}
-
 .city {
     flex: 1;
     max-width: 150px;
@@ -633,11 +625,11 @@ main.game-layout.lobby-mode .game-column {
 }
 
 .city-from {
-    border-color: #3b82f6;
+    border-color: #0000;
 }
 
 .city-to {
-    border-color: #f59e0b;
+    border-color: #0000;
 }
 
 .city-name {
