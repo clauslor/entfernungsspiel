@@ -58,7 +58,7 @@
                             </div>
                         </div>
                         <div class="map-container" id="mapContainer" style="margin-top: 20px; text-align: center;">
-                            <!-- Leaflet map will be rendered here -->
+                            <div id="mapPlaceholder" class="map-placeholder">Die Karte erscheint mit der naechsten Frage.</div>
                         </div>
                     </div>
                 </section>
@@ -185,6 +185,11 @@
                     <tbody id="scoresTableBody">
                     </tbody>
                 </table>
+            </div>
+
+            <div class="round-review-section">
+                <h3 class="round-review-title">🗺️ Fragen und empfangene Antworten</h3>
+                <div id="roundReviewList" class="round-review-list"></div>
             </div>
 
             <!-- Action Buttons -->

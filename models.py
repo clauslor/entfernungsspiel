@@ -73,10 +73,12 @@ class GameState:
     current_question: Optional[CityPair] = None
     answers: Dict[str, int] = field(default_factory=dict)
     answer_submissions: Dict[str, datetime] = field(default_factory=dict)
+    answer_submission_history: Dict[str, List[Dict]] = field(default_factory=dict)
     answer_time_remaining: int = 0
     question_started_at: Optional[datetime] = None
     pause_reason: Optional[str] = None
     warmup_active: bool = False
+    round_history: List[Dict] = field(default_factory=list)
     answer_deadline_task: Optional[asyncio.Task] = None
     reconnect_resume_task: Optional[asyncio.Task] = None
     created_at: datetime = field(default_factory=datetime.now)
@@ -89,10 +91,12 @@ class GameState:
         self.current_question = None
         self.answers = {}
         self.answer_submissions = {}
+        self.answer_submission_history = {}
         self.answer_time_remaining = 0
         self.question_started_at = None
         self.pause_reason = None
         self.warmup_active = False
+        self.round_history = []
         if self.answer_deadline_task and not self.answer_deadline_task.done():
             self.answer_deadline_task.cancel()
         self.answer_deadline_task = None

@@ -98,7 +98,20 @@ function updateUILayout() {
 
   if (inGame) {
     setTimeout(() => focusAndSelect("guessInput"), 0);
+    scheduleLeafletResize();
   }
+}
+
+function scheduleLeafletResize() {
+  if (!leafletMap) return;
+
+  setTimeout(() => {
+    leafletMap.invalidateSize();
+  }, 0);
+
+  setTimeout(() => {
+    leafletMap.invalidateSize();
+  }, 120);
 }
 
 function focusAndSelect(elementId) {
@@ -222,6 +235,93 @@ function resetAnswerSubmissionState() {
   clearAnswerSubmissionHint();
 }
 
+function formatSubmissionTime(isoValue) {
+  if (!isoValue) return "-";
+
+  const parsed = new Date(isoValue);
+  if (Number.isNaN(parsed.getTime())) {
+    return isoValue;
+  }
+
+  return parsed.toLocaleTimeString("de-DE", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+function renderRoundHistory(roundHistory) {
+  const list = document.getElementById("roundReviewList");
+  if (!list) return;
+
+  list.innerHTML = "";
+
+  if (!roundHistory || roundHistory.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "round-review-meta";
+    empty.textContent = "Keine Rundendetails verfuegbar.";
+    list.appendChild(empty);
+    return;
+  }
+
+  roundHistory.forEach((round) => {
+    const card = document.createElement("section");
+    card.className = "round-review-card";
+
+    const question = document.createElement("div");
+    question.className = "round-review-question";
+    question.textContent = `Runde ${round.round}: ${round.question}`;
+
+    const meta = document.createElement("div");
+    meta.className = "round-review-meta";
+    meta.textContent = `Loesung: ${round.correct_distance} km | Gewinner: ${round.winner}`;
+
+    card.appendChild(question);
+    card.appendChild(meta);
+
+    (round.submissions || []).forEach((submission) => {
+      const playerBlock = document.createElement("div");
+      playerBlock.className = "round-review-player";
+
+      const playerName = document.createElement("div");
+      playerName.className = "round-review-player-name";
+      playerName.textContent = submission.player_name;
+
+      const finalEntry = document.createElement("div");
+      finalEntry.className = "round-review-player-final";
+      if (submission.final_guess === null || submission.final_guess === undefined) {
+        finalEntry.textContent = "Keine gueltige Antwort eingegangen.";
+      } else {
+        finalEntry.textContent = `Gewertet wurde: ${submission.final_guess} km um ${formatSubmissionTime(submission.final_submitted_at)}`;
+      }
+
+      const logList = document.createElement("ul");
+      logList.className = "round-review-answer-log";
+
+      const receivedAnswers = submission.received_answers || [];
+      if (receivedAnswers.length === 0) {
+        const none = document.createElement("li");
+        none.textContent = "Keine Antworten gesendet.";
+        logList.appendChild(none);
+      } else {
+        receivedAnswers.forEach((answer, index) => {
+          const item = document.createElement("li");
+          const prefix = index === receivedAnswers.length - 1 ? "Letzte Antwort" : `Antwort ${index + 1}`;
+          item.textContent = `${prefix}: ${answer.guess} km um ${formatSubmissionTime(answer.submitted_at)}`;
+          logList.appendChild(item);
+        });
+      }
+
+      playerBlock.appendChild(playerName);
+      playerBlock.appendChild(finalEntry);
+      playerBlock.appendChild(logList);
+      card.appendChild(playerBlock);
+    });
+
+    list.appendChild(card);
+  });
+}
+
 function ensureLeafletMap() {
   const container = document.getElementById("mapContainer");
   if (!container || typeof L === "undefined") {
@@ -242,12 +342,19 @@ function ensureLeafletMap() {
     leafletLayerGroup = L.featureGroup().addTo(leafletMap);
   }
 
+  container.classList.add("has-map");
+  scheduleLeafletResize();
+
   return leafletMap;
 }
 
 function renderQuestionMap(coordinates) {
+  const container = document.getElementById("mapContainer");
   const map = ensureLeafletMap();
   if (!map || !coordinates || !coordinates.from || !coordinates.to) {
+    if (container) {
+      container.classList.remove("has-map");
+    }
     return;
   }
 
@@ -274,6 +381,7 @@ function renderQuestionMap(coordinates) {
 
   const bounds = L.latLngBounds([fromPoint, toPoint]);
   map.fitBounds(bounds.pad(0.45));
+  scheduleLeafletResize();
 
   setTimeout(() => {
     map.invalidateSize();
@@ -375,9 +483,15 @@ function handleJsonMessage(msg) {
     appendMessage(`📈 Status: ${msg.status}`);
   } else if (msg.type === "answer_received") {
     guessSubmissionPending = false;
-    guessLockedForRound = true;
-    setGuessControlsDisabled(true);
-    showAnswerSubmissionHint(`Antwort registriert: ${msg.guess} km`, "success");
+    guessLockedForRound = false;
+    setGuessControlsDisabled(false);
+    showAnswerSubmissionHint(
+      msg.updated
+        ? `Antwort aktualisiert: ${msg.guess} km um ${formatSubmissionTime(msg.submitted_at)}`
+        : `Antwort registriert: ${msg.guess} km um ${formatSubmissionTime(msg.submitted_at)}`,
+      "success",
+      2200,
+    );
   } else if (msg.type === "countdown") {
     const val = msg.value || "...";
     document.getElementById("countdownText").textContent = `Countdown: ${val}`;
@@ -473,10 +587,8 @@ function handleJsonMessage(msg) {
     appendMessage(`❌ Error: ${msg.message}`);
     if (guessSubmissionPending || guessLockedForRound) {
       guessSubmissionPending = false;
-      if (!String(msg.message || "").includes("already submitted")) {
-        guessLockedForRound = false;
-        setGuessControlsDisabled(false);
-      }
+      guessLockedForRound = false;
+      setGuessControlsDisabled(false);
       showAnswerSubmissionHint(msg.message || "Antwort konnte nicht registriert werden", "error", 3500);
     }
     if (msg.message && msg.message.includes("Cannot join game")) {
@@ -517,6 +629,8 @@ function handleJsonMessage(msg) {
         scoreIndex++;
       });
     }
+
+    renderRoundHistory(msg.round_history || []);
 
     // Show the modal
     const modal = document.getElementById("gameFinishedModal");

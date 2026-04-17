@@ -503,13 +503,15 @@ class WebSocketHandler:
             if player and player.game_id:
                 game = self.game_room.get_game(player.game_id)
                 if game and game.current_question:
-                    success = await self.game_logic.submit_answer(player.game_id, player_id, answer_msg.guess)
-                    if success:
+                    submission_info = await self.game_logic.submit_answer(player.game_id, player_id, answer_msg.guess)
+                    if submission_info:
                         await self.send_to_player(
                             player_id,
                             {
                                 "type": "answer_received",
-                                "guess": answer_msg.guess,
+                                "guess": submission_info["guess"],
+                                "submitted_at": submission_info["submitted_at"],
+                                "updated": submission_info["updated"],
                             },
                         )
                 else:

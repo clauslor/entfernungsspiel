@@ -145,6 +145,7 @@ class GameLogic:
             game.current_round += 1
             game.answers = {}
             game.answer_submissions = {}
+            game.answer_submission_history = {}
             game.status = GameStatus.ACTIVE
             game.pause_reason = None
 
@@ -252,42 +253,42 @@ class GameLogic:
 
         await self.evaluate_answers(game_id)
 
-    async def submit_answer(self, game_id: str, player_id: str, guess: int) -> bool:
+    async def submit_answer(self, game_id: str, player_id: str, guess: int) -> Optional[Dict]:
         """Submit player's answer"""
         game = self.game_room.get_game(game_id)
         if not game or game.status != GameStatus.ACTIVE or player_id not in game.players:
-            return False
-
-        # Anti-cheat: lock a player's answer after the first submission.
-        if player_id in game.answers:
-            if self.ws_handler:
-                await self.ws_handler.send_error(player_id, "Answer already submitted for this round")
-            return False
+            return None
 
         if guess < 0 or guess > 3000:
             if self.ws_handler:
                 await self.ws_handler.send_error(player_id, "Guess out of allowed range (0-3000 km)")
-            return False
+            return None
 
+        is_first_submission = player_id not in game.answer_submissions
         game.answers[player_id] = guess
         submitted_at = datetime.now()
         game.answer_submissions[player_id] = submitted_at
+        if player_id not in game.answer_submission_history:
+            game.answer_submission_history[player_id] = []
+        game.answer_submission_history[player_id].append(
+            {
+                "guess": guess,
+                "submitted_at": submitted_at.isoformat(),
+            }
+        )
 
         latency_ms = None
-        if game.question_started_at:
+        if game.question_started_at and is_first_submission:
             latency_ms = int((submitted_at - game.question_started_at).total_seconds() * 1000)
             await self._update_bot_signals(game, player_id, guess, latency_ms)
 
         logger.info(f"Game {game_id}: Received guess from {game.players[player_id].name}: {guess} km")
 
-        # Check if all players have answered
-        if len(game.answers) >= len(game.players):
-            if game.answer_deadline_task and not game.answer_deadline_task.done():
-                logger.info(f"Game {game_id}: All players submitted answers. Cancelling timeout")
-                game.answer_deadline_task.cancel()
-            await self.evaluate_answers(game_id)
-
-        return True
+        return {
+            "guess": guess,
+            "submitted_at": submitted_at.isoformat(),
+            "updated": not is_first_submission,
+        }
 
     async def _update_bot_signals(self, game: GameState, player_id: str, guess: int, latency_ms: int):
         """Track suspicious patterns to help detect automated play."""
@@ -340,6 +341,24 @@ class GameLogic:
         question = game.current_question
         correct_distance = question.distance
 
+        empty_round_review = {
+            "round": game.current_round,
+            "question": f"Wie weit ist es von {question.city1} nach {question.city2}?",
+            "cities": [question.city1, question.city2],
+            "correct_distance": correct_distance,
+            "winner": "Keine Antwort",
+            "submissions": [
+                {
+                    "player_id": player.id,
+                    "player_name": player.name,
+                    "final_guess": None,
+                    "final_submitted_at": None,
+                    "received_answers": game.answer_submission_history.get(player.id, []),
+                }
+                for player in game.players.values()
+            ],
+        }
+
         if len(game.answers) < 1:
             logger.info(f"Game {game_id}: No valid answers received")
             if game.warmup_active:
@@ -356,6 +375,8 @@ class GameLogic:
                     await self.ws_handler.broadcast_players_update(game_id)
                 return
 
+            game.round_history.append(empty_round_review)
+
             await self.pause_and_continue(game_id)
             return
 
@@ -367,6 +388,27 @@ class GameLogic:
         if not game.warmup_active:
             winner.score += 1
             round_deltas[winner_id] = 1
+
+        round_review = {
+            "round": game.current_round,
+            "question": f"Wie weit ist es von {question.city1} nach {question.city2}?",
+            "cities": [question.city1, question.city2],
+            "correct_distance": correct_distance,
+            "winner": winner.name,
+            "submissions": [],
+        }
+
+        for player in game.players.values():
+            submission_events = game.answer_submission_history.get(player.id, [])
+            round_review["submissions"].append(
+                {
+                    "player_id": player.id,
+                    "player_name": player.name,
+                    "final_guess": game.answers.get(player.id),
+                    "final_submitted_at": game.answer_submissions.get(player.id).isoformat() if player.id in game.answer_submissions else None,
+                    "received_answers": submission_events,
+                }
+            )
 
         # Calculate accuracy percentage for winner
         winner_guess = game.answers[winner_id]
@@ -415,11 +457,15 @@ class GameLogic:
                 },
             )
 
+        if not game.warmup_active:
+            game.round_history.append(round_review)
+
         if game.warmup_active:
             game.warmup_active = False
             game.status = GameStatus.WAITING
             game.answers = {}
             game.answer_submissions = {}
+            game.answer_submission_history = {}
             game.answer_time_remaining = 0
             game.question_started_at = None
             for player in game.players.values():
@@ -491,7 +537,8 @@ class GameLogic:
             await self.ws_handler.broadcast_to_game(game_id, "game_finished", {
                 "message": "Game finished!",
                 "final_scores": final_scores,
-                "winner": max(game.players.values(), key=lambda p: p.score).name if game.players else "No winner"
+                "winner": max(game.players.values(), key=lambda p: p.score).name if game.players else "No winner",
+                "round_history": game.round_history,
             })
 
     def get_game_status(self, game_id: str) -> Optional[Dict]:
