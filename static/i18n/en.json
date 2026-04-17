@@ -201,6 +201,7 @@
     "title": "Game Finished!",
     "champion": "🏆 Champion",
     "finalScores": "📊 Final Scores",
+    "accuracy": "🎯 Accuracy",
     "playerColumn": "Player",
     "pointsColumn": "Points",
     "accuracyColumn": "Accuracy",
@@ -218,6 +219,7 @@
     "noValidAnswer": "No valid answer received.",
     "scored": "Scored:",
     "at": "at",
+    "accuracy_formula": "The formula is: Accuracy = 100 - (|Guess - Actual| / Actual) * 100",
     "noAnswersSent": "No answers sent.",
     "sortOrder": "Order"
   },

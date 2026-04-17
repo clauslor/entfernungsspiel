@@ -201,6 +201,7 @@
     "title": "Spiel beendet!",
     "champion": "🏆 Gewinner",
     "finalScores": "📊 Endergebnisse",
+    "accuracy": "🎯 Genauigkeit",
     "playerColumn": "Spieler",
     "pointsColumn": "Punkte",
     "accuracyColumn": "Genauigkeit",
@@ -218,6 +219,7 @@
     "noValidAnswer": "Keine gültige Antwort eingegangen.",
     "scored": "Gewertet wurde:",
     "at": "um",
+    "accuracy_formula": "Die Formel ist: Genauigkeit = 100 - (|Schätzung - Tatsächlich| / Tatsächlich) * 100",
     "noAnswersSent": "Keine Antworten gesendet.",
     "sortOrder": "Sortierung"
   },
