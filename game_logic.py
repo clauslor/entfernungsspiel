@@ -159,9 +159,21 @@ class GameLogic:
             game.answer_time_remaining = game.config.answer_time_seconds
             game.question_started_at = datetime.now()
 
-            logger.info(
-                f"Game {game_id}: New question: {game.current_question.cities[0]} to {game.current_question.cities[1]}, correct distance: {game.current_question.distance} km"
-            )
+            if game.current_question_type == QuestionType.SORT_CITIES and game.current_sort_question:
+                logger.info(
+                    "Game %s: New sort question: %s | options=%s",
+                    game_id,
+                    game.current_sort_question.prompt,
+                    game.current_sort_question.options,
+                )
+            elif game.current_question:
+                logger.info(
+                    "Game %s: New distance question: %s to %s, correct distance: %s km",
+                    game_id,
+                    game.current_question.cities[0],
+                    game.current_question.cities[1],
+                    game.current_question.distance,
+                )
 
             # Broadcast the question to all players
             await self.broadcast_question(game_id)
@@ -767,6 +779,7 @@ class GameLogic:
         return {
             "id": game.id,
             "status": game.status.value,
+            "question_type": game.current_question_type.value,
             "current_round": game.current_round,
             "max_rounds": game.config.max_rounds,
             "players": [
@@ -779,5 +792,10 @@ class GameLogic:
             "current_question": {
                 "cities": game.current_question.cities if game.current_question else None,
                 "question": f"Wie weit ist es von {game.current_question.cities[0]} nach {game.current_question.cities[1]}? (in km)" if game.current_question else None
-            } if game.current_question else None
+            } if game.current_question else (
+                {
+                    "options": game.current_sort_question.options,
+                    "question": game.current_sort_question.prompt,
+                } if game.current_sort_question else None
+            )
         }
