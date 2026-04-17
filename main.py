@@ -112,8 +112,43 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return radius_km * c
 
 
+def _load_german_city_catalog(min_population: int) -> List[Dict]:
+    """Load German cities catalog and keep cities above min_population."""
+    catalog_path = os.path.join("static", "data", "germany_cities_30k.json")
+    if not os.path.exists(catalog_path):
+        logger.warning("German city catalog not found at %s", catalog_path)
+        return []
+
+    try:
+        with open(catalog_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as exc:
+        logger.error("Could not load German city catalog: %s", exc)
+        return []
+
+    filtered = []
+    for city in data:
+        try:
+            population = int(city.get("population", 0))
+            if population < min_population:
+                continue
+            filtered.append(
+                {
+                    "name": str(city["name"]),
+                    "lat": float(city["lat"]),
+                    "lon": float(city["lon"]),
+                    "population": population,
+                }
+            )
+        except Exception:
+            continue
+
+    return filtered
+
+
 def _build_city_pair_suggestions(
     city_pairs,
+    city_catalog: List[Dict],
     limit: int,
     min_distance: int,
     max_distance: int,
@@ -124,18 +159,12 @@ def _build_city_pair_suggestions(
         if cp.city1 and cp.city2
     }
 
-    cities_by_name: Dict[str, Tuple[float, float]] = {}
-    for cp in city_pairs:
-        for city_name, lat, lon in [
-            (cp.city1, cp.lat1, cp.lon1),
-            (cp.city2, cp.lat2, cp.lon2),
-        ]:
-            if city_name is None or lat is None or lon is None:
-                continue
-            if city_name not in cities_by_name:
-                cities_by_name[city_name] = (float(lat), float(lon))
+    city_items = [
+        (entry["name"], (float(entry["lat"]), float(entry["lon"]), int(entry["population"])))
+        for entry in city_catalog
+        if entry.get("name") is not None and entry.get("lat") is not None and entry.get("lon") is not None
+    ]
 
-    city_items = list(cities_by_name.items())
     if len(city_items) < 2:
         return []
 
@@ -156,9 +185,9 @@ def _build_city_pair_suggestions(
     }
 
     for i in range(len(city_items)):
-        city1, (lat1, lon1) = city_items[i]
+        city1, (lat1, lon1, pop1) = city_items[i]
         for j in range(i + 1, len(city_items)):
-            city2, (lat2, lon2) = city_items[j]
+            city2, (lat2, lon2, pop2) = city_items[j]
 
             pair_key = _normalize_pair_key(city1, city2)
             if pair_key in existing_pair_keys or pair_key in suggested_keys:
@@ -184,6 +213,8 @@ def _build_city_pair_suggestions(
                 "lat2": round(lat2, 6),
                 "lon2": round(lon2, 6),
                 "quality_score": score,
+                "population1": pop1,
+                "population2": pop2,
             }
 
             if distance < 500:
@@ -335,17 +366,21 @@ async def get_city_pair_suggestions_api(
     limit: int = 30,
     min_distance: int = 80,
     max_distance: int = 2800,
+    min_population: int = 30000,
     db=Depends(get_db),
     username: str = Depends(authenticate_admin),
 ):
-    """Suggest new city pairs derived from already known cities in the database."""
+    """Suggest new German city pairs from catalog (not already present in DB)."""
     safe_limit = max(1, min(limit, 200))
     safe_min_distance = max(1, min(min_distance, 10000))
     safe_max_distance = max(safe_min_distance, min(max_distance, 10000))
+    safe_min_population = max(30000, min(min_population, 2_000_000))
 
     city_pairs = get_city_pairs(db)
+    city_catalog = _load_german_city_catalog(safe_min_population)
     suggestions = _build_city_pair_suggestions(
         city_pairs,
+        city_catalog,
         safe_limit,
         safe_min_distance,
         safe_max_distance,
@@ -364,6 +399,7 @@ async def get_city_pair_suggestions_api(
             "limit": safe_limit,
             "min_distance": safe_min_distance,
             "max_distance": safe_max_distance,
+            "min_population": safe_min_population,
         },
     }
 
