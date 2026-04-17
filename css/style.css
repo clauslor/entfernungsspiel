@@ -103,6 +103,25 @@ header.header {
     font-variant-numeric: tabular-nums;
 }
 
+.site-footer {
+    margin: 12px auto 24px;
+    max-width: 1400px;
+    padding: 0 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.footer-stat-pill {
+    background: rgba(30, 41, 59, 0.88);
+    border-color: rgba(226, 232, 240, 0.3);
+    color: #f8fafc;
+    box-shadow: var(--shadow-md);
+}
+
+.footer-stat-pill .header-stat-label {
+    opacity: 0.95;
+}
+
 /* Language Switcher */
 .language-switcher {
     display: flex;
@@ -698,8 +717,68 @@ main.game-layout.lobby-mode .game-column {
     display: none;
 }
 
-.leaflet-marker-icon.ortsschild-icon {
-    filter: drop-shadow(0 2px 4px rgba(15, 23, 42, 0.35));
+
+.ortsschild-overlay {
+    position: relative;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+}
+
+.ortsschild-plate {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: 210px;
+    height: 60px;
+    transform: translate(-50%, -100%);
+    border: 4px solid #111827;
+    border-radius: 3px;
+    background: #facc15;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.28);
+}
+
+.ortsschild-plate::before,
+.ortsschild-plate::after {
+    content: "";
+    position: absolute;
+    bottom: -20px;
+    width: 7px;
+    height: 20px;
+    background: #475569;
+    border-radius: 1px;
+}
+
+.ortsschild-plate::before {
+    left: 14px;
+}
+
+.ortsschild-plate::after {
+    right: 14px;
+}
+
+.ortsschild-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 10px;
+    color: #111827;
+    font-family: "DIN 1451 Mittelschrift", "Bahnschrift", "Arial Narrow", Arial, sans-serif;
+    font-size: var(--ortsschild-font-size, 24px);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.ortsschild-from .ortsschild-plate {
+    border-color: #1d4ed8;
+}
+
+.ortsschild-to .ortsschild-plate {
+    border-color: #c2410c;
 }
 
 .map-label {
@@ -2051,6 +2130,19 @@ main.game-layout {
     align-content: start;
 }
 
+.round-top-panels {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.75fr);
+    gap: 14px;
+    align-items: start;
+}
+
+.round-top-panels .answer-card,
+.round-top-panels .countdown-card {
+    margin-bottom: 0;
+    height: 100%;
+}
+
 .info-column {
     display: grid;
     gap: 14px;
@@ -2149,6 +2241,10 @@ main.game-layout.round-active .messages-container {
         margin: 0;
         grid-template-columns: 1fr;
     }
+
+    .round-top-panels {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 768px) {
@@ -2180,6 +2276,15 @@ main.game-layout.round-active .messages-container {
         width: 100%;
         justify-content: center;
         padding: 8px 10px;
+    }
+
+    .site-footer {
+        padding: 0 12px 8px;
+        margin: 4px auto 12px;
+    }
+
+    .site-footer .header-stat-pill {
+        width: 100%;
     }
 
     .language-switcher {
@@ -2251,6 +2356,10 @@ main.game-layout.round-active .messages-container {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 8px;
+    }
+
+    .round-top-panels {
+        gap: 10px;
     }
 
     .button-group .btn {

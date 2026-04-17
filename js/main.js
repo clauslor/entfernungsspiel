@@ -15,6 +15,7 @@ let gameMapFallbackLayer = null;
 let gameMapFeatureLayer = null;
 let gameMapFeatureSource = null;
 let gameMapResizeObserver = null;
+let gameMapOverlays = [];
 let pendingMapPreparationTimeoutId = null;
 let pendingQuestionCoordinates = null;
 let countdownTimerId = null;
@@ -582,17 +583,54 @@ function renderRoundHistory(roundHistory) {
   });
 }
 
-function createOrtsschildSvgDataUri(cityName) {
-  const label = escapeXml(formatCityLabel(cityName));
-  const svg = `
-<svg xmlns="http://www.w3.org/2000/svg" width="190" height="64" viewBox="0 0 190 64" role="img" aria-label="Ortsschild ${label}">
-  <rect x="4" y="4" width="150" height="40" rx="2" fill="#facc15" stroke="#111827" stroke-width="4"/>
-  <rect x="0" y="44" width="8" height="20" rx="1" fill="#475569"/>
-  <rect x="150" y="44" width="8" height="20" rx="1" fill="#475569"/>
-  <text x="79" y="31" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" fill="#111827">${label}</text>
-</svg>`.trim();
+function clearMapOverlays() {
+  if (!gameMap || !gameMapOverlays.length) {
+    gameMapOverlays = [];
+    return;
+  }
 
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+  gameMapOverlays.forEach((overlay) => {
+    gameMap.removeOverlay(overlay);
+  });
+  gameMapOverlays = [];
+}
+
+function getOrtsschildFontSize(cityName) {
+  const labelLength = String(cityName || "").trim().length;
+  if (labelLength <= 10) return "28px";
+  if (labelLength <= 14) return "24px";
+  if (labelLength <= 18) return "21px";
+  return "18px";
+}
+
+function createOrtsschildOverlay(cityName, coordinate, variant) {
+  if (!gameMap || !coordinate) return null;
+
+  const wrapper = document.createElement("div");
+  wrapper.className = `ortsschild-overlay ortsschild-${variant}`;
+
+  const plate = document.createElement("div");
+  plate.className = "ortsschild-plate";
+  plate.style.setProperty("--ortsschild-font-size", getOrtsschildFontSize(cityName));
+
+  const text = document.createElement("div");
+  text.className = "ortsschild-text";
+  text.textContent = formatCityLabel(cityName, 24).toUpperCase();
+
+  plate.appendChild(text);
+  wrapper.appendChild(plate);
+
+  const overlay = new ol.Overlay({
+    element: wrapper,
+    position: coordinate,
+    positioning: "bottom-center",
+    offset: [0, -18],
+    stopEvent: false,
+  });
+
+  gameMap.addOverlay(overlay);
+  gameMapOverlays.push(overlay);
+  return overlay;
 }
 
 function ensureLeafletMap() {
@@ -715,15 +753,6 @@ function ensureLeafletMap() {
   return gameMap;
 }
 
-function escapeXml(text) {
-  return String(text || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
 function formatCityLabel(cityName, maxLength = 18) {
   const safeName = String(cityName || "").trim();
   if (safeName.length <= maxLength) {
@@ -732,15 +761,18 @@ function formatCityLabel(cityName, maxLength = 18) {
   return `${safeName.slice(0, maxLength - 1)}…`;
 }
 
-function createOrtsschildIcon(cityName) {
+function createQuestionPointStyle(variant = "from") {
+  const fillColor = variant === "to" ? "#f97316" : "#2563eb";
   return new ol.style.Style({
-    image: new ol.style.Icon({
-      src: createOrtsschildSvgDataUri(cityName),
-      anchor: [0.5, 1],
-      anchorXUnits: "fraction",
-      anchorYUnits: "fraction",
-      imgSize: [190, 64],
-      scale: 0.84,
+    image: new ol.style.Circle({
+      radius: 11,
+      fill: new ol.style.Fill({
+        color: fillColor,
+      }),
+      stroke: new ol.style.Stroke({
+        color: "#ffffff",
+        width: 3,
+      }),
     }),
   });
 }
@@ -750,6 +782,7 @@ function renderQuestionMap(coordinates) {
 
   if (!coordinates || !coordinates.from || !coordinates.to) {
     pendingQuestionCoordinates = null;
+    clearMapOverlays();
     if (container) {
       container.classList.remove("has-map");
     }
@@ -769,6 +802,7 @@ function renderQuestionMap(coordinates) {
   pendingQuestionCoordinates = null;
 
   gameMapFeatureSource.clear();
+  clearMapOverlays();
 
   try {
     const fromPoint = ol.proj.transform(
@@ -783,10 +817,10 @@ function renderQuestionMap(coordinates) {
     );
 
     const fromFeature = new ol.Feature({ geometry: new ol.geom.Point(fromPoint) });
-    fromFeature.setStyle(createOrtsschildIcon(coordinates.from.name));
+    fromFeature.setStyle(createQuestionPointStyle("from"));
 
     const toFeature = new ol.Feature({ geometry: new ol.geom.Point(toPoint) });
-    toFeature.setStyle(createOrtsschildIcon(coordinates.to.name));
+    toFeature.setStyle(createQuestionPointStyle("to"));
 
     const lineFeature = new ol.Feature({ geometry: new ol.geom.LineString([fromPoint, toPoint]) });
     lineFeature.setStyle(
@@ -799,6 +833,8 @@ function renderQuestionMap(coordinates) {
     );
 
     gameMapFeatureSource.addFeatures([lineFeature, fromFeature, toFeature]);
+    createOrtsschildOverlay(coordinates.from.name, fromPoint, "from");
+    createOrtsschildOverlay(coordinates.to.name, toPoint, "to");
 
     const extent = gameMapFeatureSource.getExtent();
     map.getView().fit(extent, {
@@ -1335,6 +1371,8 @@ function cleanupGameResources() {
   if (gameMapFeatureSource) {
     gameMapFeatureSource.clear();
   }
+
+  clearMapOverlays();
 
   if (gameMap) {
     gameMap.setTarget(null);
