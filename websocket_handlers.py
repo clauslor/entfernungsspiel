@@ -37,6 +37,14 @@ class JoinGameMessage(BaseModel):
     game_id: str
 
 
+class KickPlayerMessage(BaseModel):
+    target_player_id: str
+
+
+class LockSettingsMessage(BaseModel):
+    locked: bool
+
+
 class WebSocketHandler:
     def __init__(self, game_room: GameRoom, game_logic: GameLogic):
         self.game_room = game_room
@@ -87,6 +95,7 @@ class WebSocketHandler:
             )
 
             if player.game_id:
+                await self.game_logic.resume_after_player_return(player.game_id)
                 await self.send_game_info(player_id, player.game_id)
                 await self.broadcast_players_update(player.game_id)
             else:
@@ -170,6 +179,7 @@ class WebSocketHandler:
                 player = self.game_room.players.get(player_id)
                 if player and player.game_id:
                     player.tab_away = True
+                    await self.game_logic.pause_for_reconnect(player.game_id, player.name)
                     await self.broadcast_to_game(
                         player.game_id,
                         "player_tab_left",
@@ -185,7 +195,6 @@ class WebSocketHandler:
     async def handle_message(self, player_id: str, message_data: str):
         """Handle incoming WebSocket message"""
         try:
-            # Parse and validate message
             message = WebSocketMessage.parse_raw(message_data)
             msg_type = message.type
 
@@ -203,6 +212,12 @@ class WebSocketHandler:
                 await self.handle_tab_active(player_id)
             elif msg_type == "set_ready":
                 await self.handle_set_ready(player_id, message.data)
+            elif msg_type == "kick_player":
+                await self.handle_kick_player(player_id, message.data)
+            elif msg_type == "lock_settings":
+                await self.handle_lock_settings(player_id, message.data)
+            elif msg_type == "start_warmup":
+                await self.handle_start_warmup(player_id)
             elif msg_type == "submit_answer":
                 await self.handle_submit_answer(player_id, message.data)
             elif msg_type == "start_game":
@@ -232,7 +247,6 @@ class WebSocketHandler:
             create_msg = CreateGameMessage.parse_obj(data)
             game_id = create_msg.game_id or f"game_{uuid.uuid4().hex[:8]}"
 
-            # Create game config
             config = GameConfig()
             if create_msg.config:
                 config.max_rounds = create_msg.config.get("max_rounds", config.max_rounds)
@@ -243,10 +257,8 @@ class WebSocketHandler:
                     config.pause_between_rounds_seconds,
                 )
 
-            # Create the game
             game = self.game_room.create_game(game_id, config)
 
-            # Add player to the game
             player = self.game_room.players[player_id]
             player.tab_away = False
             self.game_room.add_player_to_game(player, game_id)
@@ -265,17 +277,19 @@ class WebSocketHandler:
             join_msg = JoinGameMessage.parse_obj(data)
             game_id = join_msg.game_id
 
+            game = self.game_room.get_game(game_id)
+            if game and game.settings_locked:
+                await self.send_error(player_id, "Host has locked the lobby")
+                return
+
             player = self.game_room.players[player_id]
             success = self.game_room.add_player_to_game(player, game_id)
 
             if success:
                 player.tab_away = False
                 logger.info("Player %s joined game %s", player.name, game_id)
-                # First send confirmation to new player
                 await self.send_to_player(player_id, {"type": "game_joined", "game_id": game_id})
-                # Then send complete game info to new player
                 await self.send_game_info(player_id, game_id)
-                # Broadcast updated player list to all players in the game
                 await self.broadcast_players_update(game_id)
                 await self.broadcast_lobby_info_all()
             else:
@@ -293,11 +307,9 @@ class WebSocketHandler:
             if game:
                 game.remove_player(player_id)
 
-                # If game becomes empty, clean it up
                 if game.is_empty():
                     self.game_room.delete_game(game_id)
                 else:
-                    # Broadcast updated player list to remaining players
                     await self.broadcast_players_update(game_id)
 
             player.game_id = None
@@ -317,7 +329,6 @@ class WebSocketHandler:
                 self.game_room.players[player_id].tab_away = False
                 logger.info("Player %s changed name to %s", old_name, name_msg.name)
 
-                # Send confirmation to player with player_id
                 await self.send_to_player(
                     player_id,
                     {
@@ -327,7 +338,6 @@ class WebSocketHandler:
                     },
                 )
 
-                # Notify game if player is in one
                 player = self.game_room.players[player_id]
                 if player.game_id:
                     await self.broadcast_to_game(
@@ -357,6 +367,7 @@ class WebSocketHandler:
 
         player.tab_away = True
         if player.game_id:
+            await self.game_logic.pause_for_reconnect(player.game_id, player.name)
             await self.broadcast_to_game(
                 player.game_id,
                 "player_tab_left",
@@ -373,6 +384,7 @@ class WebSocketHandler:
         if player.tab_away:
             player.tab_away = False
             if player.game_id:
+                await self.game_logic.resume_after_player_return(player.game_id)
                 await self.broadcast_players_update(player.game_id)
 
     async def handle_set_ready(self, player_id: str, data: Dict[str, Any]):
@@ -386,15 +398,102 @@ class WebSocketHandler:
                     game.players[player_id].ready = ready_msg.ready
                     logger.info("Player %s ready status: %s", player.name, ready_msg.ready)
 
-                    # Broadcast updated player list to all players in game
                     await self.broadcast_players_update(player.game_id)
 
-                    # Check if all players are ready to start countdown
                     if game.all_players_ready() and game.status == GameStatus.WAITING:
                         await self.start_countdown(player.game_id)
 
         except ValidationError:
             await self.send_error(player_id, "Invalid ready status")
+
+    async def handle_kick_player(self, player_id: str, data: Dict[str, Any]):
+        """Host can kick a player before countdown starts."""
+        try:
+            msg = KickPlayerMessage.parse_obj(data)
+        except ValidationError:
+            await self.send_error(player_id, "Invalid kick request")
+            return
+
+        host_player = self.game_room.players.get(player_id)
+        if not host_player or not host_player.game_id:
+            await self.send_error(player_id, "You are not in a game")
+            return
+
+        game = self.game_room.get_game(host_player.game_id)
+        if not game or game.host_player_id != player_id:
+            await self.send_error(player_id, "Only host can kick players")
+            return
+
+        if game.status != GameStatus.WAITING:
+            await self.send_error(player_id, "Players can only be kicked before countdown")
+            return
+
+        if msg.target_player_id == player_id:
+            await self.send_error(player_id, "Host cannot kick themselves")
+            return
+
+        target = game.players.get(msg.target_player_id)
+        if not target:
+            await self.send_error(player_id, "Player not found in this game")
+            return
+
+        game.remove_player(msg.target_player_id)
+        target.game_id = None
+        target.ready = False
+        target.tab_away = False
+
+        await self.send_to_player(
+            msg.target_player_id,
+            {"type": "kicked", "game_id": game.id, "message": "You were removed by the host"},
+        )
+        await self.send_lobby_info(msg.target_player_id)
+        await self.broadcast_players_update(game.id)
+        await self.broadcast_lobby_info_all()
+
+    async def handle_lock_settings(self, player_id: str, data: Dict[str, Any]):
+        """Host can lock/unlock settings in waiting state."""
+        try:
+            msg = LockSettingsMessage.parse_obj(data)
+        except ValidationError:
+            await self.send_error(player_id, "Invalid lock settings request")
+            return
+
+        host_player = self.game_room.players.get(player_id)
+        if not host_player or not host_player.game_id:
+            await self.send_error(player_id, "You are not in a game")
+            return
+
+        game = self.game_room.get_game(host_player.game_id)
+        if not game or game.host_player_id != player_id:
+            await self.send_error(player_id, "Only host can lock settings")
+            return
+
+        if game.status != GameStatus.WAITING:
+            await self.send_error(player_id, "Settings can only be changed before countdown")
+            return
+
+        game.settings_locked = msg.locked
+        await self.broadcast_players_update(game.id)
+
+    async def handle_start_warmup(self, player_id: str):
+        """Host starts a non-scoring warmup round."""
+        player = self.game_room.players.get(player_id)
+        if not player or not player.game_id:
+            await self.send_error(player_id, "You are not in a game")
+            return
+
+        game = self.game_room.get_game(player.game_id)
+        if not game or game.host_player_id != player_id:
+            await self.send_error(player_id, "Only host can start warmup")
+            return
+
+        if game.status != GameStatus.WAITING:
+            await self.send_error(player_id, "Warmup only available before countdown")
+            return
+
+        ok = await self.game_logic.start_warmup_round(player.game_id)
+        if not ok:
+            await self.send_error(player_id, "Could not start warmup")
 
     async def handle_submit_answer(self, player_id: str, data: Dict[str, Any]):
         """Handle answer submission"""
@@ -413,8 +512,6 @@ class WebSocketHandler:
                                 "guess": answer_msg.guess,
                             },
                         )
-                    else:
-                        await self.send_error(player_id, "Could not submit answer at this time")
                 else:
                     await self.send_error(player_id, "No active question")
             else:
@@ -460,7 +557,6 @@ class WebSocketHandler:
                 },
             )
 
-            # Start the game with error handling
             success = await self.game_logic.start_game(game_id)
             if not success:
                 logger.warning("Failed to start game %s", game_id)
@@ -480,7 +576,6 @@ class WebSocketHandler:
             "active_games": self.game_room.list_active_games(),
             "player_name": player.name,
         }
-        # Send to all connections for this player
         if player_id in self.active_connections:
             for websocket in self.active_connections[player_id]:
                 try:
@@ -495,6 +590,8 @@ class WebSocketHandler:
             game_data = {
                 "type": "game_info",
                 "game_id": game_id,
+                "status": game.status.value,
+                "settings_locked": game.settings_locked,
                 "config": {
                     "max_rounds": game.config.max_rounds,
                     "countdown_seconds": game.config.countdown_seconds,
@@ -509,12 +606,13 @@ class WebSocketHandler:
                         "score": p.score,
                         "tab_away": p.tab_away,
                         "is_host": p.id == game.host_player_id,
+                        "suspicion_score": p.suspicion_score,
+                        "bot_flagged": p.bot_flagged,
                     }
                     for p in game.players.values()
                 ],
                 "is_host": player_id == game.host_player_id,
             }
-            # Send to all connections for this player
             for websocket in self.active_connections[player_id]:
                 try:
                     await websocket.send_text(json.dumps(game_data))
@@ -530,18 +628,13 @@ class WebSocketHandler:
 
         logger.info("broadcast_players_update: Sending to %s players in game %s", len(game.players), game_id)
 
-        # Send game info to all connections of all players
         for player in game.players.values():
-            logger.info(
-                "  - Sending to player %s (%s), %s connections",
-                player.name,
-                player.id,
-                len(self.active_connections.get(player.id, [])),
-            )
             if player.id in self.active_connections:
                 game_data = {
                     "type": "game_info",
                     "game_id": game_id,
+                    "status": game.status.value,
+                    "settings_locked": game.settings_locked,
                     "config": {
                         "max_rounds": game.config.max_rounds,
                         "countdown_seconds": game.config.countdown_seconds,
@@ -556,12 +649,13 @@ class WebSocketHandler:
                             "score": p.score,
                             "tab_away": p.tab_away,
                             "is_host": p.id == game.host_player_id,
+                            "suspicion_score": p.suspicion_score,
+                            "bot_flagged": p.bot_flagged,
                         }
                         for p in game.players.values()
                     ],
                     "is_host": player.id == game.host_player_id,
                 }
-                # Send to all connections for this player
                 for websocket in self.active_connections[player.id]:
                     try:
                         await websocket.send_text(json.dumps(game_data))
@@ -580,7 +674,6 @@ class WebSocketHandler:
 
         for player in game.players.values():
             if player.id in self.active_connections:
-                # Send to all connections for this player
                 for websocket in self.active_connections[player.id]:
                     try:
                         await websocket.send_text(json.dumps(message))
@@ -590,7 +683,6 @@ class WebSocketHandler:
     async def send_to_player(self, player_id: str, data: Dict[str, Any]):
         """Send message to specific player on all connections"""
         if player_id in self.active_connections:
-            # Send to all connections for this player
             for websocket in self.active_connections[player_id]:
                 try:
                     await websocket.send_text(json.dumps(data))
@@ -600,7 +692,6 @@ class WebSocketHandler:
     async def send_error(self, player_id: str, error_message: str):
         """Send error message to player on all connections"""
         error_data = {"type": "error", "message": error_message}
-        # Send to all connections for this player
         if player_id in self.active_connections:
             for websocket in self.active_connections[player_id]:
                 try:

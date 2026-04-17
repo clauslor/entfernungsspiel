@@ -3,6 +3,9 @@ let playerName = "";
 let currentGameId = "";
 let currentPlayerId = "";
 let currentPlayers = [];
+let currentGameStatus = "waiting";
+let currentSettingsLocked = false;
+let currentIsHost = false;
 let totalTime;
 let isConnected = false;
 let restorePendingJoinGameId = "";
@@ -98,18 +101,26 @@ function handleJsonMessage(msg) {
   } else if (msg.type === "game_info") {
     currentGameId = msg.game_id;
     saveSessionToStorage();
+    currentGameStatus = msg.status || currentGameStatus;
+    currentSettingsLocked = !!msg.settings_locked;
+    currentIsHost = !!msg.is_host;
     currentPlayers = msg.players;
     document.getElementById("gameIdDisplay").textContent = msg.game_id;
     document.getElementById("gameInfo").style.display = "block";
     appendMessage(
-      `📊 Game info - Status: ${msg.game_id}, Players: ${msg.players.length}`,
+      `📊 Game info - Status: ${msg.status || "unknown"}, Players: ${msg.players.length}`,
     );
     updateGameList(msg.game_id, msg.players);
     updateGameSettings(msg.game_id, msg.config);
     document.getElementById("inGameButtons").style.display = "block";
+    updateHostControls();
   } else if (msg.type === "game_starting") {
+    currentGameStatus = "countdown";
+    updateHostControls();
     appendMessage(`⏳ Game starting in ${msg.countdown} seconds...`);
   } else if (msg.type === "game_started") {
+    currentGameStatus = "active";
+    updateHostControls();
     appendMessage(`🎮 Game started!`);
     if (msg.config) {
       document.getElementById("rulesText").textContent =
@@ -150,6 +161,37 @@ function handleJsonMessage(msg) {
   } else if (msg.type === "countdown") {
     const val = msg.value || "...";
     document.getElementById("countdownText").textContent = `Countdown: ${val}`;
+  } else if (msg.type === "game_paused") {
+    appendMessage(
+      `⏸️ Runde pausiert (${msg.grace_seconds}s): ${msg.player_name || "Spieler"} reconnecting...`,
+    );
+    document.getElementById("countdownText").textContent = "Paused - waiting for reconnect";
+  } else if (msg.type === "game_resumed") {
+    appendMessage("▶️ Runde fortgesetzt");
+    document.getElementById("countdownText").textContent = "Game resumed";
+  } else if (msg.type === "round_result") {
+    const summary = msg.standings
+      .map((s) => `${s.player_name}: ${s.score} (${s.delta >= 0 ? "+" : ""}${s.delta})`)
+      .join(" | ");
+    appendMessage(
+      `🏁 Runde ${msg.round}: ${msg.winner} gewinnt. Distanz: ${msg.correct_distance} km. ${summary}`,
+    );
+  } else if (msg.type === "warmup_started") {
+    appendMessage(`🔥 Warmup gestartet (${msg.time_limit}s)`);
+  } else if (msg.type === "warmup_result") {
+    appendMessage(`🔥 Warmup beendet: ${msg.message || ""}`);
+  } else if (msg.type === "bot_suspected") {
+    appendMessage(
+      `🚨 Bot-Verdacht: ${msg.player_name} (Score ${msg.suspicion_score}, schnelle Antworten: ${msg.fast_answers})`,
+    );
+  } else if (msg.type === "kicked") {
+    appendMessage("🚫 Du wurdest vom Host aus dem Spiel entfernt");
+    clearStoredGame();
+    document.getElementById("inGameButtons").style.display = "none";
+    document.getElementById("gameInfo").style.display = "none";
+    currentPlayers = [];
+    currentGameStatus = "waiting";
+    updateHostControls();
   } else if (msg.type === "player_joined") {
     // Note: Player joined message doesn't include full player data, so we'll wait for game_info update
     appendMessage(`👋 ${msg.player} joined the game`);
@@ -247,6 +289,8 @@ function handleJsonMessage(msg) {
     appendMessage(`🎉 Game finished! Winner: ${msg.winner}`);
     document.getElementById("inGameButtons").style.display = "none";
     document.getElementById("gameInfo").style.display = "none";
+    currentGameStatus = "finished";
+    updateHostControls();
     clearStoredGame();
   } else if (msg.type === "name_set") {
     currentPlayerId = msg.player_id;
@@ -311,6 +355,20 @@ function updateGameList(game_id, players) {
     const away = p.tab_away ? " ❗" : "";
     const item = document.createElement("li");
     item.textContent = `${p.name}${away} - ${status} (Score: ${p.score || 0})`;
+    if (p.bot_flagged) {
+      item.textContent += " 🤖";
+    }
+    if (
+      currentIsHost &&
+      currentGameStatus === "waiting" &&
+      p.id !== currentPlayerId
+    ) {
+      const kickBtn = document.createElement("button");
+      kickBtn.textContent = "Kick";
+      kickBtn.style.marginLeft = "8px";
+      kickBtn.onclick = () => kickPlayer(p.id);
+      item.appendChild(kickBtn);
+    }
     ulp.appendChild(item);
   });
 
@@ -343,7 +401,34 @@ function saveSessionToStorage() {
 
 function clearStoredGame() {
   currentGameId = "";
+  currentGameStatus = "waiting";
+  currentIsHost = false;
+  currentSettingsLocked = false;
   localStorage.removeItem(STORAGE_KEYS.GAME_ID);
+}
+
+function updateHostControls() {
+  const warmupBtn = document.getElementById("warmupBtn");
+  const lockBtn = document.getElementById("lockSettingsBtn");
+  if (!warmupBtn || !lockBtn) return;
+
+  const showHostControls = currentIsHost && currentGameStatus === "waiting";
+  warmupBtn.style.display = showHostControls ? "inline-block" : "none";
+  lockBtn.style.display = showHostControls ? "inline-block" : "none";
+  lockBtn.textContent = currentSettingsLocked ? "🔓 Unlock Settings" : "🔒 Lock Settings";
+}
+
+function kickPlayer(targetPlayerId) {
+  if (!targetPlayerId) return;
+  sendMessage({ type: "kick_player", data: { target_player_id: targetPlayerId } });
+}
+
+function toggleLockSettings() {
+  sendMessage({ type: "lock_settings", data: { locked: !currentSettingsLocked } });
+}
+
+function startWarmup() {
+  sendMessage({ type: "start_warmup", data: {} });
 }
 
 function restoreSessionFromStorage() {
@@ -487,6 +572,7 @@ function leaveGame() {
   clearStoredGame();
   document.getElementById("inGameButtons").style.display = "none";
   document.getElementById("gameInfo").style.display = "none";
+  updateHostControls();
   appendMessage("You left the game.");
 }
 

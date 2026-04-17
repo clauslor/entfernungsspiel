@@ -30,6 +30,12 @@ class Player:
     ready: bool = False
     score: int = 0
     tab_away: bool = False
+    suspicion_score: int = 0
+    fast_answers: int = 0
+    repeat_guess_streak: int = 0
+    last_guess: Optional[int] = None
+    answer_latencies_ms: List[int] = field(default_factory=list)
+    bot_flagged: bool = False
     websocket: Optional['WebSocket'] = None
     game_id: Optional[str] = None
 
@@ -62,10 +68,17 @@ class GameState:
     players: Dict[str, Player] = field(default_factory=dict)
     config: GameConfig = field(default_factory=GameConfig)
     status: GameStatus = GameStatus.WAITING
+    settings_locked: bool = False
     current_round: int = 0
     current_question: Optional[CityPair] = None
     answers: Dict[str, int] = field(default_factory=dict)
+    answer_submissions: Dict[str, datetime] = field(default_factory=dict)
+    answer_time_remaining: int = 0
+    question_started_at: Optional[datetime] = None
+    pause_reason: Optional[str] = None
+    warmup_active: bool = False
     answer_deadline_task: Optional[asyncio.Task] = None
+    reconnect_resume_task: Optional[asyncio.Task] = None
     created_at: datetime = field(default_factory=datetime.now)
     host_player_id: Optional[str] = None
 
@@ -75,9 +88,17 @@ class GameState:
         self.current_round = 0
         self.current_question = None
         self.answers = {}
+        self.answer_submissions = {}
+        self.answer_time_remaining = 0
+        self.question_started_at = None
+        self.pause_reason = None
+        self.warmup_active = False
         if self.answer_deadline_task and not self.answer_deadline_task.done():
             self.answer_deadline_task.cancel()
         self.answer_deadline_task = None
+        if self.reconnect_resume_task and not self.reconnect_resume_task.done():
+            self.reconnect_resume_task.cancel()
+        self.reconnect_resume_task = None
         for player in self.players.values():
             player.ready = False
             player.score = 0
