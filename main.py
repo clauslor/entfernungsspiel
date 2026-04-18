@@ -261,9 +261,9 @@ def _build_city_pair_suggestions(
 async def get_index(request: Request):
     """Serve the main game page"""
     return templates.TemplateResponse(
+        request,
         "index.html",
         {
-            "request": request,
             "hcaptcha_site_key": config.HCAPTCHA_SITE_KEY,
         },
     )
