@@ -61,8 +61,8 @@ class UpdateSettingsMessage(BaseModel):
     wrong_answer_points_others: bool = False
     enable_road_questions: bool = True
     road_question_ratio_percent: int = 50
-    enable_sorting_questions: bool = True
-    sorting_question_ratio_percent: int = 20
+    enable_sorting_questions: Optional[bool] = None
+    sorting_question_ratio_percent: Optional[int] = None
 
 
 class SubmitCaptchaMessage(BaseModel):
@@ -706,7 +706,7 @@ class WebSocketHandler:
         if not (0 <= msg.road_question_ratio_percent <= 100):
             await self.send_error(player_id, "Invalid settings values")
             return
-        if not (0 <= msg.sorting_question_ratio_percent <= 100):
+        if msg.sorting_question_ratio_percent is not None and not (0 <= msg.sorting_question_ratio_percent <= 100):
             await self.send_error(player_id, "Invalid settings values")
             return
 
@@ -720,8 +720,16 @@ class WebSocketHandler:
             wrong_answer_points_others=msg.wrong_answer_points_others,
             enable_road_questions=msg.enable_road_questions,
             road_question_ratio_percent=msg.road_question_ratio_percent,
-            enable_sorting_questions=msg.enable_sorting_questions,
-            sorting_question_ratio_percent=msg.sorting_question_ratio_percent,
+            enable_sorting_questions=(
+                msg.enable_sorting_questions
+                if msg.enable_sorting_questions is not None
+                else game.config.enable_sorting_questions
+            ),
+            sorting_question_ratio_percent=(
+                msg.sorting_question_ratio_percent
+                if msg.sorting_question_ratio_percent is not None
+                else game.config.sorting_question_ratio_percent
+            ),
         )
 
         await self.broadcast_players_update(game.id)

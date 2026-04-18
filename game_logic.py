@@ -40,11 +40,22 @@ class GameLogic:
         return random.random() < (ratio_pct / 100.0)
 
     def _should_use_sorting_variant(self, game_config) -> bool:
-        if not getattr(game_config, "enable_sorting_questions", True):
+        enabled = bool(getattr(game_config, "enable_sorting_questions", True))
+        if not enabled:
+            logger.info("Question variant decision: sorting disabled in game config")
             return False
         ratio_pct = int(getattr(game_config, "sorting_question_ratio_percent", 20) or 0)
         ratio_pct = max(0, min(100, ratio_pct))
-        return random.random() < (ratio_pct / 100.0)
+        roll = random.random()
+        use_sorting = roll < (ratio_pct / 100.0)
+        logger.info(
+            "Question variant decision: sorting_enabled=%s sorting_ratio=%s roll=%.4f use_sorting=%s",
+            enabled,
+            ratio_pct,
+            roll,
+            use_sorting,
+        )
+        return use_sorting
 
     def _build_sorting_question(self) -> CityPair:
         numbers = random.sample(range(1, 151), 4)
