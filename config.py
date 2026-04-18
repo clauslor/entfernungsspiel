@@ -13,7 +13,7 @@ class Config:
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./highscores.db")
 
     # CORS config
-    ALLOWED_ORIGINS: List[str] = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
+    ALLOWED_ORIGINS: List[str] = os.getenv("ALLOWED_ORIGINS", "https://entfernungsspiel.tianalorenz.de").split(",")
 
     # Game config defaults
     DEFAULT_MAX_ROUNDS: int = int(os.getenv("DEFAULT_MAX_ROUNDS", "1"))
