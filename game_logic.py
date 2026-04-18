@@ -643,6 +643,16 @@ class GameLogic:
         winner_guess = game.answers[winner_id]
         round_deltas: Dict[str, int] = {pid: 0 for pid in game.players.keys()}
         bonus_events: List[Dict[str, Any]] = []
+        winner_diff_value = sorting_difference(winner_guess) if is_sorting else abs(int(winner_guess) - correct_distance)
+        closest_result: Dict[str, Any] = {
+            "player_name": winner.name,
+        }
+        if is_sorting:
+            closest_result["difference_positions"] = winner_diff_value
+        else:
+            closest_result["guess"] = int(winner_guess)
+            closest_result["difference_km"] = winner_diff_value
+        precision_bonus_payload: Optional[Dict[str, Any]] = None
         if not game.warmup_active:
             winner.score += 1
             round_deltas[winner_id] = 1
@@ -668,17 +678,20 @@ class GameLogic:
                 )
 
             if not is_sorting:
-                winner_diff_km = abs(int(winner_guess) - correct_distance)
+                winner_diff_km = winner_diff_value
                 if winner_diff_km <= 20:
                     winner.score += 1
                     round_deltas[winner_id] = round_deltas.get(winner_id, 0) + 1
+                    precision_bonus_payload = {
+                        "player_id": winner.id,
+                        "player_name": winner.name,
+                        "points": 1,
+                        "distance_error_km": winner_diff_km,
+                    }
                     bonus_events.append(
                         {
                             "type": "perfect_hit_bonus",
-                            "player_id": winner.id,
-                            "player_name": winner.name,
-                            "points": 1,
-                            "distance_error_km": winner_diff_km,
+                            **precision_bonus_payload,
                         }
                     )
 
@@ -774,6 +787,8 @@ class GameLogic:
                     "winner": winner.name,
                     "correct_distance": correct_distance if not is_sorting else None,
                     "correct_order": correct_order if is_sorting else None,
+                    "closest_result": closest_result,
+                    "precision_bonus": precision_bonus_payload,
                     "bonus_events": bonus_events,
                     "standings": [
                         {

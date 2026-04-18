@@ -9,6 +9,7 @@ let currentIsHost = false;
 let totalTime;
 let isConnected = false;
 let restorePendingJoinGameId = "";
+let restorePendingJoinPin = "";
 let gameMap = null;
 let gameMapBaseLayer = null;
 let gameMapFallbackLayer = null;
@@ -129,6 +130,33 @@ function connect() {
     appendMessage(`❌ ${t("messages.connectionError")}`);
     console.error("WebSocket error:", error);
   };
+}
+
+function parseJoinIntentFromUrl() {
+  const params = new URLSearchParams(window.location.search || "");
+  const gameId = (params.get("game") || "").trim();
+  if (!gameId) return null;
+  const pin = (params.get("pin") || "").trim();
+  return { gameId, pin };
+}
+
+function captureJoinIntentFromUrl() {
+  const intent = parseJoinIntentFromUrl();
+  if (!intent) return;
+
+  restorePendingJoinGameId = intent.gameId;
+  restorePendingJoinPin = intent.pin;
+  localStorage.setItem(STORAGE_KEYS.GAME_ID, intent.gameId);
+
+  const gameIdInput = document.getElementById("gameIdInput");
+  if (gameIdInput) {
+    gameIdInput.value = intent.gameId;
+  }
+
+  if (window.history && typeof window.history.replaceState === "function") {
+    const cleanUrl = `${window.location.origin}${window.location.pathname}`;
+    window.history.replaceState({}, document.title, cleanUrl);
+  }
 }
 
 function updateUILayout() {
@@ -1363,6 +1391,24 @@ function handleJsonMessage(msg) {
         }
       });
     }
+
+    if (msg.closest_result && msg.closest_result.player_name) {
+      if (typeof msg.closest_result.difference_km === "number") {
+        appendMessage(
+          `📍 Nächster dran: ${msg.closest_result.player_name} (${msg.closest_result.guess} km, ${msg.closest_result.difference_km} km daneben)`,
+        );
+      } else if (typeof msg.closest_result.difference_positions === "number") {
+        appendMessage(
+          `📍 Nächster dran: ${msg.closest_result.player_name} (${msg.closest_result.difference_positions} Positionsfehler)`,
+        );
+      }
+    }
+
+    if (msg.precision_bonus && msg.precision_bonus.player_name) {
+      appendMessage(
+        `✨ Präzisions-Bonus: ${msg.precision_bonus.player_name} +${msg.precision_bonus.points}`,
+      );
+    }
   } else if (msg.type === "warmup_started") {
     currentGameStatus = "warmup";
     appendMessage(`🔥 ${t("messages.warmupStarted")} (${msg.time_limit}s)`);
@@ -1526,9 +1572,10 @@ function handleJsonMessage(msg) {
     localStorage.setItem(STORAGE_KEYS.PLAYER_NAME, playerName);
     syncPlayerNameUI(playerName);
     if (restorePendingJoinGameId && !currentGameId) {
-      joinGameById(restorePendingJoinGameId);
+      joinGameById(restorePendingJoinGameId, restorePendingJoinPin);
     }
     restorePendingJoinGameId = "";
+    restorePendingJoinPin = "";
     appendMessage(t("messages.nameSet", { name: playerName }));
   }
 
@@ -1870,8 +1917,38 @@ function restoreSessionFromStorage() {
   document.getElementById("gamePhase").style.display = "block";
 
   sendMessage({ type: "set_name", data: { name: playerName } });
-  if (storedGameId) {
+  if (!restorePendingJoinGameId && storedGameId) {
     restorePendingJoinGameId = storedGameId;
+  }
+}
+
+async function copyRejoinLink() {
+  if (!currentGameId) {
+    alert("Es gibt aktuell keinen Spielcode zum Teilen.");
+    return;
+  }
+
+  const baseUrl = `${window.location.origin}${window.location.pathname}`;
+  const rejoinUrl = `${baseUrl}?game=${encodeURIComponent(currentGameId)}`;
+
+  try {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      await navigator.clipboard.writeText(rejoinUrl);
+    } else {
+      const helper = document.createElement("textarea");
+      helper.value = rejoinUrl;
+      helper.setAttribute("readonly", "true");
+      helper.style.position = "absolute";
+      helper.style.left = "-9999px";
+      document.body.appendChild(helper);
+      helper.select();
+      document.execCommand("copy");
+      document.body.removeChild(helper);
+    }
+    appendMessage(`🔗 Rejoin-Link kopiert: ${rejoinUrl}`);
+  } catch (error) {
+    console.error("Could not copy rejoin link:", error);
+    appendMessage("❌ Rejoin-Link konnte nicht kopiert werden.");
   }
 }
 
@@ -2264,6 +2341,7 @@ window.onload = () => {
   applyQuestionVariantUI(currentQuestionVariant);
   resetAnswerSubmissionState();
   resetCountdownDisplay();
+  captureJoinIntentFromUrl();
   updateUILayout();
   registerKeyboardUX();
   connect();

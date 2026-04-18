@@ -365,6 +365,16 @@ main.game-layout.lobby-mode .game-column {
     font-family: monospace;
 }
 
+.game-share-actions {
+    display: flex;
+    justify-content: center;
+    margin: 0 0 12px;
+}
+
+.game-share-actions .btn {
+    min-width: 220px;
+}
+
 .game-pin-display {
     margin: 5px 0 15px 0;
     font-size: 1.5em;
