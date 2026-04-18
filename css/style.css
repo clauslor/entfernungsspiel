@@ -110,7 +110,8 @@ header.header {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    flex-direction: column;
+    gap: 6px;
     flex-wrap: wrap;
 }
 
@@ -122,9 +123,9 @@ header.header {
 }
 
 .footer-commit-hint {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: #94a3b8;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.04em;
     -webkit-user-select: text;
     user-select: text;
 }
@@ -220,12 +221,16 @@ main.game-layout.lobby-mode .game-column {
     display: none;
 }
 
+#gamePhase > * + * {
+    margin-top: 12px;
+}
+
 .player-info-row {
     display: flex;
     align-items: center;
     justify-content: flex-start;
     gap: 4px;
-    margin-bottom: 10px;
+    margin-bottom: 0;
 }
 
 .name-edit-icon-btn {
@@ -254,7 +259,7 @@ main.game-layout.lobby-mode .game-column {
 
 .name-edit-controls {
     display: none;
-    margin-bottom: 12px;
+    margin-bottom: 0;
 }
 
 .name-edit-controls.is-open {
