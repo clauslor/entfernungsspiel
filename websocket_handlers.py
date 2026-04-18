@@ -431,6 +431,12 @@ class WebSocketHandler:
                     )
                 response.raise_for_status()
                 verification = response.json()
+                # Log full hCaptcha verification payload for test diagnostics.
+                logger.info(
+                    "hCaptcha verification response for %s: %s",
+                    player_id,
+                    verification,
+                )
             except httpx.HTTPError as exc:
                 logger.error("Error verifying hCaptcha token: %s", exc)
                 await self.send_error(player_id, "Error verifying CAPTCHA. Please try again.")
