@@ -218,7 +218,11 @@ class WebSocketHandler:
     async def handle_message(self, player_id: str, message_data: str):
         """Handle incoming WebSocket message"""
         try:
-            message = WebSocketMessage.parse_raw(message_data)
+            try:
+                message = WebSocketMessage.parse_raw(message_data)
+            except TypeError as te:
+                logger.error("TypeError parsing message (likely dict as key): %s, raw_data=%s", te, message_data)
+                raise
             msg_type = message.type
 
             if msg_type == "create_game":
@@ -402,6 +406,7 @@ class WebSocketHandler:
     async def handle_submit_captcha(self, player_id: str, data: Dict[str, Any]):
         """Verify an hCaptcha token and persist the validation."""
         try:
+            logger.debug("Received captcha submission data: %s (type: %s)", data, type(data).__name__)
             submit_msg = SubmitCaptchaMessage.parse_obj(data)
             player = self.game_room.players.get(player_id)
 
