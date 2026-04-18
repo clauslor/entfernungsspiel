@@ -420,12 +420,25 @@ class WebSocketHandler:
                 return
 
             try:
+                masked_secret = (
+                    f"{config.HCAPTCHA_SECRET_KEY[:6]}...{config.HCAPTCHA_SECRET_KEY[-4:]}"
+                    if len(config.HCAPTCHA_SECRET_KEY) >= 12
+                    else "***"
+                )
+                logger.info(
+                    "hCaptcha verify request for %s: sitekey=%s secret=%s token_prefix=%s",
+                    player_id,
+                    config.HCAPTCHA_SITE_KEY,
+                    masked_secret,
+                    submit_msg.hcaptcha_token[:12],
+                )
                 async with httpx.AsyncClient() as client:
                     response = await client.post(
                         config.HCAPTCHA_VERIFY_URL,
                         data={
                             "secret": config.HCAPTCHA_SECRET_KEY,
                             "response": submit_msg.hcaptcha_token,
+                            "sitekey": config.HCAPTCHA_SITE_KEY,
                         },
                         timeout=5,
                     )
