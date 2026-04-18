@@ -1,6 +1,7 @@
 import json
 import logging
 import asyncio
+import hashlib
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 from fastapi import WebSocket
@@ -424,6 +425,20 @@ class WebSocketHandler:
                     f"{config.HCAPTCHA_SECRET_KEY[:6]}...{config.HCAPTCHA_SECRET_KEY[-4:]}"
                     if len(config.HCAPTCHA_SECRET_KEY) >= 12
                     else "***"
+                )
+                sitekey_fingerprint = hashlib.sha256(
+                    config.HCAPTCHA_SITE_KEY.encode("utf-8")
+                ).hexdigest()[:12]
+                secret_fingerprint = hashlib.sha256(
+                    config.HCAPTCHA_SECRET_KEY.encode("utf-8")
+                ).hexdigest()[:12]
+                logger.warning(
+                    "hCaptcha key diagnostics for %s: sitekey_len=%s secret_len=%s sitekey_fp=%s secret_fp=%s",
+                    player_id,
+                    len(config.HCAPTCHA_SITE_KEY),
+                    len(config.HCAPTCHA_SECRET_KEY),
+                    sitekey_fingerprint,
+                    secret_fingerprint,
                 )
                 logger.info(
                     "hCaptcha verify request for %s: sitekey=%s secret=%s token_prefix=%s",

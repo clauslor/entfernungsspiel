@@ -1,6 +1,15 @@
 import os
 from typing import List
 
+
+def _get_env_clean(name: str, default: str = "") -> str:
+    """Read an environment variable and trim common formatting artifacts."""
+    value = os.getenv(name, default)
+    if value is None:
+        return default
+    # Trim whitespace/CRLF and optional wrapping quotes from copied env values.
+    return value.strip().strip('"').strip("'")
+
  
 class Config:
     # Server config
@@ -35,8 +44,8 @@ class Config:
     ROAD_DISTANCE_QUESTION_CHANCE: float = float(os.getenv("ROAD_DISTANCE_QUESTION_CHANCE", "1.0"))
 
     # hCaptcha config
-    HCAPTCHA_SITE_KEY: str = os.getenv("HCAPTCHA_SITE_KEY", "")
-    HCAPTCHA_SECRET_KEY: str = os.getenv("HCAPTCHA_SECRET_KEY", "")
+    HCAPTCHA_SITE_KEY: str = _get_env_clean("HCAPTCHA_SITE_KEY", "")
+    HCAPTCHA_SECRET_KEY: str = _get_env_clean("HCAPTCHA_SECRET_KEY", "")
     HCAPTCHA_VERIFY_URL: str = os.getenv("HCAPTCHA_VERIFY_URL", "https://hcaptcha.com/siteverify")
 
     # Admin
