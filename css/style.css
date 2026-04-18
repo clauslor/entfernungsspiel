@@ -108,7 +108,10 @@ header.header {
     max-width: 1400px;
     padding: 0 20px;
     display: flex;
+    align-items: center;
     justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 
 .footer-stat-pill {
@@ -116,6 +119,13 @@ header.header {
     border-color: rgba(226, 232, 240, 0.3);
     color: #f8fafc;
     box-shadow: var(--shadow-md);
+}
+
+.footer-commit-hint {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    letter-spacing: 0.02em;
+    user-select: text;
 }
 
 .footer-stat-pill .header-stat-label {

@@ -13,6 +13,7 @@ import csv
 import io
 import os
 import logging
+import subprocess
 import secrets
 import math
 import random
@@ -34,6 +35,26 @@ if config.LOG_FILE.strip():
     log_kwargs["filename"] = config.LOG_FILE
 logging.basicConfig(**log_kwargs)
 logger = logging.getLogger(__name__)
+
+
+def _resolve_app_commit_short() -> str:
+    """Resolve the currently deployed app revision for footer diagnostics."""
+    env_commit = os.getenv("APP_COMMIT") or os.getenv("GIT_COMMIT")
+    if env_commit:
+        return env_commit.strip()[:12]
+
+    try:
+        repo_root = os.path.dirname(os.path.abspath(__file__))
+        return subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=repo_root,
+            text=True,
+        ).strip()
+    except Exception:
+        return "unknown"
+
+
+APP_COMMIT_SHORT = _resolve_app_commit_short()
 
 # Initialize database
 init_db()
@@ -265,6 +286,7 @@ async def get_index(request: Request):
         "index.html",
         {
             "hcaptcha_site_key": config.HCAPTCHA_SITE_KEY,
+            "app_commit_short": APP_COMMIT_SHORT,
         },
     )
 
