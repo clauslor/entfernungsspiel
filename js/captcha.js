@@ -57,8 +57,19 @@ function submitCaptcha() {
     }
     
     try {
+        // Try to get WebSocket from multiple sources
         const activeWs = (typeof ws !== 'undefined' && ws) ? ws : window.ws;
+        
+        // Debug logging to help troubleshoot
+        console.log('WebSocket check:', {
+            ws_defined: typeof ws !== 'undefined',
+            window_ws_defined: typeof window.ws !== 'undefined',
+            activeWs_exists: !!activeWs,
+            readyState: activeWs ? activeWs.readyState : null
+        });
+        
         if (!activeWs || activeWs.readyState !== WebSocket.OPEN) {
+            console.error('WebSocket not ready for captcha submission');
             showCaptchaError('Connection error. Try again later.');
             return;
         }
