@@ -88,6 +88,7 @@ function connect() {
     ? `?player_id=${encodeURIComponent(storedPlayerId)}`
     : "";
   ws = new WebSocket(`wss://${window.location.host}/ws${playerParam}`);
+  window.ws = ws;
 
   ws.onmessage = (event) => {
     const data = event.data;
@@ -113,6 +114,7 @@ function connect() {
 
   ws.onclose = () => {
     isConnected = false;
+    window.ws = null;
     appendMessage(`❌ ${t("messages.disconnected")}`);
     setTimeout(connect, 2000); // Reconnect after 2 seconds
   };
