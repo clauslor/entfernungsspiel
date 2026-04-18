@@ -87,7 +87,8 @@ function connect() {
   const playerParam = storedPlayerId
     ? `?player_id=${encodeURIComponent(storedPlayerId)}`
     : "";
-  ws = new WebSocket(`wss://${window.location.host}/ws${playerParam}`);
+  const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+  ws = new WebSocket(`${wsProtocol}://${window.location.host}/ws${playerParam}`);
   window.ws = ws;
   console.log('WebSocket created and stored globally:', { ws_exists: !!ws, window_ws_exists: !!window.ws });
 
@@ -710,8 +711,17 @@ function ensureLeafletMap() {
     let projection25832;
     try {
       proj4.defs("EPSG:25832", "+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs");
-      if (ol.proj.proj4 && typeof ol.proj.proj4.register === "function") {
-        ol.proj.proj4.register(proj4);
+      const registerProj4 =
+        typeof window.olRegisterProj4 === "function"
+          ? window.olRegisterProj4
+          : (ol.proj.proj4 && typeof ol.proj.proj4.register === "function"
+            ? ol.proj.proj4.register
+            : null);
+      if (typeof registerProj4 === "function") {
+        registerProj4(proj4);
+      } else {
+        console.error("[Map] proj4 register helper is unavailable");
+        return null;
       }
 
       projection25832 = ol.proj.get("EPSG:25832");
@@ -950,6 +960,11 @@ function handleJsonMessage(msg) {
     // Check if it's a captcha error
     if (msg.message && msg.message.includes("CAPTCHA")) {
       showCaptchaError(msg.message);
+      if (typeof clearCaptchaValidation === "function") {
+        clearCaptchaValidation();
+      } else {
+        showCaptchaModal();
+      }
     } else {
       appendMessage(`❌ ${msg.message || t("messages.connectionError")}`);
     }
