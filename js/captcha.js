@@ -57,7 +57,12 @@ function submitCaptcha() {
     }
     
     try {
-        window.ws.send(JSON.stringify({
+        if (typeof ws === 'undefined' || !ws || ws.readyState !== WebSocket.OPEN) {
+            showCaptchaError('Connection error. Try again later.');
+            return;
+        }
+
+        ws.send(JSON.stringify({
             type: 'submit_captcha',
             data: {
                 hcaptcha_token: token

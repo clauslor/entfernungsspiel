@@ -260,7 +260,13 @@ def _build_city_pair_suggestions(
 @app.get("/", response_class=HTMLResponse)
 async def get_index(request: Request):
     """Serve the main game page"""
-    return templates.TemplateResponse(request, "index.html")
+    return templates.TemplateResponse(
+        "index.html",
+        {
+            "request": request,
+            "hcaptcha_site_key": config.HCAPTCHA_SITE_KEY,
+        },
+    )
 
 
 @app.get("/admin", response_class=HTMLResponse)
