@@ -1349,6 +1349,20 @@ function handleJsonMessage(msg) {
         }),
       );
     }
+
+    if (Array.isArray(msg.bonus_events)) {
+      msg.bonus_events.forEach((bonus) => {
+        if (bonus.type === "perfect_hit_bonus") {
+          appendMessage(
+            `🎯 Bonus: ${bonus.player_name} +${bonus.points} (Perfekttreffer, nur ${bonus.distance_error_km} km daneben)`,
+          );
+        } else if (bonus.type === "streak_bonus") {
+          appendMessage(
+            `🔥 Bonus: ${bonus.player_name} +${bonus.points} (${bonus.streak} Siege in Folge)`,
+          );
+        }
+      });
+    }
   } else if (msg.type === "warmup_started") {
     currentGameStatus = "warmup";
     appendMessage(`🔥 ${t("messages.warmupStarted")} (${msg.time_limit}s)`);

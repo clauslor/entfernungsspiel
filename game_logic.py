@@ -640,10 +640,47 @@ class GameLogic:
         }
         winner_id = min(diffs, key=diffs.get)
         winner = game.players[winner_id]
+        winner_guess = game.answers[winner_id]
         round_deltas: Dict[str, int] = {pid: 0 for pid in game.players.keys()}
+        bonus_events: List[Dict[str, Any]] = []
         if not game.warmup_active:
             winner.score += 1
             round_deltas[winner_id] = 1
+
+            # Track winning streaks to reward momentum and keep rounds exciting.
+            for player in game.players.values():
+                if player.id == winner_id:
+                    player.win_streak += 1
+                else:
+                    player.win_streak = 0
+
+            if winner.win_streak > 0 and winner.win_streak % 3 == 0:
+                winner.score += 1
+                round_deltas[winner_id] = round_deltas.get(winner_id, 0) + 1
+                bonus_events.append(
+                    {
+                        "type": "streak_bonus",
+                        "player_id": winner.id,
+                        "player_name": winner.name,
+                        "points": 1,
+                        "streak": winner.win_streak,
+                    }
+                )
+
+            if not is_sorting:
+                winner_diff_km = abs(int(winner_guess) - correct_distance)
+                if winner_diff_km <= 20:
+                    winner.score += 1
+                    round_deltas[winner_id] = round_deltas.get(winner_id, 0) + 1
+                    bonus_events.append(
+                        {
+                            "type": "perfect_hit_bonus",
+                            "player_id": winner.id,
+                            "player_name": winner.name,
+                            "points": 1,
+                            "distance_error_km": winner_diff_km,
+                        }
+                    )
 
             if game.config.wrong_answer_points_others:
                 for submitted_player_id, submitted_guess in game.answers.items():
@@ -687,7 +724,6 @@ class GameLogic:
             )
 
         # Calculate and persist accuracy for every submitted answer in this round
-        winner_guess = game.answers[winner_id]
         winner_accuracy_pct = (
             (100.0 if sorting_difference(winner_guess) == 0 else max(0.0, 100.0 - (sorting_difference(winner_guess) / max(1, len(correct_order))) * 100.0))
             if is_sorting
@@ -738,6 +774,7 @@ class GameLogic:
                     "winner": winner.name,
                     "correct_distance": correct_distance if not is_sorting else None,
                     "correct_order": correct_order if is_sorting else None,
+                    "bonus_events": bonus_events,
                     "standings": [
                         {
                             "player_id": p.id,

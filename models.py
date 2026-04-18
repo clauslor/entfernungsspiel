@@ -43,6 +43,7 @@ class Player:
     suspicion_score: int = 0
     fast_answers: int = 0
     repeat_guess_streak: int = 0
+    win_streak: int = 0
     last_guess: Optional[int] = None
     answer_latencies_ms: List[int] = field(default_factory=list)
     bot_flagged: bool = False
@@ -131,6 +132,7 @@ class GameState:
         for player in self.players.values():
             player.ready = False
             player.score = 0
+            player.win_streak = 0
 
     def add_player(self, player: Player):
         self.players[player.id] = player
