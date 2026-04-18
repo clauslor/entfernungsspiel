@@ -40,5 +40,10 @@ jobs:
               .venv/bin/pip install --quiet -r requirements.txt
             fi
 
-            sudo systemctl restart entfernungsspiel-beta
-            echo "Beta service restarted successfully."
+            if sudo -n systemctl restart entfernungsspiel-beta; then
+              echo "Beta service restarted successfully."
+            else
+              echo "ERROR: Non-interactive sudo failed for restarting entfernungsspiel-beta."
+              echo "Grant NOPASSWD for this command in /etc/sudoers.d/entfernungsspiel-beta-deploy."
+              exit 1
+            fi
