@@ -238,67 +238,63 @@
                             <label class="host-settings-field">
                                 <span data-i18n="settings.maxRoundsLabel">Max. Runden</span>
                                 <input type="number" id="settingMaxRounds" min="1" max="20" step="1"
-                                    inputmode="numeric">
+                                    inputmode="numeric" onchange="debouncedSaveSettings()">
                                 <span class="field-hint">1 – 20</span>
                             </label>
                             <label class="host-settings-field">
                                 <span data-i18n="settings.countdownLabel">Countdown (s)</span>
                                 <input type="number" id="settingCountdown" min="1" max="30" step="1"
-                                    inputmode="numeric">
+                                    inputmode="numeric" onchange="debouncedSaveSettings()">
                                 <span class="field-hint">1 – 30 s</span>
                             </label>
                             <label class="host-settings-field">
                                 <span data-i18n="settings.answerTimeLabel">Antwortzeit (s)</span>
                                 <input type="number" id="settingAnswerTime" min="5" max="180" step="1"
-                                    inputmode="numeric">
+                                    inputmode="numeric" onchange="debouncedSaveSettings()">
                                 <span class="field-hint">5 – 180 s</span>
                                 <label id="noTimeLimitRow" class="no-time-limit-row">
-                                    <input type="checkbox" id="settingNoTimeLimit">
+                                    <input type="checkbox" id="settingNoTimeLimit" onchange="debouncedSaveSettings()">
                                     <span data-i18n="settings.noTimeLimitLabel">Kein Zeitlimit</span>
                                 </label>
                             </label>
                             <label class="host-settings-field">
                                 <span data-i18n="settings.pauseTimeLabel">Pause zwischen Runden (s)</span>
                                 <input type="number" id="settingPauseTime" min="1" max="30" step="1"
-                                    inputmode="numeric">
+                                    inputmode="numeric" onchange="debouncedSaveSettings()">
                                 <span class="field-hint">1 – 30 s</span>
                             </label>
                             <label class="host-settings-field" id="roadRatioField">
                                 <span data-i18n="settings.roadRatioLabel">Anteil Straßenfragen (%)</span>
                                 <input type="number" id="settingRoadQuestionRatio" min="0" max="100" step="5"
-                                    inputmode="numeric">
+                                    inputmode="numeric" onchange="debouncedSaveSettings()">
                                 <span class="field-hint">0 – 100 %</span>
                             </label>
                         </div>
                         <div class="host-settings-options">
                             <label class="host-settings-toggle">
-                                <input type="checkbox" id="settingAutoAdvanceAllAnswered">
+                                <input type="checkbox" id="settingAutoAdvanceAllAnswered" onchange="debouncedSaveSettings()">
                                 <span data-i18n="settings.autoAdvanceAllAnsweredLabel">Wenn alle geantwortet haben,
                                     sofort nächste Frage starten</span>
                             </label>
                             <label class="host-settings-toggle">
-                                <input type="checkbox" id="settingFirstAnswerEndsRound">
+                                <input type="checkbox" id="settingFirstAnswerEndsRound" onchange="debouncedSaveSettings()">
                                 <span data-i18n="settings.firstAnswerEndsRoundLabel">Erste Antwort beendet die
                                     Runde</span>
                             </label>
                             <label class="host-settings-toggle">
-                                <input type="checkbox" id="settingWrongAnswerPointsOthers">
+                                <input type="checkbox" id="settingWrongAnswerPointsOthers" onchange="debouncedSaveSettings()">
                                 <span data-i18n="settings.wrongAnswerPointsOthersLabel">Falsche Antworten geben allen
                                     anderen je 1 Punkt</span>
                             </label>
                             <label class="host-settings-toggle">
-                                <input type="checkbox" id="settingKickOnDisconnect">
+                                <input type="checkbox" id="settingKickOnDisconnect" onchange="debouncedSaveSettings()">
                                 <span data-i18n="settings.kickOnDisconnectLabel">Spieler wird gekickt wenn er das Tab
                                     schließt (statt Pause)</span>
                             </label>
                             <label class="host-settings-toggle">
-                                <input type="checkbox" id="settingEnableRoadQuestions">
+                                <input type="checkbox" id="settingEnableRoadQuestions" onchange="debouncedSaveSettings()">
                                 <span data-i18n="settings.enableRoadQuestionsLabel">Straßenentfernungsfragen aktivieren</span>
                             </label>
-                        </div>
-                        <div class="host-settings-actions">
-                            <button id="saveSettingsBtn" onclick="saveGameSettings()" class="btn btn-primary"
-                                data-i18n="settings.applyButton">Einstellungen speichern</button>
                         </div>
                     </div>
                 </section>

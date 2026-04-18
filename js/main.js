@@ -1935,6 +1935,12 @@ function applyRoadQuestionControls(enabled) {
   if (ratioInput) ratioInput.disabled = !enabled;
 }
 
+let _saveSettingsTimer = null;
+function debouncedSaveSettings() {
+  clearTimeout(_saveSettingsTimer);
+  _saveSettingsTimer = setTimeout(saveGameSettings, 400);
+}
+
 function saveGameSettings() {
   if (!currentIsHost || currentGameStatus !== "waiting" || currentSettingsLocked) {
     return;
