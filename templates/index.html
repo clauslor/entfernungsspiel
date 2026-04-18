@@ -358,10 +358,23 @@
         </div>
     </div>
 
-    <!-- Captcha Modal wird dynamisch geladen -->
-    <div id="captchaContainer"></div>
+    <!-- hCaptcha Modal -->
+    <div id="captchaModal" class="captcha-modal">
+        <div class="captcha-modal-content">
+            <h2 class="captcha-title" data-i18n="captcha.title">🔒 Security Verification</h2>
+            <p class="captcha-description" data-i18n="captcha.description">Please verify that you are human:</p>
+            
+            <div id="hcaptcha-widget" class="h-captcha" data-sitekey="259e5380-5d2e-4d64-8184-ad0896de011c"></div>
+            
+            <button onclick="submitCaptcha()" class="btn btn-primary captcha-submit" data-i18n="captcha.submit">Continue</button>
+            
+            <div id="captchaError" class="captcha-error"></div>
+            <p class="captcha-info" data-i18n="captcha.info">This verification is valid for 24 hours.</p>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/ol@9.2.4/dist/ol.js"></script>
+    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
     <script src="https://cdn.jsdelivr.net/npm/proj4@2.11.0/dist/proj4.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/ol@9.2.4/proj/proj4.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/ol-mapbox-style@12.4.0/dist/olms.js"></script>

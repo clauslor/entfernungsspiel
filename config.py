@@ -34,9 +34,14 @@ class Config:
     GRAPHHOPPER_PROFILE: str = os.getenv("GRAPHHOPPER_PROFILE", "car")
     ROAD_DISTANCE_QUESTION_CHANCE: float = float(os.getenv("ROAD_DISTANCE_QUESTION_CHANCE", "1.0"))
 
+    # hCaptcha config
+    HCAPTCHA_SITE_KEY: str = os.getenv("HCAPTCHA_SITE_KEY", "259e5380-5d2e-4d64-8184-ad0896de011c")
+    HCAPTCHA_SECRET_KEY: str = os.getenv("HCAPTCHA_SECRET_KEY", "")
+    HCAPTCHA_VERIFY_URL: str = os.getenv("HCAPTCHA_VERIFY_URL", "https://hcaptcha.com/siteverify")
+
     # Admin
     ADMIN_USER: str = os.getenv("ADMIN_USER", "admin")
-    ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "admin123")
+    ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "")
 
 
 config = Config()

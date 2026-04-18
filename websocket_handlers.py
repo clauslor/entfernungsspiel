@@ -1,13 +1,15 @@
 import json
 import logging
 import asyncio
+from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 from fastapi import WebSocket
 from models import Player, GameRoom, GameConfig, GameStatus
 from game_logic import GameLogic
 from pydantic import BaseModel, ValidationError
 import uuid
-from captcha_service import CaptchaService
+import httpx
+from config import config
 from database import is_captcha_valid, save_captcha_validation, get_db, delete_expired_captcha_validations
 
 logger = logging.getLogger(__name__)
@@ -61,8 +63,8 @@ class UpdateSettingsMessage(BaseModel):
 
 
 class SubmitCaptchaMessage(BaseModel):
-    """Message for submitting captcha answer"""
-    answer: int
+    """Message for submitting hCaptcha token"""
+    hcaptcha_token: str
 
 
 class WebSocketHandler:
@@ -227,8 +229,6 @@ class WebSocketHandler:
                 await self.handle_leave_game(player_id)
             elif msg_type == "set_name":
                 await self.handle_set_name(player_id, message.data)
-            elif msg_type == "request_captcha":
-                await self.handle_request_captcha(player_id)
             elif msg_type == "submit_captcha":
                 await self.handle_submit_captcha(player_id, message.data)
             elif msg_type == "tab_leaving":
@@ -271,6 +271,14 @@ class WebSocketHandler:
     async def handle_create_game(self, player_id: str, data: Dict[str, Any]):
         """Handle game creation"""
         try:
+            db = next(get_db())
+            try:
+                if not is_captcha_valid(db, player_id):
+                    await self.send_error(player_id, "Please complete the CAPTCHA first")
+                    return
+            finally:
+                db.close()
+
             create_msg = CreateGameMessage.parse_obj(data)
             game_id = create_msg.game_id or f"game_{uuid.uuid4().hex[:8]}"
 
@@ -391,88 +399,75 @@ class WebSocketHandler:
         except ValidationError:
             await self.send_error(player_id, "Invalid game join data")
 
-    async def handle_request_captcha(self, player_id: str):
-        """Generate and send a new captcha question"""
-        try:
-            question, answer = CaptchaService.generate_captcha()
-            answer_hash = CaptchaService.hash_answer(answer)
-            
-            # Send question to player (without revealing the answer)
-            await self.send_to_player(
-                player_id,
-                {
-                    "type": "captcha_challenge",
-                    "question": question,
-                }
-            )
-            
-            # Store the question and answer hash in a session (not in DB yet, only after successful submission)
-            # We'll use player's active connections to store temporary state
-            if player_id not in self.active_connections:
-                self.active_connections[player_id] = []
-            
-            # Store in player object temporarily
-            player = self.game_room.players.get(player_id)
-            if player:
-                player._captcha_answer_hash = answer_hash
-                player._captcha_question = question
-                
-        except Exception as e:
-            logger.error("Error generating captcha: %s", e)
-            await self.send_error(player_id, "Error generating captcha")
-
     async def handle_submit_captcha(self, player_id: str, data: Dict[str, Any]):
-        """Handle captcha answer submission"""
+        """Verify an hCaptcha token and persist the validation."""
         try:
             submit_msg = SubmitCaptchaMessage.parse_obj(data)
             player = self.game_room.players.get(player_id)
-            
+
             if not player:
                 await self.send_error(player_id, "Player not found")
                 return
-            
-            # Check if answer matches
-            stored_hash = getattr(player, "_captcha_answer_hash", None)
-            if not stored_hash or not CaptchaService.verify_answer(submit_msg.answer, stored_hash):
-                await self.send_error(player_id, "Incorrect answer. Please try again.")
+
+            if not config.HCAPTCHA_SECRET_KEY:
+                logger.error("HCAPTCHA_SECRET_KEY is not configured")
+                await self.send_error(player_id, "CAPTCHA configuration is incomplete")
                 return
-            
-            # Captcha is correct - save validation to database
+
+            try:
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(
+                        config.HCAPTCHA_VERIFY_URL,
+                        data={
+                            "secret": config.HCAPTCHA_SECRET_KEY,
+                            "response": submit_msg.hcaptcha_token,
+                        },
+                        timeout=5,
+                    )
+                response.raise_for_status()
+                verification = response.json()
+            except httpx.HTTPError as exc:
+                logger.error("Error verifying hCaptcha token: %s", exc)
+                await self.send_error(player_id, "Error verifying CAPTCHA. Please try again.")
+                return
+
+            if not verification.get("success"):
+                logger.warning(
+                    "hCaptcha verification failed for %s: %s",
+                    player_id,
+                    verification.get("error-codes", []),
+                )
+                await self.send_error(player_id, "CAPTCHA verification failed. Please try again.")
+                return
+
             db = next(get_db())
             try:
-                expiry = CaptchaService.get_expiry_time()
+                delete_expired_captcha_validations(db)
+                expiry = datetime.utcnow() + timedelta(days=1)
                 save_captcha_validation(
                     db,
                     player_id,
-                    getattr(player, "_captcha_question", ""),
-                    stored_hash,
-                    expiry
+                    "hcaptcha",
+                    verification.get("challenge_ts", "verified"),
+                    expiry,
                 )
-                
-                # Clean up temporary captcha data from player
-                if hasattr(player, "_captcha_answer_hash"):
-                    delattr(player, "_captcha_answer_hash")
-                if hasattr(player, "_captcha_question"):
-                    delattr(player, "_captcha_question")
-                
-                # Send success message
+
                 await self.send_to_player(
                     player_id,
                     {
                         "type": "captcha_validated",
-                        "message": "CAPTCHA completed successfully!"
-                    }
+                        "message": "CAPTCHA verified successfully!",
+                    },
                 )
-                
             finally:
                 db.close()
-                
+
         except ValidationError as e:
             logger.error("Validation error in captcha submission: %s", e)
-            await self.send_error(player_id, "Invalid captcha answer format")
+            await self.send_error(player_id, "Invalid CAPTCHA token format")
         except Exception as e:
-            logger.error("Error processing captcha answer: %s", e)
-            await self.send_error(player_id, "Error processing captcha")
+            logger.error("Error processing captcha submission: %s", e)
+            await self.send_error(player_id, "Error processing CAPTCHA")
 
     async def handle_leave_game(self, player_id: str):
         """Handle leaving a game"""
@@ -936,7 +931,7 @@ class WebSocketHandler:
                         logger.error("Failed to send message to %s: %s", player.id, e)
 
     async def send_to_player(self, player_id: str, data: Dict[str, Any]):
-        """Send message to specific player on all connections"""
+        """Send a message to a specific player on all active connections."""
         if player_id in self.active_connections:
             for websocket in self.active_connections[player_id]:
                 try:
@@ -945,17 +940,11 @@ class WebSocketHandler:
                     logger.error("Failed to send message to %s: %s", player_id, e)
 
     async def send_error(self, player_id: str, error_message: str):
-        """Send error message to player on all connections"""
-        error_data = {"type": "error", "message": error_message}
-        if player_id in self.active_connections:
-            for websocket in self.active_connections[player_id]:
-                try:
-                    await websocket.send_text(json.dumps(error_data))
-                except Exception as e:
-                    logger.error("Failed to send error to %s: %s", player_id, e)
+        """Send an error message to a specific player."""
+        await self.send_to_player(player_id, {"type": "error", "message": error_message})
 
     async def broadcast_game_status(self, game_id: str):
-        """Broadcast current game status"""
+        """Broadcast the current game status to all players in a game."""
         status = self.game_logic.get_game_status(game_id)
         if status:
             await self.broadcast_to_game(game_id, "game_status", status)

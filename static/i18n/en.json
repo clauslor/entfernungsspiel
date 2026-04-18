@@ -229,14 +229,14 @@
   },
   "mapPlaceholder": "Map is loading for the current question.",
   "captcha": {
-    "title": "🤖 Security Check",
-    "description": "Please answer this question to continue:",
-    "placeholder": "Your answer",
-    "submit": "Submit Answer",
+    "title": "🔒 Security Verification",
+    "description": "Please verify that you are human:",
+    "placeholder": "",
+    "submit": "Continue",
     "info": "This verification is valid for 24 hours.",
-    "invalidAnswer": "Please enter a valid number.",
+    "invalidAnswer": "Please complete the CAPTCHA verification.",
     "connectionError": "Connection error. Try again later.",
-    "incorrectAnswer": "Incorrect answer. Please try again.",
+    "incorrectAnswer": "CAPTCHA verification failed. Please try again.",
     "success": "Successfully verified!"
   }
 }

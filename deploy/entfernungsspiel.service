@@ -1,0 +1,31 @@
+[Unit]
+Description=Entfernungsspiel Game Server
+Documentation=https://github.com/youruser/entfernungsspiel
+After=network.target
+
+[Service]
+Type=simple
+
+# --- Adjust these two lines to match your deployment path and user ---
+User=www-data
+WorkingDirectory=/opt/entfernungsspiel
+
+# Secrets and runtime config — copy .env.example to this path and fill in values
+EnvironmentFile=/etc/entfernungsspiel.env
+
+ExecStart=/opt/entfernungsspiel/.venv/bin/gunicorn -c gunicorn.conf.py main:app
+
+# Restart the process automatically if it exits unexpectedly
+Restart=on-failure
+RestartSec=5s
+
+# Give the process time to finish open WebSocket connections on SIGTERM
+TimeoutStopSec=30
+
+# Log to journald (view with: journalctl -u entfernungsspiel -f)
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=entfernungsspiel
+
+[Install]
+WantedBy=multi-user.target

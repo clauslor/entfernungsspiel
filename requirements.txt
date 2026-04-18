@@ -1,8 +1,10 @@
 fastapi
 uvicorn[standard]
+gunicorn
 websockets
 python-multipart
 sqlalchemy
 aiosqlite
 pydantic
 jinja2
+httpx

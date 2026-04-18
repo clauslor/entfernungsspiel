@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """Test the game API endpoints"""
-import requests
+import httpx
 import json
 
 BASE_URL = "http://localhost:8080"
@@ -13,7 +13,7 @@ print("=" * 60)
 print("\n1. Health Check")
 print("-" * 40)
 try:
-    response = requests.get(f"{BASE_URL}/health", timeout=2)
+    response = httpx.get(f"{BASE_URL}/health", timeout=2)
     if response.status_code == 200:
         data = response.json()
         print(f"✓ Server is running")
@@ -29,7 +29,7 @@ except Exception as e:
 print("\n2. City Pairs")
 print("-" * 40)
 try:
-    response = requests.get(f"{BASE_URL}/api/city-pairs", timeout=2)
+    response = httpx.get(f"{BASE_URL}/api/city-pairs", timeout=2)
     if response.status_code == 200:
         data = response.json()
         pairs = data.get('city_pairs', [])
@@ -48,7 +48,7 @@ except Exception as e:
 print("\n3. High Scores")
 print("-" * 40)
 try:
-    response = requests.get(f"{BASE_URL}/api/high-scores", timeout=2)
+    response = httpx.get(f"{BASE_URL}/api/high-scores", timeout=2)
     if response.status_code == 200:
         data = response.json()
         scores = data.get('high_scores', [])
@@ -67,7 +67,7 @@ except Exception as e:
 print("\n4. Game History")
 print("-" * 40)
 try:
-    response = requests.get(f"{BASE_URL}/api/game-history?limit=5", timeout=2)
+    response = httpx.get(f"{BASE_URL}/api/game-history?limit=5", timeout=2)
     if response.status_code == 200:
         data = response.json()
         history = data.get('game_history', [])

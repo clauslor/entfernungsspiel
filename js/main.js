@@ -939,11 +939,7 @@ function renderQuestionMap(coordinates) {
 function handleJsonMessage(msg) {
   console.log("Message received:", msg);
 
-  if (msg.type === "captcha_challenge") {
-    // Server sent a CAPTCHA question
-    displayCaptchaChallenge(msg.question);
-    showCaptchaModal();
-  } else if (msg.type === "captcha_validated") {
+  if (msg.type === "captcha_validated") {
     // CAPTCHA was successfully validated
     handleCaptchaValidated();
     appendMessage(t("captcha.success") || "CAPTCHA validated!");
@@ -1871,7 +1867,6 @@ function createGame() {
   if (!captchaValidationToken) {
     showCaptchaError(t("captcha.invalidAnswer") || "Please complete CAPTCHA first");
     showCaptchaModal();
-    requestCaptchaChallenge();
     return;
   }
 
@@ -1906,7 +1901,6 @@ function joinGame() {
   if (!captchaValidationToken) {
     showCaptchaError(t("captcha.invalidAnswer") || "Please complete CAPTCHA first");
     showCaptchaModal();
-    requestCaptchaChallenge();
     return;
   }
 

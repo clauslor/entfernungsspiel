@@ -1,154 +1,100 @@
-# Entfernungsspiel (Distance Game) v3.0
+# Entfernungsspiel
 
-A real-time multiplayer web-based distance guessing game where players can create and join multiple concurrent games.
+A real-time multiplayer distance guessing game. Players estimate the distance between German city pairs and compete to be the most accurate. Supports multiple concurrent game rooms, optional road-distance questions (via OSRM or GraphHopper), bot detection, reconnect grace periods, and a web-based admin panel.
 
-## Features
+## Tech Stack
 
-### Core Gameplay
-- **Multiple concurrent games**: Support for multiple games running simultaneously
-- **Real-time multiplayer**: WebSocket-based communication for instant gameplay
-- **Distance guessing**: Players guess distances between German city pairs
-- **Scoring system**: Closest guess wins each round
-- **Multiple rounds**: Configurable number of rounds per game
-- **Accuracy tracking**: Percentage accuracy calculation for each guess
+| Layer | Technology |
+|---|---|
+| Backend | FastAPI + Uvicorn (async Python) |
+| Database | SQLite + SQLAlchemy |
+| WebSocket | FastAPI WebSocket + asyncio |
+| Frontend | Vanilla JavaScript, OpenLayers 9, custom i18n |
+| Bot prevention | hCaptcha |
+| Routing | OSRM (default) or GraphHopper (optional) |
 
-### Enhanced Features (v3.0)
-- **Game rooms**: Players can create private game rooms or join existing ones
-- **Lobby system**: Browse and join active games
-- **Host controls**: Game hosts can configure settings and start games manually
-- **Database persistence**: SQLite database for storing game results, high scores, and city pairs
-- **Admin panel**: Web-based administration interface with authentication
-- **Dynamic city management**: Add/edit city pairs through the admin interface
-- **Comprehensive statistics**: High scores, game history, and player analytics
-- **RESTful API**: Full API for integration and data access
-- **Improved security**: Input validation, CORS configuration, and basic authentication
-- **Modular architecture**: Clean separation of concerns with proper error handling
-- **Health monitoring**: Health check endpoints for monitoring
-- **Environment configuration**: Configurable via environment variables
+## Project Structure
+
+```
+entfernungsspiel/
+├── main.py                  # FastAPI app, REST routes, auth
+├── config.py                # Environment-based configuration
+├── models.py                # Game models (GameState, Player, CityPair, GameConfig)
+├── game_logic.py            # Round flow, scoring, question assignment
+├── websocket_handlers.py    # WebSocket message routing and broadcasting
+├── database.py              # SQLAlchemy models and CRUD operations
+├── populate_db.py           # City pair seeding script
+├── requirements.txt
+├── Dockerfile
+├── templates/
+│   ├── index.html           # Main game UI (Jinja2)
+│   └── admin.html           # Admin panel
+├── js/
+│   ├── main.js              # Client-side game logic, WebSocket, OpenLayers map
+│   ├── captcha.js           # hCaptcha modal and token management
+│   └── ...
+├── css/
+│   └── style.css
+└── static/
+    └── i18n/
+        ├── de.json          # German translations
+        └── en.json          # English translations
+```
 
 ## Quick Start
 
 ### Local Development
 
-1. **Clone and setup**:
-   ```bash
-   git clone <repository-url>
-   cd entfernungsspiel
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
+```bash
+git clone <repository-url>
+cd entfernungsspiel
+python -m venv .venv
+.venv\Scripts\activate        # Windows
+# source .venv/bin/activate   # Linux/macOS
+pip install -r requirements.txt
+```
 
-2. **Run the application**:
-   ```bash
-   python main.py
-   ```
+Set the required secrets as environment variables:
 
-3. **Open in browser**:
-   - Game: http://localhost:8080
-   - Admin panel: http://localhost:8080/admin (admin/admin123)
+```bash
+# Windows
+set HCAPTCHA_SECRET_KEY=your_hcaptcha_secret_key
+set ADMIN_PASSWORD=your_admin_password
+
+# Linux/macOS
+export HCAPTCHA_SECRET_KEY=your_hcaptcha_secret_key
+export ADMIN_PASSWORD=your_admin_password
+```
+
+Then start the server:
+
+```bash
+python main.py
+```
+
+- Game: http://localhost:9000/entfernungsspiel
+- Admin panel: http://localhost:9000/entfernungsspiel/admin
 
 ### Docker
 
 ```bash
 docker build -t entfernungsspiel .
-docker run -p 8080:8080 entfernungsspiel
+docker run -p 9000:9000 \
+  -e HCAPTCHA_SECRET_KEY=your_key \
+  -e ADMIN_PASSWORD=your_password \
+  entfernungsspiel
 ```
-
-### Game Management
-- **Create games**: Players can create new game rooms with custom settings
-- **Join games**: Browse available games in the lobby and join existing ones
-- **Game isolation**: Each game runs independently with its own state and players
-- **Player management**: Players can leave games and join different ones
-- **Automatic cleanup**: Empty games are automatically removed
-
-## Architecture
-
-### Project Structure
-```
-entfernungsspiel/
-├── main.py                 # FastAPI application entry point
-├── models.py              # Data models and state management
-├── game_logic.py          # Game mechanics and logic
-├── websocket_handlers.py  # WebSocket message handling
-├── database.py            # Database operations and models
-├── config.py              # Configuration management
-├── requirements.txt       # Python dependencies
-├── Dockerfile            # Docker container configuration
-├── static/               # Static web assets
-├── templates/            # Jinja2 HTML templates
-└── .vscode/              # VS Code configuration
-```
-
-### Key Components
-
-#### Game Room Management
-- **GameRoom**: Manages multiple concurrent games and global player registry
-- **GameState**: Individual game state with status tracking (waiting, countdown, active, paused, finished)
-- **Player**: Player model with game association and connection tracking
-
-#### Game Logic
-- **GameLogic**: Handles game flow, scoring, and round management per game
-- **WebSocketHandler**: Manages real-time communication with game-specific broadcasting
-- **Database Layer**: Persistent storage for results, high scores, and city pairs
-
-#### API Endpoints
-- **WebSocket**: `/ws` - Real-time game communication
-- **REST API**:
-  - `GET /` - Main game page
-  - `GET /admin` - Admin panel (authenticated)
-  - `POST /admin` - Update game configuration
-  - `GET /api/high-scores` - Get high scores
-  - `GET /api/game-history` - Get game history
-  - `GET /api/city-pairs` - Get city pairs
-  - `POST /api/city-pairs` - Add city pair (admin)
-  - `GET /health` - Health check
-
-### Health Check
-The health check endpoint provides server status and multi-game metrics:
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "timestamp": "2024-01-15T10:30:00Z",
-  "version": "1.0.0",
-  "games": {
-    "active": 3,
-    "waiting": 2,
-    "total_players": 15,
-    "finished_today": 42
-  },
-  "database": {
-    "status": "connected",
-    "total_games": 156,
-    "total_city_pairs": 89
-  },
-  "websocket": {
-    "connections": 15,
-    "active_games": 3
-  }
-}
-```
-
-**Metrics:**
-- `games.active`: Number of currently running games
-- `games.waiting`: Number of games waiting for players to start
-- `games.total_players`: Total players across all active games
-- `games.finished_today`: Games completed today
-- `database.total_games`: Total games stored in database
-- `database.total_city_pairs`: Total city pairs available
-- `websocket.connections`: Active WebSocket connections
-- `websocket.active_games`: Games with active WebSocket connections
 
 ## Configuration
 
-### Environment Variables
+All configuration is read from environment variables. Defaults are shown below.
+
 ```bash
 # Server
 HOST=0.0.0.0
-PORT=8080
+PORT=9000
 DEBUG=false
+ROOT_PATH=/entfernungsspiel
 
 # Database
 DATABASE_URL=sqlite:///./highscores.db
@@ -156,211 +102,248 @@ DATABASE_URL=sqlite:///./highscores.db
 # CORS
 ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 
-# Game defaults
-DEFAULT_MAX_ROUNDS=5
+# Game defaults (configurable per game and via admin panel)
+DEFAULT_MAX_ROUNDS=1
 DEFAULT_COUNTDOWN=3
 DEFAULT_ANSWER_TIME=15
 DEFAULT_PAUSE_BETWEEN_ROUNDS=3
+DEFAULT_ENABLE_ROAD_QUESTIONS=true
+DEFAULT_ROAD_QUESTION_RATIO_PERCENT=50
 
 # Logging
 LOG_LEVEL=INFO
 LOG_FILE=server.log
 
-# Routing provider (for road-distance questions)
-# osrm (free, no API key) | graphhopper | auto
+# Routing (for road-distance questions)
+# Options: osrm (free, no key required) | graphhopper
 ROUTING_PROVIDER=osrm
 OSRM_BASE_URL=https://router.project-osrm.org
 GRAPHHOPPER_API_KEY=
 GRAPHHOPPER_PROFILE=car
 ROAD_DISTANCE_QUESTION_CHANCE=1.0
+
+# hCaptcha — obtain keys at https://dashboard.hcaptcha.com
+HCAPTCHA_SITE_KEY=259e5380-5d2e-4d64-8184-ad0896de011c  # public, already set
+HCAPTCHA_SECRET_KEY=                                       # required — set via env
+HCAPTCHA_VERIFY_URL=https://hcaptcha.com/siteverify
+
+# Admin panel (HTTP Basic Auth)
+ADMIN_USER=admin
+ADMIN_PASSWORD=                                            # required — set via env
 ```
 
-### Game Configuration (Admin Panel)
-- **Max Rounds**: Number of rounds per game (1-50)
-- **Countdown**: Initial start countdown in seconds (1-60)
-- **Answer Time**: Time allowed for answers in seconds (5-300)
-- **Pause Between Rounds**: Pause duration between rounds (1-30)
+## API
 
-## API Documentation
+### REST Endpoints
 
-### WebSocket Messages
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET` | `/` | — | Main game UI |
+| `GET` | `/admin` | Basic | Admin panel |
+| `POST` | `/admin` | Basic | Update game defaults (countdown, answer time, etc.) |
+| `GET` | `/api/high-scores` | — | Top scores (`?limit=10`) |
+| `GET` | `/api/game-history` | — | Game history (`?player_name=&limit=50`) |
+| `GET` | `/api/city-pairs` | — | All city pairs |
+| `POST` | `/api/city-pairs` | Basic | Add a single city pair |
+| `POST` | `/api/city-pairs/import-csv` | Basic | Bulk import from CSV |
+| `GET` | `/api/city-pairs/suggestions` | Basic | AI-generated city pair suggestions |
+| `WebSocket` | `/ws` | — | Real-time game channel (reconnect with `?player_id=`) |
+| `GET` | `/health` | — | Health check |
 
-#### Client → Server
-```json
-// Create a new game
-{"type": "create_game", "data": {"game_id": "my_game", "config": {"max_rounds": 5}}}
+### WebSocket — Client → Server
 
-// Join an existing game
-{"type": "join_game", "data": {"game_id": "existing_game"}}
+| Message type | Description |
+|---|---|
+| `submit_captcha` | Submit hCaptcha token for verification |
+| `create_game` | Create a new game room (optional config) |
+| `join_game` | Join an existing game by ID and optional PIN |
+| `leave_game` | Leave the current game |
+| `set_name` | Set display name |
+| `set_ready` | Toggle ready status |
+| `update_settings` | Host updates game config |
+| `lock_settings` | Host locks settings before countdown |
+| `kick_player` | Host kicks a player |
+| `start_warmup` | Host starts a non-scoring practice round |
+| `start_game` | Host starts the actual game |
+| `submit_answer` | Submit a distance guess in km (0–3000) |
+| `tab_leaving` | Notify that the browser tab is closing |
+| `tab_active` | Notify that the tab is active again |
 
-// Leave current game
-{"type": "leave_game"}
+### WebSocket — Server → Client
 
-// Set player name
-{"type": "set_name", "data": {"name": "PlayerName"}}
+| Message type | Description |
+|---|---|
+| `session_restored` | Session resumed after reconnect |
+| `lobby_info` | List of open games in the lobby |
+| `game_created` | Game created (includes PIN) |
+| `game_joined` | Joined game successfully |
+| `game_info` | Full game state snapshot |
+| `players_update` | Player list changed |
+| `game_left` | Confirmation of leaving a game |
+| `countdown_started` | Countdown phase started |
+| `warmup_started` | Warmup round started |
+| `warmup_result` | Warmup round results |
+| `new_question` | New round question (cities, coordinates, variant, time limit) |
+| `answer_submission_acknowledged` | Guess received by server |
+| `answer_locked_for_round` | Answer window closed |
+| `question_result` | Round result (correct distance, winner, all submissions) |
+| `game_finished` | Game ended (final scores, winner) |
+| `game_paused` | Game paused (e.g. player disconnected) |
+| `game_resumed` | Game resumed |
+| `player_tab_left` | Player disconnected, grace period active |
+| `bot_suspected` | Host notified of suspicious player (bot detection) |
+| `error` | Error message |
 
-// Set ready status
-{"type": "set_ready", "data": {"ready": true}}
+## Game Mechanics
 
-// Submit answer
-{"type": "submit_answer", "data": {"guess": 250}}
+### Round Flow
 
-// Start game (host only)
-{"type": "start_game"}
-```
+1. **Waiting** — Host configures the game; players set their name and ready up.
+2. **Countdown** — Short countdown before the question appears.
+3. **Active** — Question displayed; players submit their guess in km. A map shows city locations.
+4. **Pause** — Brief pause to show results before the next round.
+5. **Finished** — Final scores and winner announced.
 
-#### Server → Client
-```json
-// Lobby information
-{"type": "lobby_info", "active_games": [...], "player_name": "Player1"}
+### Question Variants
 
-// Game created successfully
-{"type": "game_created", "game_id": "game_123"}
+- **Air-line** (default): Great-circle distance between city centers.
+- **Road** (optional): Actual driving distance via OSRM or GraphHopper, with route visualization on the map. Ratio is configurable (default 50%).
 
-// Game joined successfully
-{"type": "game_joined", "game_id": "game_123"}
+### Scoring Options
 
-// Game information
-{"type": "game_info", "game_id": "game_123", "config": {...}, "players": [...], "is_host": true}
+Configured per game by the host:
 
-// Player joined/left game
-{"type": "player_joined", "player": "Alice"}
-{"type": "player_left", "player": "Bob"}
+| Option | Effect |
+|---|---|
+| Default | Closest guess wins 1 point per round |
+| `first_answer_ends_round` | Round ends immediately when the first answer arrives |
+| `auto_advance_on_all_answers` | Skip the pause if all players have answered |
+| `wrong_answer_points_others` | Non-answerers receive +1 if someone answers incorrectly |
 
-// Player updated
-{"type": "player_updated", "player_id": "player_123", "name": "NewName"}
+### Bot Detection
 
-// Ready status changed
-{"type": "player_ready_changed", "player_id": "player_123", "ready": true}
+Each player accumulates a suspicion score. At ≥ 6 points the host receives a `bot_suspected` notification:
 
-// Game starting countdown
-{"type": "game_starting", "countdown": 3}
+- Answer submitted < 300 ms after question: +2
+- Same guess 3+ rounds in a row: +1
+- Mean latency < 1500 ms and standard deviation < 120 ms: +2
 
-// Game countdown
-{"type": "countdown", "value": 3}
+### Reconnect Grace Period
 
-// Game started
-{"type": "game_started"}
+Players who disconnect have a 12-second window to reconnect. The game is paused during this window and automatically resumes when the player returns.
 
-// New question
-{"type": "new_question", "round": 1, "max_rounds": 5, "cities": ["Berlin", "Hamburg"], "question": "..."}
+## Admin Panel
 
-// Answer received confirmation
-{"type": "answer_received"}
+Access at `/admin` with HTTP Basic Auth (`ADMIN_USER` / `ADMIN_PASSWORD`).
 
-// Score update
-{"type": "score_update", "scores": {"Alice": 1}, "high_score": 1}
+- **Game defaults**: rounds, countdown, answer time, pause duration
+- **City pair management**: add single pair, bulk CSV import (columns: `city1, city2, distance, lat1, lon1, lat2, lon2`), AI-generated suggestions from a German city catalog filtered by population and distance
+- **Analytics**: high scores leaderboard, per-game history with accuracy percentages
 
-// Error message
-{"type": "error", "message": "Invalid input"}
-```
+## Database Schema
 
-### REST API Examples
+| Table | Purpose |
+|---|---|
+| `city_pairs` | Game questions (city names, coordinates, distance) |
+| `route_distance_cache` | Cached road distances per provider/profile |
+| `route_points_cache` | Cached route coordinates for map display |
+| `game_results` | Per-round submissions (player, guess, accuracy) |
+| `high_scores` | Aggregated player statistics |
+| `captcha_validations` | hCaptcha tokens with expiry (24 h TTL) |
 
-#### Get High Scores
+The database is initialised automatically on first startup. To reset:
+
 ```bash
-curl http://localhost:8080/api/high-scores?limit=10
+del highscores.db          # Windows
+# rm highscores.db         # Linux/macOS
+python -c "from database import init_db; import asyncio; asyncio.run(init_db())"
 ```
 
-#### Get Game History
+## Production Deployment (Linux / systemd)
+
+### First-time setup
+
 ```bash
-# Get all game history
-curl http://localhost:8080/api/game-history
+# 1. Clone the repo
+sudo git clone <repository-url> /opt/entfernungsspiel
+cd /opt/entfernungsspiel
 
-# Filter by game ID
-curl http://localhost:8080/api/game-history?game_id=game_123
+# 2. Create a virtual environment and install dependencies
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
 
-# Get recent games with limit
-curl http://localhost:8080/api/game-history?limit=20
+# 3. Create the secrets file (never commit this)
+sudo cp .env.example /etc/entfernungsspiel.env
+sudo nano /etc/entfernungsspiel.env          # fill in HCAPTCHA_SECRET_KEY and ADMIN_PASSWORD
+sudo chown root:www-data /etc/entfernungsspiel.env
+sudo chmod 640 /etc/entfernungsspiel.env
 
-# Filter by date range
-curl "http://localhost:8080/api/game-history?start_date=2024-01-01&end_date=2024-01-31"
+# 4. Edit the service unit — set User= and WorkingDirectory= to match your paths
+nano deploy/entfernungsspiel.service
+
+# 5. Install and start the service
+sudo cp deploy/entfernungsspiel.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now entfernungsspiel
+
+# 6. Make the deploy script executable
+chmod +x deploy/deploy.sh
 ```
 
-#### Add City Pair (Admin)
+### Updating the server
+
+`deploy/deploy.sh` pulls the latest code and restarts the service automatically if anything changed. It also re-installs dependencies when `requirements.txt` changes.
+
 ```bash
-curl -X POST http://localhost:8080/api/city-pairs \
-  -u admin:admin123 \
-  -d "city1=Munich&city2=Vienna&distance=400"
+./deploy/deploy.sh
 ```
 
-## Development
+**Automated updates via cron** (every 5 minutes):
 
-### Running Tests
 ```bash
-# Install test dependencies
-pip install pytest pytest-asyncio
-
-# Run tests
-pytest
+crontab -e
+# add:
+*/5 * * * * /opt/entfernungsspiel/deploy/deploy.sh >> /var/log/entfernungsspiel-deploy.log 2>&1
 ```
 
-### Code Quality
+**Automated updates via git post-receive hook** (triggered on every `git push` to the server):
+
 ```bash
-# Lint code
-flake8 .
-
-# Format code
-black .
-
-# Type checking
-mypy .
+ln -s /opt/entfernungsspiel/deploy/deploy.sh /opt/entfernungsspiel/.git/hooks/post-receive
 ```
 
-### Database Management
-The application automatically initializes the database on startup. To reset the database:
+### Service management
+
 ```bash
-rm highscores.db
-python -c "from database import init_db; init_db()"
+sudo systemctl status entfernungsspiel
+sudo systemctl restart entfernungsspiel
+sudo systemctl stop entfernungsspiel
+journalctl -u entfernungsspiel -f          # live logs
 ```
 
-## Security Considerations
+### Gunicorn configuration
 
-### Production Deployment
-1. **Change default admin credentials** in `main.py`
-2. **Configure proper CORS origins** via `ALLOWED_ORIGINS`
-3. **Use environment variables** for sensitive configuration
-4. **Enable HTTPS** in production
-5. **Set up proper logging** and monitoring
-6. **Use a production database** (PostgreSQL, MySQL) instead of SQLite
+The server runs with **1 gunicorn worker** (`uvicorn.workers.UvicornWorker`). This is intentional: all game state is held in-process. Increasing `workers` in `gunicorn.conf.py` would give each worker its own isolated state, breaking multiplayer. Migrate to a shared state backend (e.g. Redis) before scaling beyond 1 worker.
 
-### Admin Authentication
-The admin panel uses HTTP Basic Authentication with hardcoded credentials. For production:
-- Implement proper user authentication
-- Use secure password hashing
-- Add role-based access control
+---
+
+## Security
+
+- **No secrets in source code.** `HCAPTCHA_SECRET_KEY` and `ADMIN_PASSWORD` must be provided via environment variables.
+- **hCaptcha** is verified server-side on every `create_game` and `join_game` request. Tokens are stored in the DB with a 24-hour expiry so verified users do not need to solve the CAPTCHA again in the same session.
+- **Admin routes** are protected with HTTP Basic Auth.
+- **CORS** origins are configurable via `ALLOWED_ORIGINS`.
+- For production: use HTTPS, set strong passwords, and consider replacing SQLite with PostgreSQL.
 
 ## Troubleshooting
 
-### Common Issues
+| Problem | Solution |
+|---|---|
+| WebSocket connection fails | Check `ALLOWED_ORIGINS`, firewall, and port settings |
+| Database error on startup | Delete `highscores.db` and let init recreate it |
+| Admin panel returns 401 | Verify `ADMIN_USER` and `ADMIN_PASSWORD` env vars are set |
+| hCaptcha not loading | Check `HCAPTCHA_SITE_KEY` in `config.py` |
+| hCaptcha verification fails | Ensure `HCAPTCHA_SECRET_KEY` env var is set correctly |
+| Road questions not working | Check `ROUTING_PROVIDER` and network access to OSRM/GraphHopper |
 
-1. **WebSocket connection fails**
-   - Check firewall settings
-   - Ensure correct port configuration
-   - Verify CORS settings
-
-2. **Database errors**
-   - Check file permissions for SQLite database
-   - Ensure database URL is correct
-   - Run database initialization
-
-3. **Admin panel not accessible**
-   - Verify admin credentials
-   - Check browser console for CORS errors
-   - Ensure templates directory exists
-
-### Logs
-Check `server.log` for detailed error information and debugging information.
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+Detailed logs are written to `server.log` (level controlled by `LOG_LEVEL`).

@@ -229,14 +229,14 @@
   },
   "mapPlaceholder": "Karte wird für die aktuelle Frage geladen.",
   "captcha": {
-    "title": "🤖 Sicherheitsprüfung",
-    "description": "Bitte beantworte diese Frage, um fortzufahren:",
-    "placeholder": "Deine Antwort",
-    "submit": "Antwort absenden",
+    "title": "🔒 Sicherheitsprüfung",
+    "description": "Bitte bestätige, dass du ein Mensch bist:",
+    "placeholder": "",
+    "submit": "Weiter",
     "info": "Diese Verifizierung ist 24 Stunden gültig.",
-    "invalidAnswer": "Bitte gib eine gültige Nummer ein.",
+    "invalidAnswer": "Bitte schließe die CAPTCHA-Prüfung ab.",
     "connectionError": "Verbindungsfehler. Versuche es später erneut.",
-    "incorrectAnswer": "Falsche Antwort. Bitte versuche es erneut.",
+    "incorrectAnswer": "CAPTCHA-Prüfung fehlgeschlagen. Bitte versuche es erneut.",
     "success": "Erfolgreich verifiziert!"
   }
 }
