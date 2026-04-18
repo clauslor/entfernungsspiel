@@ -7,7 +7,6 @@ class Config:
     HOST: str = os.getenv("HOST", "0.0.0.0")
     PORT: int = int(os.getenv("PORT", "9000"))
     DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
-    ROOT_PATH: str = os.getenv("ROOT_PATH", "/entfernungsspiel")
 
     # Database config
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./highscores.db")

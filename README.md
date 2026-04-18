@@ -94,7 +94,6 @@ All configuration is read from environment variables. Defaults are shown below.
 HOST=0.0.0.0
 PORT=9000
 DEBUG=false
-ROOT_PATH=
 
 # Database
 DATABASE_URL=sqlite:///./highscores.db
