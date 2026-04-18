@@ -1,7 +1,6 @@
 import json
 import logging
 import asyncio
-import hashlib
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 from fastapi import WebSocket
@@ -421,32 +420,6 @@ class WebSocketHandler:
                 return
 
             try:
-                masked_secret = (
-                    f"{config.HCAPTCHA_SECRET_KEY[:6]}...{config.HCAPTCHA_SECRET_KEY[-4:]}"
-                    if len(config.HCAPTCHA_SECRET_KEY) >= 12
-                    else "***"
-                )
-                sitekey_fingerprint = hashlib.sha256(
-                    config.HCAPTCHA_SITE_KEY.encode("utf-8")
-                ).hexdigest()[:12]
-                secret_fingerprint = hashlib.sha256(
-                    config.HCAPTCHA_SECRET_KEY.encode("utf-8")
-                ).hexdigest()[:12]
-                logger.warning(
-                    "hCaptcha key diagnostics for %s: sitekey_len=%s secret_len=%s sitekey_fp=%s secret_fp=%s",
-                    player_id,
-                    len(config.HCAPTCHA_SITE_KEY),
-                    len(config.HCAPTCHA_SECRET_KEY),
-                    sitekey_fingerprint,
-                    secret_fingerprint,
-                )
-                logger.info(
-                    "hCaptcha verify request for %s: sitekey=%s secret=%s token_prefix=%s",
-                    player_id,
-                    config.HCAPTCHA_SITE_KEY,
-                    masked_secret,
-                    submit_msg.hcaptcha_token[:12],
-                )
                 async with httpx.AsyncClient() as client:
                     response = await client.post(
                         config.HCAPTCHA_VERIFY_URL,
@@ -459,12 +432,6 @@ class WebSocketHandler:
                     )
                 response.raise_for_status()
                 verification = response.json()
-                # Log full hCaptcha verification payload for test diagnostics.
-                logger.info(
-                    "hCaptcha verification response for %s: %s",
-                    player_id,
-                    verification,
-                )
             except httpx.HTTPError as exc:
                 logger.error("Error verifying hCaptcha token: %s", exc)
                 await self.send_error(player_id, "Error verifying CAPTCHA. Please try again.")
