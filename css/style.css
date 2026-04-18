@@ -1086,6 +1086,56 @@ main.game-layout.lobby-mode .game-column {
     border: 1px solid var(--border-color);
 }
 
+.round-highlights {
+    display: none;
+    margin-top: 12px;
+    padding: 14px;
+    border: 1px solid rgba(245, 158, 11, 0.22);
+    border-radius: 10px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 251, 235, 0.98));
+}
+
+.round-highlights.is-visible {
+    display: block;
+}
+
+.round-highlights-title {
+    margin: 0 0 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #92400e;
+}
+
+.round-highlights-list {
+    display: grid;
+    gap: 8px;
+}
+
+.round-highlight-item {
+    display: grid;
+    gap: 2px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.round-highlight-label {
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #b45309;
+}
+
+.round-highlight-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
 .status-text {
     font-size: 1.1em;
     color: var(--text-secondary);

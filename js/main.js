@@ -1097,6 +1097,86 @@ function renderQuestionMap(coordinates) {
   }
 }
 
+function clearRoundHighlights() {
+  const panel = document.getElementById("roundHighlights");
+  const list = document.getElementById("roundHighlightsList");
+  if (list) {
+    list.innerHTML = "";
+  }
+  if (panel) {
+    panel.classList.remove("is-visible");
+  }
+}
+
+function renderRoundHighlights(msg) {
+  const panel = document.getElementById("roundHighlights");
+  const list = document.getElementById("roundHighlightsList");
+  if (!panel || !list) return;
+
+  const items = [];
+  if (msg.closest_result?.player_name) {
+    if (typeof msg.closest_result.difference_km === "number") {
+      items.push({
+        label: "Nächster dran",
+        value: `${msg.closest_result.player_name}: ${msg.closest_result.guess} km, nur ${msg.closest_result.difference_km} km daneben`,
+      });
+    } else if (typeof msg.closest_result.difference_positions === "number") {
+      items.push({
+        label: "Nächster dran",
+        value: `${msg.closest_result.player_name}: ${msg.closest_result.difference_positions} Positionsfehler`,
+      });
+    }
+  }
+
+  if (msg.biggest_miss?.player_name) {
+    if (typeof msg.biggest_miss.difference_km === "number") {
+      items.push({
+        label: "Größter Fehlschuss",
+        value: `${msg.biggest_miss.player_name}: ${msg.biggest_miss.guess} km, ${msg.biggest_miss.difference_km} km daneben`,
+      });
+    } else if (typeof msg.biggest_miss.difference_positions === "number") {
+      items.push({
+        label: "Größter Fehlschuss",
+        value: `${msg.biggest_miss.player_name}: ${msg.biggest_miss.difference_positions} Positionsfehler`,
+      });
+    }
+  }
+
+  if (msg.precision_bonus?.player_name) {
+    items.push({
+      label: "Perfekttreffer",
+      value: `${msg.precision_bonus.player_name}: +${msg.precision_bonus.points} bei nur ${msg.precision_bonus.distance_error_km} km Fehler`,
+    });
+  }
+
+  if (msg.comeback_highlight?.player_name) {
+    items.push({
+      label: "Comeback des Spiels",
+      value: `${msg.comeback_highlight.player_name}: Platz ${msg.comeback_highlight.from_rank} auf ${msg.comeback_highlight.to_rank}`,
+    });
+  }
+
+  list.innerHTML = "";
+  items.forEach((item) => {
+    const article = document.createElement("article");
+    article.className = "round-highlight-item";
+
+    const label = document.createElement("span");
+    label.className = "round-highlight-label";
+    label.textContent = item.label;
+
+    const value = document.createElement("strong");
+    value.className = "round-highlight-value";
+    value.textContent = item.value;
+
+    article.appendChild(label);
+    article.appendChild(value);
+    list.appendChild(article);
+  });
+
+  panel.classList.toggle("is-visible", items.length > 0);
+}
+
 function handleJsonMessage(msg) {
   console.log("Message received:", msg);
 
@@ -1219,6 +1299,7 @@ function handleJsonMessage(msg) {
     }
     updateUILayout();
   } else if (msg.type === "new_question") {
+    clearRoundHighlights();
     // Ensure gameplay panels are visible for every fresh round (including new game sessions)
     const inferredGameId =
       currentGameId
@@ -1360,6 +1441,7 @@ function handleJsonMessage(msg) {
     startManagedCountdown(msg.remaining_seconds);
     updateUILayout();
   } else if (msg.type === "round_result") {
+    renderRoundHighlights(msg);
     const summary = msg.standings
       .map((s) => `${s.player_name}: ${s.score} (${s.delta >= 0 ? "+" : ""}${s.delta})`)
       .join(" | ");
@@ -1404,9 +1486,27 @@ function handleJsonMessage(msg) {
       }
     }
 
+    if (msg.biggest_miss && msg.biggest_miss.player_name) {
+      if (typeof msg.biggest_miss.difference_km === "number") {
+        appendMessage(
+          `💥 Größter Fehlschuss: ${msg.biggest_miss.player_name} (${msg.biggest_miss.guess} km, ${msg.biggest_miss.difference_km} km daneben)`,
+        );
+      } else if (typeof msg.biggest_miss.difference_positions === "number") {
+        appendMessage(
+          `💥 Größter Fehlschuss: ${msg.biggest_miss.player_name} (${msg.biggest_miss.difference_positions} Positionsfehler)`,
+        );
+      }
+    }
+
     if (msg.precision_bonus && msg.precision_bonus.player_name) {
       appendMessage(
         `✨ Präzisions-Bonus: ${msg.precision_bonus.player_name} +${msg.precision_bonus.points}`,
+      );
+    }
+
+    if (msg.comeback_highlight && msg.comeback_highlight.player_name) {
+      appendMessage(
+        `🚀 Comeback des Spiels: ${msg.comeback_highlight.player_name} von Platz ${msg.comeback_highlight.from_rank} auf ${msg.comeback_highlight.to_rank}`,
       );
     }
   } else if (msg.type === "warmup_started") {

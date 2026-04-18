@@ -634,6 +634,12 @@ class GameLogic:
             return
 
         # Calculate differences and find winner
+        previous_standings = sorted(
+            game.players.values(),
+            key=lambda p: (-p.score, p.name.lower(), p.id),
+        )
+        previous_rank = {player.id: index + 1 for index, player in enumerate(previous_standings)}
+        previous_leader_score = previous_standings[0].score if previous_standings else 0
         diffs = {
             pid: (sorting_difference(answer) if is_sorting else abs(int(answer) - correct_distance))
             for pid, answer in game.answers.items()
@@ -652,7 +658,20 @@ class GameLogic:
         else:
             closest_result["guess"] = int(winner_guess)
             closest_result["difference_km"] = winner_diff_value
+        biggest_miss_id = max(diffs, key=diffs.get)
+        biggest_miss_player = game.players[biggest_miss_id]
+        biggest_miss_answer = game.answers[biggest_miss_id]
+        biggest_miss_result: Dict[str, Any] = {
+            "player_name": biggest_miss_player.name,
+        }
+        if is_sorting:
+            biggest_miss_result["difference_positions"] = diffs[biggest_miss_id]
+            biggest_miss_result["guess"] = biggest_miss_answer
+        else:
+            biggest_miss_result["difference_km"] = diffs[biggest_miss_id]
+            biggest_miss_result["guess"] = int(biggest_miss_answer)
         precision_bonus_payload: Optional[Dict[str, Any]] = None
+        comeback_payload: Optional[Dict[str, Any]] = None
         if not game.warmup_active:
             winner.score += 1
             round_deltas[winner_id] = 1
@@ -704,6 +723,33 @@ class GameLogic:
                             continue
                         other_player.score += 1
                         round_deltas[other_player.id] = round_deltas.get(other_player.id, 0) + 1
+
+            updated_standings = sorted(
+                game.players.values(),
+                key=lambda p: (-p.score, p.name.lower(), p.id),
+            )
+            updated_rank = {player.id: index + 1 for index, player in enumerate(updated_standings)}
+            best_rank_gain = 0
+            best_rank_gain_player: Optional[Player] = None
+            for player in updated_standings:
+                old_rank = previous_rank.get(player.id, updated_rank[player.id])
+                rank_gain = old_rank - updated_rank[player.id]
+                if rank_gain > best_rank_gain and round_deltas.get(player.id, 0) > 0:
+                    best_rank_gain = rank_gain
+                    best_rank_gain_player = player
+
+            if best_rank_gain_player and best_rank_gain > 0:
+                trailing_before = previous_leader_score - next(
+                    (p.score for p in previous_standings if p.id == best_rank_gain_player.id),
+                    previous_leader_score,
+                )
+                comeback_payload = {
+                    "player_name": best_rank_gain_player.name,
+                    "rank_gain": best_rank_gain,
+                    "from_rank": previous_rank[best_rank_gain_player.id],
+                    "to_rank": updated_rank[best_rank_gain_player.id],
+                    "points_behind_before": trailing_before,
+                }
 
         round_review = {
             "round": game.current_round,
@@ -788,7 +834,9 @@ class GameLogic:
                     "correct_distance": correct_distance if not is_sorting else None,
                     "correct_order": correct_order if is_sorting else None,
                     "closest_result": closest_result,
+                    "biggest_miss": biggest_miss_result,
                     "precision_bonus": precision_bonus_payload,
+                    "comeback_highlight": comeback_payload,
                     "bonus_events": bonus_events,
                     "standings": [
                         {
