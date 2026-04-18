@@ -2080,9 +2080,17 @@ function createGame() {
   }
 
   const storedSettings = getStoredCreatorSettings();
+  const sanitizedSettings = storedSettings && typeof storedSettings === "object"
+    ? { ...storedSettings }
+    : null;
+  if (sanitizedSettings) {
+    // Keep server-side sorting defaults authoritative for new games.
+    delete sanitizedSettings.enable_sorting_questions;
+    delete sanitizedSettings.sorting_question_ratio_percent;
+  }
   const message = {
     type: "create_game",
-    data: storedSettings ? { config: storedSettings } : {},
+    data: sanitizedSettings ? { config: sanitizedSettings } : {},
   };
   sendMessage(message);
   appendMessage(t("messages.creatingGame"));
