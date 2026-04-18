@@ -110,13 +110,20 @@
                         </div>
                     </div>
                     <div id="gamePhase">
-                        <p class="player-info"><span data-i18n="playerSetup.player">Player</span>: <strong
-                                id="currentPlayerName"></strong></p>
-                        <div class="input-group">
-                            <input type="text" id="playerNameEdit" class="input-field" data-i18n="playerSetup.enterName"
-                                placeholder="Enter your name">
-                            <button onclick="setPlayerName('playerNameEdit')" class="btn btn-secondary"
-                                data-i18n="playerSetup.setName">Set Name</button>
+                        <div class="player-info-row">
+                            <p class="player-info"><span data-i18n="playerSetup.player">Player</span>: <strong
+                                    id="currentPlayerName"></strong></p>
+                            <button id="editPlayerNameBtn" type="button" class="name-edit-icon-btn" onclick="toggleNameEditMode(true)"
+                                title="Namen bearbeiten" aria-label="Namen bearbeiten">&#9998;</button>
+                        </div>
+                        <div id="playerNameEditControls" class="name-edit-controls">
+                            <div class="input-group">
+                                <input type="text" id="playerNameEdit" class="input-field" data-i18n="playerSetup.enterName"
+                                    placeholder="Enter your name">
+                                <button onclick="setPlayerName('playerNameEdit')" class="btn btn-secondary"
+                                    data-i18n="playerSetup.setName">Set Name</button>
+                                <button type="button" class="btn btn-secondary" onclick="toggleNameEditMode(false)">Cancel</button>
+                            </div>
                         </div>
                         <div id="lobbyControls">
                             <div class="button-group">

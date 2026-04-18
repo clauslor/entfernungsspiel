@@ -209,6 +209,42 @@ main.game-layout.lobby-mode .game-column {
     display: none;
 }
 
+.player-info-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.name-edit-icon-btn {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: #ffffff;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 0.95rem;
+    line-height: 1;
+}
+
+.name-edit-icon-btn:hover {
+    background: #f1f5f9;
+}
+
+.name-edit-controls {
+    display: none;
+    margin-bottom: 12px;
+}
+
+.name-edit-controls.is-open {
+    display: block;
+}
+
 #joinGameForm {
     display: none;
 }

@@ -141,6 +141,8 @@ function updateUILayout() {
   const playersCard = document.getElementById("playersCard");
   const answerCard = document.getElementById("answerCard");
   const questionCard = document.getElementById("questionCard");
+  const editNameBtn = document.getElementById("editPlayerNameBtn");
+  const editNameControls = document.getElementById("playerNameEditControls");
 
   if (layout) {
     layout.classList.toggle("lobby-mode", !inGame);
@@ -175,6 +177,16 @@ function updateUILayout() {
 
   if (questionCard) {
     questionCard.style.display = roundActive ? "block" : "none";
+  }
+
+  if (editNameBtn) {
+    editNameBtn.style.display = inGame ? "none" : "inline-flex";
+  }
+  if (editNameControls) {
+    if (inGame) {
+      editNameControls.classList.remove("is-open");
+    }
+    editNameControls.style.display = inGame ? "none" : "";
   }
 
   if (roundActive) {
@@ -1798,6 +1810,19 @@ function syncPlayerNameUI(name) {
   if (currentNameLabel) currentNameLabel.textContent = normalizedName;
 }
 
+function toggleNameEditMode(open) {
+  if (currentGameId) return;
+  const controls = document.getElementById("playerNameEditControls");
+  if (!controls) return;
+
+  const shouldOpen = typeof open === "boolean" ? open : !controls.classList.contains("is-open");
+  controls.classList.toggle("is-open", shouldOpen);
+
+  if (shouldOpen) {
+    focusAndSelect("playerNameEdit");
+  }
+}
+
 function registerKeyboardUX() {
   const playerNameInput = document.getElementById("playerName");
   const playerNameEditInput = document.getElementById("playerNameEdit");
@@ -1818,6 +1843,9 @@ function registerKeyboardUX() {
       if (event.key === "Enter") {
         event.preventDefault();
         setPlayerName("playerNameEdit");
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        toggleNameEditMode(false);
       }
     });
   }
@@ -1866,7 +1894,11 @@ function registerKeyboardUX() {
     if (key === "n") {
       event.preventDefault();
       const setupPhaseVisible = document.getElementById("setupPhase")?.style.display !== "none";
-      focusAndSelect(setupPhaseVisible ? "playerName" : "playerNameEdit");
+      if (setupPhaseVisible) {
+        focusAndSelect("playerName");
+      } else if (!currentGameId) {
+        toggleNameEditMode(true);
+      }
     } else if (key === "j") {
       event.preventDefault();
       if (document.getElementById("gamePhase")?.style.display !== "none") {
@@ -1900,6 +1932,9 @@ function setPlayerName(inputId = "playerName") {
   // Show game phase UI
   document.getElementById("setupPhase").style.display = "none";
   document.getElementById("gamePhase").style.display = "block";
+  if (inputId === "playerNameEdit") {
+    toggleNameEditMode(false);
+  }
   syncPlayerNameUI(playerName);
   updateUILayout();
 }
