@@ -1,0 +1,42 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: SSH Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+            cd /opt/entfernungsspiel
+
+            BEFORE=$(git rev-parse HEAD)
+            git pull --ff-only
+            AFTER=$(git rev-parse HEAD)
+
+            if [ "$BEFORE" = "$AFTER" ]; then
+              echo "Already up to date."
+              exit 0
+            fi
+
+            echo "Deployed $BEFORE -> $AFTER"
+
+            if git diff --name-only "$BEFORE" "$AFTER" | grep -q "requirements.txt"; then
+              echo "Installing updated dependencies..."
+              .venv/bin/pip install --quiet -r requirements.txt
+            fi
+
+            sudo systemctl restart entfernungsspiel
+            echo "Service restarted successfully."
