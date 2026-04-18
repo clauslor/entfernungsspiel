@@ -85,12 +85,12 @@ class WebSocketHandler:
     def _generate_friendly_game_id(self) -> str:
         """Create a short, memorable game code that is less technical than UUIDs."""
         adjectives = [
-            "bunte", "flotte", "kluge", "schnelle", "leise", "helle", "starke", "freie",
-            "wilde", "coole", "goldene", "mutige", "ruhige", "suesse", "tapfere", "frohe",
+            "weite", "windige", "stille", "goldene", "nordische", "suedliche", "klare", "ferne",
+            "wilde", "sanfte", "helle", "ruhige", "schnelle", "raue", "tiefe", "gruene",
         ]
         nouns = [
-            "fuechse", "wolken", "sterne", "wellen", "pinguine", "raketen", "berge", "inseln",
-            "kompasse", "laternen", "piraten", "delfine", "fohlen", "drachen", "luchse", "falken",
+            "berge", "kuesten", "taeler", "inseln", "wellen", "fluesse", "haefen", "kompasse",
+            "routen", "karten", "pfaade", "horizonte", "duenen", "seen", "sterne", "gletscher",
         ]
 
         for _ in range(40):
