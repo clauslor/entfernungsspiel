@@ -1,0 +1,19 @@
+[Unit]
+Description=Entfernungsspiel Beta Game Server
+After=network.target
+
+[Service]
+Type=simple
+User=lorenz
+WorkingDirectory=/opt/entfernungsspiel-beta
+EnvironmentFile=/etc/entfernungsspiel-beta.env
+ExecStart=/opt/entfernungsspiel-beta/.venv/bin/gunicorn -c gunicorn.conf.py main:app
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=entfernungsspiel-beta
+
+[Install]
+WantedBy=multi-user.target

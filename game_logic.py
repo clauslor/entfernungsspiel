@@ -1,6 +1,6 @@
 import random
 import asyncio
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Optional, Any
 from datetime import datetime
 import statistics
 from models import GameState, Player, CityPair, GameStatus, GameRoom
@@ -38,6 +38,33 @@ class GameLogic:
         ratio_pct = int(getattr(game_config, "road_question_ratio_percent", 50) or 0)
         ratio_pct = max(0, min(100, ratio_pct))
         return random.random() < (ratio_pct / 100.0)
+
+    def _should_use_sorting_variant(self, game_config) -> bool:
+        if not getattr(game_config, "enable_sorting_questions", True):
+            return False
+        ratio_pct = int(getattr(game_config, "sorting_question_ratio_percent", 20) or 0)
+        ratio_pct = max(0, min(100, ratio_pct))
+        return random.random() < (ratio_pct / 100.0)
+
+    def _build_sorting_question(self) -> CityPair:
+        numbers = random.sample(range(1, 151), 4)
+        sorting_order = random.choice(["asc", "desc"])
+        correct_order = sorted(numbers, reverse=(sorting_order == "desc"))
+        return CityPair(
+            id=-1,
+            city1="-",
+            city2="-",
+            distance=0,
+            lat1=0.0,
+            lon1=0.0,
+            lat2=0.0,
+            lon2=0.0,
+            question_id=str(uuid.uuid4().hex[:8]),
+            question_variant="sorting",
+            sorting_numbers=numbers,
+            sorting_order=sorting_order,
+            correct_order=correct_order,
+        )
 
     def _routing_provider(self) -> str:
         return (getattr(config, "ROUTING_PROVIDER", "osrm") or "osrm").strip().lower()
@@ -298,6 +325,10 @@ class GameLogic:
 
     async def _assign_random_question(self, game: GameState) -> Optional[CityPair]:
         """Load and assign a random city pair for a game."""
+        if self._should_use_sorting_variant(game.config):
+            game.current_question = self._build_sorting_question()
+            return game.current_question
+
         with SessionLocal() as db:
             city_pairs = get_city_pairs(db)
             if not city_pairs:
@@ -310,6 +341,9 @@ class GameLogic:
 
     async def _assign_random_question_for_preload(self, game: GameState) -> Optional[CityPair]:
         """Load a random city pair WITHOUT modifying game.current_question (for pre-loading)."""
+        if self._should_use_sorting_variant(game.config):
+            return self._build_sorting_question()
+
         with SessionLocal() as db:
             city_pairs = get_city_pairs(db)
             if not city_pairs:
@@ -331,6 +365,7 @@ class GameLogic:
                 return
             
             question = game.current_question
+            is_sorting = question.question_variant == "sorting"
             data = {
                 "game_id": game_id,
                 "question_id": str(question.question_id),
@@ -338,27 +373,37 @@ class GameLogic:
                 "round": game.current_round,
                 "max_rounds": game.config.max_rounds,
                 "time_limit": game.config.answer_time_seconds,
-                "cities": [question.city1, question.city2],
-                "city1": question.city1,
-                "city2": question.city2,
+                "cities": [question.city1, question.city2] if not is_sorting else [],
+                "city1": question.city1 if not is_sorting else "",
+                "city2": question.city2 if not is_sorting else "",
                 "question": (
-                    f"What is the road distance from {question.city1} to {question.city2}? (in km)"
-                    if question.question_variant == "road"
-                    else f"How far is it from {question.city1} to {question.city2}? (in km)"
+                    f"Sort the numbers in {'descending' if question.sorting_order == 'desc' else 'ascending'} order"
+                    if is_sorting
+                    else (
+                        f"What is the road distance from {question.city1} to {question.city2}? (in km)"
+                        if question.question_variant == "road"
+                        else f"How far is it from {question.city1} to {question.city2}? (in km)"
+                    )
                 ),
                 "route_points": question.route_points if question.question_variant == "road" else [],
-                "coordinates": {
-                    "from": {
-                        "name": question.city1,
-                        "lat": question.lat1,
-                        "lon": question.lon1,
-                    },
-                    "to": {
-                        "name": question.city2,
-                        "lat": question.lat2,
-                        "lon": question.lon2,
-                    },
-                },
+                "coordinates": (
+                    {
+                        "from": {
+                            "name": question.city1,
+                            "lat": question.lat1,
+                            "lon": question.lon1,
+                        },
+                        "to": {
+                            "name": question.city2,
+                            "lat": question.lat2,
+                            "lon": question.lon2,
+                        },
+                    }
+                    if not is_sorting
+                    else None
+                ),
+                "sorting_numbers": question.sorting_numbers if is_sorting else [],
+                "sorting_order": question.sorting_order if is_sorting else None,
             }
             
             # Broadcast to all players in the game
@@ -386,36 +431,71 @@ class GameLogic:
 
         await self.evaluate_answers(game_id)
 
-    async def submit_answer(self, game_id: str, player_id: str, guess: int) -> Optional[Dict]:
+    async def submit_answer(self, game_id: str, player_id: str, answer: Any) -> Optional[Dict]:
         """Submit player's answer"""
         game = self.game_room.get_game(game_id)
         if not game or game.status != GameStatus.ACTIVE or player_id not in game.players:
             return None
 
-        if guess < 0 or guess > 3000:
-            if self.ws_handler:
-                await self.ws_handler.send_error(player_id, "Guess out of allowed range (0-3000 km)")
+        question = game.current_question
+        if not question:
             return None
 
+        answer_to_store: Any
+        answer_for_history: Any
+        answer_for_response: Any
+
+        if question.question_variant == "sorting":
+            if not isinstance(answer, list) or not all(isinstance(x, int) for x in answer):
+                if self.ws_handler:
+                    await self.ws_handler.send_error(player_id, "Invalid sorting answer format")
+                return None
+
+            expected = question.sorting_numbers
+            if len(answer) != len(expected) or sorted(answer) != sorted(expected):
+                if self.ws_handler:
+                    await self.ws_handler.send_error(player_id, "Sorting answer must use each provided number exactly once")
+                return None
+
+            answer_to_store = list(answer)
+            answer_for_history = " > ".join(str(x) for x in answer)
+            answer_for_response = list(answer)
+        else:
+            try:
+                guess = int(answer)
+            except (TypeError, ValueError):
+                if self.ws_handler:
+                    await self.ws_handler.send_error(player_id, "Invalid answer format")
+                return None
+
+            if guess < 0 or guess > 3000:
+                if self.ws_handler:
+                    await self.ws_handler.send_error(player_id, "Guess out of allowed range (0-3000 km)")
+                return None
+
+            answer_to_store = guess
+            answer_for_history = guess
+            answer_for_response = guess
+
         is_first_submission = player_id not in game.answer_submissions
-        game.answers[player_id] = guess
+        game.answers[player_id] = answer_to_store
         submitted_at = datetime.now()
         game.answer_submissions[player_id] = submitted_at
         if player_id not in game.answer_submission_history:
             game.answer_submission_history[player_id] = []
         game.answer_submission_history[player_id].append(
             {
-                "guess": guess,
+                "guess": answer_for_history,
                 "submitted_at": submitted_at.isoformat(),
             }
         )
 
         latency_ms = None
-        if game.question_started_at and is_first_submission:
+        if game.question_started_at and is_first_submission and question.question_variant != "sorting":
             latency_ms = int((submitted_at - game.question_started_at).total_seconds() * 1000)
-            await self._update_bot_signals(game, player_id, guess, latency_ms)
+            await self._update_bot_signals(game, player_id, int(answer_to_store), latency_ms)
 
-        logger.info(f"Game {game_id}: Received guess from {game.players[player_id].name}: {guess} km")
+        logger.info("Game %s: Received answer from %s: %s", game_id, game.players[player_id].name, answer_for_history)
 
         should_end_after_first = game.config.first_answer_ends_round and is_first_submission
         all_players_answered = len(game.answers) >= len(game.players)
@@ -426,7 +506,7 @@ class GameLogic:
             await self.evaluate_answers(game_id)
 
         return {
-            "guess": guess,
+            "answer": answer_for_response,
             "submitted_at": submitted_at.isoformat(),
             "updated": not is_first_submission,
         }
@@ -484,17 +564,30 @@ class GameLogic:
         game.round_resolution_in_progress = True
 
         question = game.current_question
+        is_sorting = question.question_variant == "sorting"
         correct_distance = question.distance
+        correct_order = question.correct_order if is_sorting else []
+
+        def sorting_difference(answer: Any) -> int:
+            if not isinstance(answer, list) or len(answer) != len(correct_order):
+                return 10_000
+            return sum(1 for idx, value in enumerate(answer) if value != correct_order[idx])
 
         empty_round_review = {
             "round": game.current_round,
+            "question_type": question.question_variant,
             "question": (
-                f"Wie lang ist die Straßenentfernung von {question.city1} nach {question.city2}?"
-                if question.question_variant == "road"
-                else f"Wie weit ist es von {question.city1} nach {question.city2}?"
+                f"Sortiere die Zahlen {'absteigend' if question.sorting_order == 'desc' else 'aufsteigend'}"
+                if is_sorting
+                else (
+                    f"Wie lang ist die Straßenentfernung von {question.city1} nach {question.city2}?"
+                    if question.question_variant == "road"
+                    else f"Wie weit ist es von {question.city1} nach {question.city2}?"
+                )
             ),
             "cities": [question.city1, question.city2],
-            "correct_distance": correct_distance,
+            "correct_distance": correct_distance if not is_sorting else None,
+            "correct_order": correct_order if is_sorting else None,
             "winner": "Keine Antwort",
             "submissions": [
                 {
@@ -530,7 +623,10 @@ class GameLogic:
             return
 
         # Calculate differences and find winner
-        diffs = {pid: abs(guess - correct_distance) for pid, guess in game.answers.items()}
+        diffs = {
+            pid: (sorting_difference(answer) if is_sorting else abs(int(answer) - correct_distance))
+            for pid, answer in game.answers.items()
+        }
         winner_id = min(diffs, key=diffs.get)
         winner = game.players[winner_id]
         round_deltas: Dict[str, int] = {pid: 0 for pid in game.players.keys()}
@@ -550,13 +646,19 @@ class GameLogic:
 
         round_review = {
             "round": game.current_round,
+            "question_type": question.question_variant,
             "question": (
-                f"Wie lang ist die Straßenentfernung von {question.city1} nach {question.city2}?"
-                if question.question_variant == "road"
-                else f"Wie weit ist es von {question.city1} nach {question.city2}?"
+                f"Sortiere die Zahlen {'absteigend' if question.sorting_order == 'desc' else 'aufsteigend'}"
+                if is_sorting
+                else (
+                    f"Wie lang ist die Straßenentfernung von {question.city1} nach {question.city2}?"
+                    if question.question_variant == "road"
+                    else f"Wie weit ist es von {question.city1} nach {question.city2}?"
+                )
             ),
             "cities": [question.city1, question.city2],
-            "correct_distance": correct_distance,
+            "correct_distance": correct_distance if not is_sorting else None,
+            "correct_order": correct_order if is_sorting else None,
             "winner": winner.name,
             "submissions": [],
         }
@@ -575,13 +677,22 @@ class GameLogic:
 
         # Calculate and persist accuracy for every submitted answer in this round
         winner_guess = game.answers[winner_id]
-        winner_accuracy_pct = game.calculate_accuracy_percentage(winner_guess, correct_distance)
-
-        logger.info(
-            f"Game {game_id} Round {game.current_round}: {winner.name} won with guess {winner_guess} km (accuracy: {winner_accuracy_pct:.2f}%)"
+        winner_accuracy_pct = (
+            (100.0 if sorting_difference(winner_guess) == 0 else max(0.0, 100.0 - (sorting_difference(winner_guess) / max(1, len(correct_order))) * 100.0))
+            if is_sorting
+            else game.calculate_accuracy_percentage(int(winner_guess), correct_distance)
         )
 
-        if not game.warmup_active:
+        logger.info(
+            "Game %s Round %s: %s won with answer %s (accuracy: %.2f%%)",
+            game_id,
+            game.current_round,
+            winner.name,
+            winner_guess,
+            winner_accuracy_pct,
+        )
+
+        if not game.warmup_active and not is_sorting:
             with SessionLocal() as db:
                 for submitted_player_id, submitted_guess in game.answers.items():
                     submitted_player = game.players.get(submitted_player_id)
@@ -612,8 +723,10 @@ class GameLogic:
                 "round_result",
                 {
                     "round": game.current_round,
+                    "question_variant": question.question_variant,
                     "winner": winner.name,
-                    "correct_distance": correct_distance,
+                    "correct_distance": correct_distance if not is_sorting else None,
+                    "correct_order": correct_order if is_sorting else None,
                     "standings": [
                         {
                             "player_id": p.id,
@@ -645,7 +758,8 @@ class GameLogic:
                     "warmup_result",
                     {
                         "winner": winner.name,
-                        "correct_distance": correct_distance,
+                        "correct_distance": correct_distance if not is_sorting else None,
+                        "correct_order": correct_order if is_sorting else None,
                         "guess": winner_guess,
                         "message": "Warmup complete. Ready up for the real game.",
                     },
@@ -706,6 +820,8 @@ class GameLogic:
                         "avg_accuracy": round(avg_accuracy, 1)
                     }
                 else:
+                    if player.score > 0:
+                        save_high_score(db, player.name, player.score, game.current_round, 0.0)
                     # Include players with no results (0 score, no accuracy)
                     final_scores[player.name] = {
                         "score": player.score,
@@ -743,6 +859,14 @@ class GameLogic:
             ],
             "current_question": {
                 "cities": game.current_question.cities if game.current_question else None,
-                "question": f"Wie weit ist es von {game.current_question.cities[0]} nach {game.current_question.cities[1]}? (in km)" if game.current_question else None
+                "question": (
+                    f"Sortiere die Zahlen {'absteigend' if game.current_question.sorting_order == 'desc' else 'aufsteigend'}"
+                    if game.current_question and game.current_question.question_variant == "sorting"
+                    else (
+                        f"Wie weit ist es von {game.current_question.cities[0]} nach {game.current_question.cities[1]}? (in km)"
+                        if game.current_question
+                        else None
+                    )
+                )
             } if game.current_question else None
         }

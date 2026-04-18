@@ -30,6 +30,8 @@ class Config:
     DEFAULT_PAUSE_BETWEEN_ROUNDS: int = int(os.getenv("DEFAULT_PAUSE_BETWEEN_ROUNDS", "3"))
     DEFAULT_ENABLE_ROAD_QUESTIONS: bool = os.getenv("DEFAULT_ENABLE_ROAD_QUESTIONS", "true").lower() == "true"
     DEFAULT_ROAD_QUESTION_RATIO_PERCENT: int = int(os.getenv("DEFAULT_ROAD_QUESTION_RATIO_PERCENT", "50"))
+    DEFAULT_ENABLE_SORTING_QUESTIONS: bool = os.getenv("DEFAULT_ENABLE_SORTING_QUESTIONS", "true").lower() == "true"
+    DEFAULT_SORTING_QUESTION_RATIO_PERCENT: int = int(os.getenv("DEFAULT_SORTING_QUESTION_RATIO_PERCENT", "20"))
 
     # Logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")

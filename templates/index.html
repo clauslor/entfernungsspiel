@@ -59,12 +59,21 @@
                         <h2 class="card-title" data-i18n="answer.title">📍 Your Answer</h2>
                         <p class="input-hint" data-i18n="answer.shortcut">Shortcut: press <strong>G</strong> to jump
                             here, <strong>Enter</strong> to submit.</p>
-                        <div class="input-group">
+                        <div id="distanceAnswerControls" class="input-group">
                             <input type="number" id="guessInput" class="input-field guess-input"
                                 data-i18n="question.placeholder" placeholder="Distance in km" min="0"
                                 inputmode="numeric" autocomplete="off">
                             <button onclick="sendGuess()" class="btn btn-primary" id="submitGuessBtn"
                                 data-i18n="answer.submit">Submit Answer</button>
+                        </div>
+                        <div id="sortingAnswerControls" class="sorting-answer-controls">
+                            <p class="input-hint">Ordne die Zahlen per Klick in die richtige Reihenfolge.</p>
+                            <div id="sortingNumberPool" class="sorting-number-list"></div>
+                            <div id="sortingSelection" class="sorting-selection"></div>
+                            <div class="button-group sorting-action-buttons">
+                                <button onclick="submitSortingAnswer()" class="btn btn-primary" id="submitSortingBtn">Sortierung senden</button>
+                                <button onclick="resetSortingSelection()" class="btn btn-secondary" id="resetSortingBtn">Zurücksetzen</button>
+                            </div>
                         </div>
                         <div id="answerSubmissionHint" class="answer-submission-hint" aria-live="polite"></div>
                     </section>

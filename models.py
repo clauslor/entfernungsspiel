@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 from datetime import datetime
 from enum import Enum
 import uuid
@@ -26,6 +26,8 @@ class GameConfig:
     wrong_answer_points_others: bool = False
     enable_road_questions: bool = True
     road_question_ratio_percent: int = 50
+    enable_sorting_questions: bool = True
+    sorting_question_ratio_percent: int = 20
     # "pause": pause game while player is away (default); "kick": remove player immediately
     disconnect_behavior: str = "pause"
 
@@ -61,6 +63,9 @@ class CityPair:
     question_id: str
     question_variant: str = "air"
     route_points: List[Dict[str, float]] = field(default_factory=list)
+    sorting_numbers: List[int] = field(default_factory=list)
+    sorting_order: str = "asc"
+    correct_order: List[int] = field(default_factory=list)
 
     @property
     def cities(self) -> Tuple[str, str]:
@@ -82,7 +87,7 @@ class GameState:
     current_round: int = 0
     current_question: Optional[CityPair] = None
     next_question_preloaded: Optional[CityPair] = None
-    answers: Dict[str, int] = field(default_factory=dict)
+    answers: Dict[str, Any] = field(default_factory=dict)
     answer_submissions: Dict[str, datetime] = field(default_factory=dict)
     answer_submission_history: Dict[str, List[Dict]] = field(default_factory=dict)
     answer_time_remaining: int = 0

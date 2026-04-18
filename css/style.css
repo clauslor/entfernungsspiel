@@ -485,6 +485,54 @@ main.game-layout.lobby-mode .game-column {
     color: var(--danger-color);
 }
 
+.sorting-answer-controls {
+    display: none;
+}
+
+.sorting-number-list,
+.sorting-selection {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 42px;
+    padding: 8px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    background: #f8fafc;
+    margin-bottom: 10px;
+}
+
+.sorting-selection {
+    border-style: solid;
+    border-color: #94a3b8;
+}
+
+.sorting-chip {
+    min-width: 46px;
+    padding: 8px 12px;
+    border: 1px solid #94a3b8;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #1e293b;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+}
+
+.sorting-chip:hover {
+    border-color: #64748b;
+    background: #f1f5f9;
+}
+
+.sorting-chip-selected {
+    border-color: #334155;
+    background: #e2e8f0;
+}
+
+.sorting-action-buttons {
+    margin-top: 4px;
+}
+
 .input-field:focus {
     outline: none;
     border-color: var(--primary-color);

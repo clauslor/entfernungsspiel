@@ -26,6 +26,10 @@ let guessSubmissionPending = false;
 let guessLockedForRound = false;
 let currentRoundNumber = null;
 let currentMaxRounds = null;
+let currentQuestionVariant = "air";
+let currentSortingOrder = "asc";
+let currentSortingPool = [];
+let currentSortingSelection = [];
 
 const DEFAULT_MAP_VIEW = {
   center: [51.1657, 10.4515],
@@ -488,12 +492,105 @@ function resetCountdownDisplay(labelText = t("countdown.waiting")) {
 function setGuessControlsDisabled(disabled) {
   const guessInput = document.getElementById("guessInput");
   const submitButton = document.getElementById("submitGuessBtn");
+  const submitSortingButton = document.getElementById("submitSortingBtn");
+  const resetSortingButton = document.getElementById("resetSortingBtn");
   if (guessInput) {
     guessInput.disabled = disabled;
   }
   if (submitButton) {
     submitButton.disabled = disabled;
   }
+  if (submitSortingButton) {
+    submitSortingButton.disabled = disabled;
+  }
+  if (resetSortingButton) {
+    resetSortingButton.disabled = disabled;
+  }
+}
+
+function renderSortingUI() {
+  const poolEl = document.getElementById("sortingNumberPool");
+  const selectionEl = document.getElementById("sortingSelection");
+  if (!poolEl || !selectionEl) return;
+
+  poolEl.innerHTML = "";
+  currentSortingPool.forEach((value, index) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "sorting-chip";
+    btn.textContent = String(value);
+    btn.onclick = () => {
+      currentSortingSelection.push(value);
+      currentSortingPool.splice(index, 1);
+      renderSortingUI();
+    };
+    poolEl.appendChild(btn);
+  });
+
+  selectionEl.innerHTML = "";
+  currentSortingSelection.forEach((value, index) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "sorting-chip sorting-chip-selected";
+    btn.textContent = String(value);
+    btn.onclick = () => {
+      currentSortingPool.push(value);
+      currentSortingSelection.splice(index, 1);
+      renderSortingUI();
+    };
+    selectionEl.appendChild(btn);
+  });
+}
+
+function initializeSortingQuestion(numbers, sortingOrder) {
+  currentSortingOrder = sortingOrder || "asc";
+  currentSortingPool = Array.isArray(numbers) ? numbers.slice() : [];
+  currentSortingSelection = [];
+  renderSortingUI();
+}
+
+function resetSortingSelection() {
+  currentSortingPool = currentSortingPool.concat(currentSortingSelection);
+  currentSortingSelection = [];
+  renderSortingUI();
+}
+
+function applyQuestionVariantUI(questionVariant) {
+  const distanceControls = document.getElementById("distanceAnswerControls");
+  const sortingControls = document.getElementById("sortingAnswerControls");
+  const ortsschildContainer = document.getElementById("ortsschildContainer");
+  const mapContainer = document.getElementById("mapContainer");
+
+  const isSorting = questionVariant === "sorting";
+  if (distanceControls) distanceControls.style.display = isSorting ? "none" : "flex";
+  if (sortingControls) sortingControls.style.display = isSorting ? "block" : "none";
+  if (ortsschildContainer) ortsschildContainer.style.display = isSorting ? "none" : "block";
+  if (mapContainer) mapContainer.style.display = isSorting ? "none" : "block";
+}
+
+function submitSortingAnswer() {
+  if (currentQuestionVariant !== "sorting") return;
+  if (currentSortingSelection.length === 0) return;
+
+  const expectedLength = currentSortingSelection.length + currentSortingPool.length;
+  if (currentSortingSelection.length !== expectedLength) {
+    return alert("Bitte ordne zuerst alle Zahlen ein.");
+  }
+
+  if (guessSubmissionPending || guessLockedForRound) {
+    return;
+  }
+
+  guessSubmissionPending = true;
+  setGuessControlsDisabled(true);
+  showAnswerSubmissionHint(
+    `Sortierung wird gesendet: ${currentSortingSelection.join(" > ")}`,
+    "pending",
+  );
+  sendMessage({
+    type: "submit_answer",
+    data: { sorted_numbers: currentSortingSelection.slice() },
+  });
 }
 
 function showAnswerSubmissionHint(text, variant = "pending", autoHideMs = 0) {
@@ -583,7 +680,11 @@ function renderRoundHistory(roundHistory) {
 
     const solution = document.createElement("div");
     solution.className = "round-review-solution";
-    solution.innerHTML = `✅ <strong>Richtige Antwort: ${round.correct_distance} km</strong> | 🏆 Gewinner: ${round.winner}`;
+    if (round.question_type === "sorting") {
+      solution.innerHTML = `✅ <strong>Richtige Reihenfolge: ${(round.correct_order || []).join(" > ")}</strong> | 🏆 Gewinner: ${round.winner}`;
+    } else {
+      solution.innerHTML = `✅ <strong>Richtige Antwort: ${round.correct_distance} km</strong> | 🏆 Gewinner: ${round.winner}`;
+    }
 
     card.appendChild(question);
     card.appendChild(solution);
@@ -601,7 +702,12 @@ function renderRoundHistory(roundHistory) {
       if (submission.final_guess === null || submission.final_guess === undefined) {
         finalEntry.textContent = t("gameEnd.noValidAnswer");
       } else {
-        finalEntry.textContent = `Gewertet wurde: ${submission.final_guess} km um ${formatSubmissionTime(submission.final_submitted_at)}`;
+        const finalGuessText = Array.isArray(submission.final_guess)
+          ? submission.final_guess.join(" > ")
+          : String(submission.final_guess);
+        finalEntry.textContent = round.question_type === "sorting"
+          ? `Gewertet wurde: ${finalGuessText} um ${formatSubmissionTime(submission.final_submitted_at)}`
+          : `Gewertet wurde: ${finalGuessText} km um ${formatSubmissionTime(submission.final_submitted_at)}`;
       }
 
       const logList = document.createElement("ul");
@@ -616,7 +722,9 @@ function renderRoundHistory(roundHistory) {
         receivedAnswers.forEach((answer, index) => {
           const item = document.createElement("li");
           const prefix = index === receivedAnswers.length - 1 ? "Letzte Antwort" : `Antwort ${index + 1}`;
-          item.textContent = `${prefix}: ${answer.guess} km um ${formatSubmissionTime(answer.submitted_at)}`;
+          item.textContent = round.question_type === "sorting"
+            ? `${prefix}: ${answer.guess} um ${formatSubmissionTime(answer.submitted_at)}`
+            : `${prefix}: ${answer.guess} km um ${formatSubmissionTime(answer.submitted_at)}`;
           logList.appendChild(item);
         });
       }
@@ -1101,7 +1209,10 @@ function handleJsonMessage(msg) {
 
     const cityFrom = msg.city1 || msg.cities?.[0] || msg.coordinates?.from?.name || "-";
     const cityTo = msg.city2 || msg.cities?.[1] || msg.coordinates?.to?.name || "-";
-    const questionVariant = msg.question_variant === "road" ? "road" : "air";
+    const questionVariant = msg.question_variant === "sorting"
+      ? "sorting"
+      : (msg.question_variant === "road" ? "road" : "air");
+    currentQuestionVariant = questionVariant;
     const routePoints = Array.isArray(msg.route_points)
       ? msg.route_points
         .filter((pt) => pt && Number.isFinite(Number(pt.lat)) && Number.isFinite(Number(pt.lon)))
@@ -1133,39 +1244,51 @@ function handleJsonMessage(msg) {
     updateUILayout();
 
     // Store coordinates FIRST before starting map preparation
-    if (coordinates) {
+    if (coordinates && questionVariant !== "sorting") {
       pendingQuestionCoordinates = coordinates;
       // START MAP PREPARATION IMMEDIATELY (do not wait for updateUILayout)
       queueMapPreparation();
       // Fast path: try rendering immediately; queueMapPreparation remains fallback.
       renderQuestionMap(coordinates);
+    } else if (questionVariant === "sorting") {
+      pendingQuestionCoordinates = null;
     }
 
-    // Generate localized question text depending on variant (air-line vs road distance).
-    const localizedQuestion = t(
-      questionVariant === "road" ? "question.roadDistanceTemplate" : "question.distanceTemplate",
-      {
-        city1: cityFrom,
-        city2: cityTo,
-      },
-    );
+    applyQuestionVariantUI(questionVariant);
+
+    const localizedQuestion = questionVariant === "sorting"
+      ? `Sortiere die Zahlen ${msg.sorting_order === "desc" ? "absteigend" : "aufsteigend"}: ${(msg.sorting_numbers || []).join(", ")}`
+      : t(
+        questionVariant === "road" ? "question.roadDistanceTemplate" : "question.distanceTemplate",
+        {
+          city1: cityFrom,
+          city2: cityTo,
+        },
+      );
     appendMessage(`🟡 ${t("messages.roundUpdate")} ${msg.round}/${msg.max_rounds}: ${localizedQuestion}`);
     const city1El = document.getElementById("city1");
     const city2El = document.getElementById("city2");
     const guessInputEl = document.getElementById("guessInput");
     const countdownTextEl = document.getElementById("countdownText");
 
-    if (city1El) city1El.textContent = cityFrom;
-    if (city2El) city2El.textContent = cityTo;
+    if (city1El) city1El.textContent = questionVariant === "sorting" ? "-" : cityFrom;
+    if (city2El) city2El.textContent = questionVariant === "sorting" ? "-" : cityTo;
     const questionTextEl = document.querySelector("#questionCard .question-text");
     if (questionTextEl) {
-      questionTextEl.textContent = t(
-        questionVariant === "road" ? "question.askRoadDistance" : "question.askDistance",
-      );
+      questionTextEl.textContent = questionVariant === "sorting"
+        ? `Sortiere die Zahlen ${msg.sorting_order === "desc" ? "von groß nach klein" : "von klein nach groß"}`
+        : t(
+          questionVariant === "road" ? "question.askRoadDistance" : "question.askDistance",
+        );
     }
+
+    if (questionVariant === "sorting") {
+      initializeSortingQuestion(msg.sorting_numbers || [], msg.sorting_order || "asc");
+    }
+
     if (guessInputEl) guessInputEl.value = "";
     resetAnswerSubmissionState();
-    if (guessInputEl) guessInputEl.focus();
+    if (questionVariant !== "sorting" && guessInputEl) guessInputEl.focus();
     
     if (countdownTextEl) {
       countdownTextEl.textContent = t("countdown.answerTimeRemaining");
@@ -1177,10 +1300,13 @@ function handleJsonMessage(msg) {
     guessSubmissionPending = false;
     guessLockedForRound = false;
     setGuessControlsDisabled(false);
+    const answerText = Array.isArray(msg.sorted_numbers)
+      ? msg.sorted_numbers.join(" > ")
+      : String(msg.guess ?? msg.answer ?? "-");
     showAnswerSubmissionHint(
       msg.updated
-        ? t("messages.answerUpdated", { guess: msg.guess, time: formatSubmissionTime(msg.submitted_at) })
-        : t("messages.answerRegistered", { guess: msg.guess, time: formatSubmissionTime(msg.submitted_at) }),
+        ? `Antwort aktualisiert: ${answerText} (${formatSubmissionTime(msg.submitted_at)})`
+        : `Antwort gespeichert: ${answerText} (${formatSubmissionTime(msg.submitted_at)})`,
       "success",
       2200,
     );
@@ -1209,14 +1335,20 @@ function handleJsonMessage(msg) {
     const summary = msg.standings
       .map((s) => `${s.player_name}: ${s.score} (${s.delta >= 0 ? "+" : ""}${s.delta})`)
       .join(" | ");
-    appendMessage(
-      t("messages.roundResult", {
-        round: msg.round,
-        winner: msg.winner,
-        distance: msg.correct_distance,
-        summary,
-      }),
-    );
+    if (msg.question_variant === "sorting") {
+      appendMessage(
+        `🧩 Runde ${msg.round}: ${msg.winner} gewinnt. Korrekte Reihenfolge: ${(msg.correct_order || []).join(" > ")} | ${summary}`,
+      );
+    } else {
+      appendMessage(
+        t("messages.roundResult", {
+          round: msg.round,
+          winner: msg.winner,
+          distance: msg.correct_distance,
+          summary,
+        }),
+      );
+    }
   } else if (msg.type === "warmup_started") {
     currentGameStatus = "warmup";
     appendMessage(`🔥 ${t("messages.warmupStarted")} (${msg.time_limit}s)`);
@@ -2050,6 +2182,11 @@ function backToLobby() {
 }
 
 function sendGuess() {
+  if (currentQuestionVariant === "sorting") {
+    submitSortingAnswer();
+    return;
+  }
+
   const guess = document.getElementById("guessInput").value.trim();
   if (!guess) return alert(t("messages.enterDistance"));
 
@@ -2102,6 +2239,7 @@ window.onload = () => {
     document.getElementById("gamePhase").style.display = "block";
     document.getElementById("currentPlayerName").textContent = storedName;
   }
+  applyQuestionVariantUI(currentQuestionVariant);
   resetAnswerSubmissionState();
   resetCountdownDisplay();
   updateUILayout();

@@ -29,7 +29,8 @@ class SetReadyMessage(BaseModel):
 
 
 class SubmitAnswerMessage(BaseModel):
-    guess: int
+    guess: Optional[int] = None
+    sorted_numbers: Optional[list[int]] = None
 
 
 class CreateGameMessage(BaseModel):
@@ -60,6 +61,8 @@ class UpdateSettingsMessage(BaseModel):
     wrong_answer_points_others: bool = False
     enable_road_questions: bool = True
     road_question_ratio_percent: int = 50
+    enable_sorting_questions: bool = True
+    sorting_question_ratio_percent: int = 20
 
 
 class SubmitCaptchaMessage(BaseModel):
@@ -334,6 +337,16 @@ class WebSocketHandler:
                 road_question_ratio_percent=_int_setting(
                     "road_question_ratio_percent",
                     self.default_config.road_question_ratio_percent,
+                    0,
+                    100,
+                ),
+                enable_sorting_questions=_bool_setting(
+                    "enable_sorting_questions",
+                    self.default_config.enable_sorting_questions,
+                ),
+                sorting_question_ratio_percent=_int_setting(
+                    "sorting_question_ratio_percent",
+                    self.default_config.sorting_question_ratio_percent,
                     0,
                     100,
                 ),
@@ -693,6 +706,9 @@ class WebSocketHandler:
         if not (0 <= msg.road_question_ratio_percent <= 100):
             await self.send_error(player_id, "Invalid settings values")
             return
+        if not (0 <= msg.sorting_question_ratio_percent <= 100):
+            await self.send_error(player_id, "Invalid settings values")
+            return
 
         game.config = GameConfig(
             max_rounds=msg.max_rounds,
@@ -704,6 +720,8 @@ class WebSocketHandler:
             wrong_answer_points_others=msg.wrong_answer_points_others,
             enable_road_questions=msg.enable_road_questions,
             road_question_ratio_percent=msg.road_question_ratio_percent,
+            enable_sorting_questions=msg.enable_sorting_questions,
+            sorting_question_ratio_percent=msg.sorting_question_ratio_percent,
         )
 
         await self.broadcast_players_update(game.id)
@@ -736,13 +754,27 @@ class WebSocketHandler:
             if player and player.game_id:
                 game = self.game_room.get_game(player.game_id)
                 if game and game.current_question:
-                    submission_info = await self.game_logic.submit_answer(player.game_id, player_id, answer_msg.guess)
+                    if game.current_question.question_variant == "sorting":
+                        if answer_msg.sorted_numbers is None:
+                            await self.send_error(player_id, "Invalid sorting answer format")
+                            return
+                        answer_payload = answer_msg.sorted_numbers
+                    else:
+                        if answer_msg.guess is None:
+                            await self.send_error(player_id, "Invalid answer format")
+                            return
+                        answer_payload = answer_msg.guess
+
+                    submission_info = await self.game_logic.submit_answer(player.game_id, player_id, answer_payload)
                     if submission_info:
+                        answer_value = submission_info["answer"]
                         await self.send_to_player(
                             player_id,
                             {
                                 "type": "answer_received",
-                                "guess": submission_info["guess"],
+                                "answer": answer_value,
+                                "guess": answer_value if isinstance(answer_value, int) else None,
+                                "sorted_numbers": answer_value if isinstance(answer_value, list) else None,
                                 "submitted_at": submission_info["submitted_at"],
                                 "updated": submission_info["updated"],
                             },
@@ -793,6 +825,8 @@ class WebSocketHandler:
                         "wrong_answer_points_others": game.config.wrong_answer_points_others,
                         "enable_road_questions": game.config.enable_road_questions,
                         "road_question_ratio_percent": game.config.road_question_ratio_percent,
+                        "enable_sorting_questions": game.config.enable_sorting_questions,
+                        "sorting_question_ratio_percent": game.config.sorting_question_ratio_percent,
                     }
                 },
             )
@@ -844,6 +878,8 @@ class WebSocketHandler:
                     "wrong_answer_points_others": game.config.wrong_answer_points_others,
                     "enable_road_questions": game.config.enable_road_questions,
                     "road_question_ratio_percent": game.config.road_question_ratio_percent,
+                    "enable_sorting_questions": game.config.enable_sorting_questions,
+                    "sorting_question_ratio_percent": game.config.sorting_question_ratio_percent,
                 },
                 "players": [
                     {
@@ -896,6 +932,8 @@ class WebSocketHandler:
                         "wrong_answer_points_others": game.config.wrong_answer_points_others,
                         "enable_road_questions": game.config.enable_road_questions,
                         "road_question_ratio_percent": game.config.road_question_ratio_percent,
+                        "enable_sorting_questions": game.config.enable_sorting_questions,
+                        "sorting_question_ratio_percent": game.config.sorting_question_ratio_percent,
                     },
                     "players": [
                         {
