@@ -26,11 +26,13 @@ from database import init_db, get_db, get_high_scores, get_game_history, add_cit
 from config import config
 
 # Initialize logging
-logging.basicConfig(
-    filename=config.LOG_FILE,
-    level=getattr(logging, config.LOG_LEVEL.upper()),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+log_kwargs = {
+    "level": getattr(logging, config.LOG_LEVEL.upper()),
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+}
+if config.LOG_FILE.strip():
+    log_kwargs["filename"] = config.LOG_FILE
+logging.basicConfig(**log_kwargs)
 logger = logging.getLogger(__name__)
 
 # Initialize database

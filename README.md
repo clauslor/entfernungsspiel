@@ -94,13 +94,13 @@ All configuration is read from environment variables. Defaults are shown below.
 HOST=0.0.0.0
 PORT=9000
 DEBUG=false
-ROOT_PATH=/entfernungsspiel
+ROOT_PATH=
 
 # Database
 DATABASE_URL=sqlite:///./highscores.db
 
 # CORS
-ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+ALLOWED_ORIGINS=https://entfernungsspiel.tianalorenz.de
 
 # Game defaults (configurable per game and via admin panel)
 DEFAULT_MAX_ROUNDS=1
@@ -112,7 +112,8 @@ DEFAULT_ROAD_QUESTION_RATIO_PERCENT=50
 
 # Logging
 LOG_LEVEL=INFO
-LOG_FILE=server.log
+# Leave empty to log to stdout/stderr (captured by systemd journald)
+LOG_FILE=
 
 # Routing (for road-distance questions)
 # Options: osrm (free, no key required) | graphhopper

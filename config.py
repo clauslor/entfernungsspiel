@@ -25,7 +25,8 @@ class Config:
 
     # Logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
-    LOG_FILE: str = os.getenv("LOG_FILE", "server.log")
+    # Empty LOG_FILE means logs go to stdout/stderr (recommended with systemd/journald).
+    LOG_FILE: str = os.getenv("LOG_FILE", "")
 
     # External routing (optional)
     ROUTING_PROVIDER: str = os.getenv("ROUTING_PROVIDER", "osrm")

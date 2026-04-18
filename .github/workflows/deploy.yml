@@ -20,7 +20,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -e
-            cd /opt/entfernungsspiel
+            cd /var/www/entfernungsspiel
 
             BEFORE=$(git rev-parse HEAD)
             git pull --ff-only
