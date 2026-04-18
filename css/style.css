@@ -20,6 +20,7 @@
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
     --content-max-width: 1080px;
+    --shell-max-width: 1160px;
 }
 
 * {
@@ -45,7 +46,7 @@ body {
    ======================================== */
 
 .container {
-    max-width: 1400px;
+    max-width: var(--shell-max-width);
     margin: 0 auto;
     padding: 20px;
 }
@@ -55,7 +56,8 @@ header.header {
     color: white;
     padding: 40px 20px;
     border-radius: 12px;
-    margin-bottom: 30px;
+    width: min(100%, var(--shell-max-width));
+    margin: 0 auto 30px;
     box-shadow: var(--shadow-lg);
     text-align: center;
     position: relative;
@@ -111,7 +113,7 @@ header.header {
 
 .site-footer {
     margin: 12px auto 24px;
-    max-width: 1400px;
+    max-width: var(--shell-max-width);
     padding: 0 20px;
     display: flex;
     align-items: center;
@@ -2305,6 +2307,7 @@ main.game-layout {
     display: grid;
     gap: 14px;
     align-content: start;
+    align-items: stretch;
 }
 
 .card {
@@ -2357,6 +2360,26 @@ main.game-layout.pre-round .info-column {
     gap: 14px;
 }
 
+main.game-layout.lobby-mode .info-column > .card,
+main.game-layout.pre-round .info-column > .card {
+    width: 100%;
+    max-width: none;
+    justify-self: stretch;
+}
+
+main.game-layout.lobby-mode .lobby-guide-card,
+main.game-layout.pre-round .lobby-guide-card {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.97));
+}
+
+main.game-layout.lobby-mode .lobby-guide-list,
+main.game-layout.pre-round .lobby-guide-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 18px;
+    row-gap: 8px;
+}
+
 main.game-layout.lobby-mode .game-column,
 main.game-layout.pre-round .game-column {
     display: none;
@@ -2394,6 +2417,11 @@ main.game-layout.round-active .messages-container {
     }
 
     .round-top-panels {
+        grid-template-columns: 1fr;
+    }
+
+    main.game-layout.lobby-mode .lobby-guide-list,
+    main.game-layout.pre-round .lobby-guide-list {
         grid-template-columns: 1fr;
     }
 }
