@@ -370,6 +370,9 @@ class WebSocketHandler:
                     0,
                     100,
                 ),
+                enable_speed_rounds=self.default_config.enable_speed_rounds,
+                speed_round_ratio_percent=self.default_config.speed_round_ratio_percent,
+                speed_round_time_seconds=self.default_config.speed_round_time_seconds,
             )
 
             game = self.game_room.create_game(game_id, config)
@@ -750,6 +753,9 @@ class WebSocketHandler:
                 if msg.sorting_question_ratio_percent is not None
                 else game.config.sorting_question_ratio_percent
             ),
+            enable_speed_rounds=game.config.enable_speed_rounds,
+            speed_round_ratio_percent=game.config.speed_round_ratio_percent,
+            speed_round_time_seconds=game.config.speed_round_time_seconds,
         )
 
         await self.broadcast_players_update(game.id)
@@ -855,6 +861,9 @@ class WebSocketHandler:
                         "road_question_ratio_percent": game.config.road_question_ratio_percent,
                         "enable_sorting_questions": game.config.enable_sorting_questions,
                         "sorting_question_ratio_percent": game.config.sorting_question_ratio_percent,
+                        "enable_speed_rounds": game.config.enable_speed_rounds,
+                        "speed_round_ratio_percent": game.config.speed_round_ratio_percent,
+                        "speed_round_time_seconds": game.config.speed_round_time_seconds,
                     }
                 },
             )
@@ -908,6 +917,9 @@ class WebSocketHandler:
                     "road_question_ratio_percent": game.config.road_question_ratio_percent,
                     "enable_sorting_questions": game.config.enable_sorting_questions,
                     "sorting_question_ratio_percent": game.config.sorting_question_ratio_percent,
+                    "enable_speed_rounds": game.config.enable_speed_rounds,
+                    "speed_round_ratio_percent": game.config.speed_round_ratio_percent,
+                    "speed_round_time_seconds": game.config.speed_round_time_seconds,
                 },
                 "players": [
                     {
@@ -962,6 +974,9 @@ class WebSocketHandler:
                         "road_question_ratio_percent": game.config.road_question_ratio_percent,
                         "enable_sorting_questions": game.config.enable_sorting_questions,
                         "sorting_question_ratio_percent": game.config.sorting_question_ratio_percent,
+                        "enable_speed_rounds": game.config.enable_speed_rounds,
+                        "speed_round_ratio_percent": game.config.speed_round_ratio_percent,
+                        "speed_round_time_seconds": game.config.speed_round_time_seconds,
                     },
                     "players": [
                         {

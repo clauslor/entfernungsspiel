@@ -28,6 +28,9 @@ class GameConfig:
     road_question_ratio_percent: int = 50
     enable_sorting_questions: bool = True
     sorting_question_ratio_percent: int = 20
+    enable_speed_rounds: bool = True
+    speed_round_ratio_percent: int = 15
+    speed_round_time_seconds: int = 8
     # "pause": pause game while player is away (default); "kick": remove player immediately
     disconnect_behavior: str = "pause"
 
@@ -67,6 +70,7 @@ class CityPair:
     sorting_numbers: List[int] = field(default_factory=list)
     sorting_order: str = "asc"
     correct_order: List[int] = field(default_factory=list)
+    speed_round: bool = False
 
     @property
     def cities(self) -> Tuple[str, str]:

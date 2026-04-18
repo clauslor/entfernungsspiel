@@ -1402,6 +1402,14 @@ function handleJsonMessage(msg) {
     if (countdownTextEl) {
       countdownTextEl.textContent = t("countdown.answerTimeRemaining");
     }
+
+    // Speed Round indicator
+    const speedBanner = document.getElementById("speedRoundBanner");
+    const countdownCard = document.getElementById("countdownCard");
+    const isSpeedRound = msg.speed_round === true;
+    if (speedBanner) speedBanner.hidden = !isSpeedRound;
+    if (countdownCard) countdownCard.classList.toggle("speed-round-active", isSpeedRound);
+
     startManagedCountdown(msg.time_limit);
   } else if (msg.type === "game_status") {
     appendMessage(t("messages.statusValue", { status: msg.status }));

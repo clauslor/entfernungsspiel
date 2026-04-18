@@ -39,6 +39,13 @@ class GameLogic:
         ratio_pct = max(0, min(100, ratio_pct))
         return random.random() < (ratio_pct / 100.0)
 
+    def _should_use_speed_round(self, game_config) -> bool:
+        if not getattr(game_config, "enable_speed_rounds", True):
+            return False
+        ratio_pct = int(getattr(game_config, "speed_round_ratio_percent", 15) or 0)
+        ratio_pct = max(0, min(100, ratio_pct))
+        return random.random() < (ratio_pct / 100.0)
+
     def _should_use_sorting_variant(self, game_config) -> bool:
         enabled = bool(getattr(game_config, "enable_sorting_questions", True))
         if not enabled:
@@ -317,11 +324,18 @@ class GameLogic:
                 await self.end_game(game_id)
                 return False
 
-            game.answer_time_remaining = game.config.answer_time_seconds
+            is_speed = self._should_use_speed_round(game.config)
+            if is_speed:
+                question.speed_round = True
+                game.answer_time_remaining = game.config.speed_round_time_seconds
+            else:
+                question.speed_round = False
+                game.answer_time_remaining = game.config.answer_time_seconds
             game.question_started_at = datetime.now()
 
             logger.info(
                 f"Game {game_id}: New question: {game.current_question.cities[0]} to {game.current_question.cities[1]}, correct distance: {game.current_question.distance} km"
+                + (" [SPEED ROUND]" if is_speed else "")
             )
 
             # Broadcast the question to all players
@@ -381,9 +395,10 @@ class GameLogic:
                 "game_id": game_id,
                 "question_id": str(question.question_id),
                 "question_variant": question.question_variant,
+                "speed_round": question.speed_round,
                 "round": game.current_round,
                 "max_rounds": game.config.max_rounds,
-                "time_limit": game.config.answer_time_seconds,
+                "time_limit": game.answer_time_remaining,
                 "cities": [question.city1, question.city2] if not is_sorting else [],
                 "city1": question.city1 if not is_sorting else "",
                 "city2": question.city2 if not is_sorting else "",

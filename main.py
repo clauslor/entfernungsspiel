@@ -98,6 +98,9 @@ game_config = GameConfig(
     road_question_ratio_percent=max(0, min(100, config.DEFAULT_ROAD_QUESTION_RATIO_PERCENT)),
     enable_sorting_questions=config.DEFAULT_ENABLE_SORTING_QUESTIONS,
     sorting_question_ratio_percent=max(0, min(100, config.DEFAULT_SORTING_QUESTION_RATIO_PERCENT)),
+    enable_speed_rounds=config.DEFAULT_ENABLE_SPEED_ROUNDS,
+    speed_round_ratio_percent=max(0, min(100, config.DEFAULT_SPEED_ROUND_RATIO_PERCENT)),
+    speed_round_time_seconds=max(5, min(30, config.DEFAULT_SPEED_ROUND_TIME_SECONDS)),
 )  # Global configuration for admin panel and new games
 game_logic = GameLogic(game_room)
 ws_handler = WebSocketHandler(game_room, game_logic, default_config=game_config)

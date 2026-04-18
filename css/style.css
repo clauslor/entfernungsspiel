@@ -1079,6 +1079,41 @@ main.game-layout.lobby-mode .game-column {
     background: linear-gradient(135deg, #ffffff 0%, #fffaeb 100%);
 }
 
+.speed-round-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 10px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    background: linear-gradient(90deg, #ef4444, #f97316);
+    color: #fff;
+    font-weight: 800;
+    font-size: 1rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    animation: speedPulse 0.6s ease-in-out infinite alternate;
+}
+
+.speed-round-banner[hidden] {
+    display: none;
+}
+
+@keyframes speedPulse {
+    from { opacity: 1; transform: scale(1); }
+    to   { opacity: 0.85; transform: scale(1.02); }
+}
+
+.countdown-card.speed-round-active {
+    border-left-color: #ef4444;
+    background: linear-gradient(135deg, #ffffff 0%, #fff1f1 100%);
+}
+
+.countdown-card.speed-round-active .countdown-timer {
+    color: #ef4444;
+}
+
 .status-display {
     padding: 20px;
     background: white;
