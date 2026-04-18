@@ -1,7 +1,7 @@
 import os
 from typing import List
 
-
+ 
 class Config:
     # Server config
     HOST: str = os.getenv("HOST", "0.0.0.0")
