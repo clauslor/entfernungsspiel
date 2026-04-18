@@ -1,6 +1,7 @@
 import json
 import logging
 import asyncio
+import random
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 from fastapi import WebSocket
@@ -80,6 +81,25 @@ class WebSocketHandler:
         # Delay final cleanup to allow fast reload reconnects.
         self.pending_disconnect_tasks: Dict[str, asyncio.Task] = {}
         self.disconnect_grace_seconds = 12
+
+    def _generate_friendly_game_id(self) -> str:
+        """Create a short, memorable game code that is less technical than UUIDs."""
+        adjectives = [
+            "bunte", "flotte", "kluge", "schnelle", "leise", "helle", "starke", "freie",
+            "wilde", "coole", "goldene", "mutige", "ruhige", "suesse", "tapfere", "frohe",
+        ]
+        nouns = [
+            "fuechse", "wolken", "sterne", "wellen", "pinguine", "raketen", "berge", "inseln",
+            "kompasse", "laternen", "piraten", "delfine", "fohlen", "drachen", "luchse", "falken",
+        ]
+
+        for _ in range(40):
+            game_id = f"{random.choice(adjectives)}-{random.choice(nouns)}-{random.randint(10, 99)}"
+            if not self.game_room.get_game(game_id):
+                return game_id
+
+        # Fallback keeps compatibility even in the unlikely case of repeated collisions.
+        return f"spiel-{uuid.uuid4().hex[:6]}"
 
     async def connect(self, websocket: WebSocket) -> str:
         """Handle new WebSocket connection"""
@@ -287,7 +307,7 @@ class WebSocketHandler:
                 db.close()
 
             create_msg = CreateGameMessage.parse_obj(data)
-            game_id = create_msg.game_id or f"game_{uuid.uuid4().hex[:8]}"
+            game_id = create_msg.game_id or self._generate_friendly_game_id()
 
             requested_config = create_msg.config or {}
 
