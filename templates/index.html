@@ -112,6 +112,12 @@
                     <div id="gamePhase">
                         <p class="player-info"><span data-i18n="playerSetup.player">Player</span>: <strong
                                 id="currentPlayerName"></strong></p>
+                        <div class="input-group">
+                            <input type="text" id="playerNameEdit" class="input-field" data-i18n="playerSetup.enterName"
+                                placeholder="Enter your name">
+                            <button onclick="setPlayerName('playerNameEdit')" class="btn btn-secondary"
+                                data-i18n="playerSetup.setName">Set Name</button>
+                        </div>
                         <div id="lobbyControls">
                             <div class="button-group">
                                 <button onclick="createGame()" class="btn btn-primary"

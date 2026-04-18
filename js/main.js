@@ -1261,9 +1261,9 @@ function handleJsonMessage(msg) {
     if (playerName) {
       localStorage.setItem(STORAGE_KEYS.PLAYER_NAME, playerName);
       localStorage.setItem(STORAGE_KEYS.PLAYER_ID, currentPlayerId);
+      syncPlayerNameUI(playerName);
       document.getElementById("setupPhase").style.display = "none";
       document.getElementById("gamePhase").style.display = "block";
-      document.getElementById("currentPlayerName").textContent = playerName;
     }
     if (msg.game_id) {
       currentGameId = msg.game_id;
@@ -1363,13 +1363,15 @@ function handleJsonMessage(msg) {
     resetCountdownDisplay(t("gameEnd.title"));
   } else if (msg.type === "name_set") {
     currentPlayerId = msg.player_id;
+    playerName = msg.name || playerName;
     localStorage.setItem(STORAGE_KEYS.PLAYER_ID, currentPlayerId);
-    localStorage.setItem(STORAGE_KEYS.PLAYER_NAME, msg.name);
+    localStorage.setItem(STORAGE_KEYS.PLAYER_NAME, playerName);
+    syncPlayerNameUI(playerName);
     if (restorePendingJoinGameId && !currentGameId) {
       joinGameById(restorePendingJoinGameId);
     }
     restorePendingJoinGameId = "";
-    appendMessage(t("messages.nameSet", { name: msg.name }));
+    appendMessage(t("messages.nameSet", { name: playerName }));
   }
 
   updateMatchHud();
@@ -1705,10 +1707,9 @@ function restoreSessionFromStorage() {
   if (!storedName) return;
 
   playerName = storedName;
-  document.getElementById("playerName").value = playerName;
+  syncPlayerNameUI(playerName);
   document.getElementById("setupPhase").style.display = "none";
   document.getElementById("gamePhase").style.display = "block";
-  document.getElementById("currentPlayerName").textContent = playerName;
 
   sendMessage({ type: "set_name", data: { name: playerName } });
   if (storedGameId) {
@@ -1786,8 +1787,20 @@ function notifyTabActive() {
   }
 }
 
+function syncPlayerNameUI(name) {
+  const normalizedName = (name || "").trim();
+  const setupInput = document.getElementById("playerName");
+  const editInput = document.getElementById("playerNameEdit");
+  const currentNameLabel = document.getElementById("currentPlayerName");
+
+  if (setupInput) setupInput.value = normalizedName;
+  if (editInput) editInput.value = normalizedName;
+  if (currentNameLabel) currentNameLabel.textContent = normalizedName;
+}
+
 function registerKeyboardUX() {
   const playerNameInput = document.getElementById("playerName");
+  const playerNameEditInput = document.getElementById("playerNameEdit");
   const gameIdInput = document.getElementById("gameIdInput");
   const guessInput = document.getElementById("guessInput");
 
@@ -1796,6 +1809,15 @@ function registerKeyboardUX() {
       if (event.key === "Enter") {
         event.preventDefault();
         setPlayerName();
+      }
+    });
+  }
+
+  if (playerNameEditInput) {
+    playerNameEditInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        setPlayerName("playerNameEdit");
       }
     });
   }
@@ -1843,7 +1865,8 @@ function registerKeyboardUX() {
     const key = event.key.toLowerCase();
     if (key === "n") {
       event.preventDefault();
-      focusAndSelect("playerName");
+      const setupPhaseVisible = document.getElementById("setupPhase")?.style.display !== "none";
+      focusAndSelect(setupPhaseVisible ? "playerName" : "playerNameEdit");
     } else if (key === "j") {
       event.preventDefault();
       if (document.getElementById("gamePhase")?.style.display !== "none") {
@@ -1858,10 +1881,11 @@ function registerKeyboardUX() {
   });
 }
 
-function setPlayerName() {
-  const nameInput = document.getElementById("playerName").value.trim();
-  if (!nameInput) return alert(t("messages.nameCannotBeEmpty"));
-  playerName = nameInput;
+function setPlayerName(inputId = "playerName") {
+  const nameInputElement = document.getElementById(inputId);
+  const newName = nameInputElement ? nameInputElement.value.trim() : "";
+  if (!newName) return alert(t("messages.nameCannotBeEmpty"));
+  playerName = newName;
   localStorage.setItem(STORAGE_KEYS.PLAYER_NAME, playerName);
 
   if (!isConnected) {
@@ -1876,7 +1900,7 @@ function setPlayerName() {
   // Show game phase UI
   document.getElementById("setupPhase").style.display = "none";
   document.getElementById("gamePhase").style.display = "block";
-  document.getElementById("currentPlayerName").textContent = playerName;
+  syncPlayerNameUI(playerName);
   updateUILayout();
 }
 
