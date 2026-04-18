@@ -227,5 +227,16 @@
     "noAnswersSent": "No answers sent.",
     "sortOrder": "Order"
   },
-  "mapPlaceholder": "Map is loading for the current question."
+  "mapPlaceholder": "Map is loading for the current question.",
+  "captcha": {
+    "title": "🤖 Security Check",
+    "description": "Please answer this question to continue:",
+    "placeholder": "Your answer",
+    "submit": "Submit Answer",
+    "info": "This verification is valid for 24 hours.",
+    "invalidAnswer": "Please enter a valid number.",
+    "connectionError": "Connection error. Try again later.",
+    "incorrectAnswer": "Incorrect answer. Please try again.",
+    "success": "Successfully verified!"
+  }
 }

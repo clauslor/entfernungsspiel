@@ -73,6 +73,17 @@ class DBHighScore(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
 
 
+class DBCaptchaValidation(Base):
+    __tablename__ = "captcha_validations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    player_id = Column(String, index=True, unique=True)
+    validated_at = Column(DateTime, default=datetime.utcnow, index=True)
+    expiry = Column(DateTime, index=True)
+    question = Column(String)
+    answer_hash = Column(String)
+
+
 def init_db():
     """Initialize database tables"""
     Base.metadata.create_all(bind=engine)
@@ -254,6 +265,85 @@ def get_game_history(db, player_name: Optional[str] = None, limit: int = 50) -> 
     if player_name:
         query = query.filter(DBGameResult.player_name == player_name)
     return query.order_by(DBGameResult.timestamp.desc()).limit(limit).all()
+
+
+# ============= CAPTCHA VALIDATION FUNCTIONS =============
+
+def is_captcha_valid(db, player_id: str) -> bool:
+    """
+    Check if a player has a valid captcha validation.
+    
+    Args:
+        db: Database session
+        player_id: Player's unique ID
+        
+    Returns:
+        True if player has a valid, non-expired captcha validation
+    """
+    validation = db.query(DBCaptchaValidation).filter(
+        DBCaptchaValidation.player_id == player_id
+    ).first()
+    
+    if not validation:
+        return False
+    
+    # Check if expired
+    if datetime.utcnow() > validation.expiry:
+        # Delete expired record
+        db.delete(validation)
+        db.commit()
+        return False
+    
+    return True
+
+
+def save_captcha_validation(db, player_id: str, question: str, answer_hash: str, expiry: datetime):
+    """
+    Save a successful captcha validation to database.
+    
+    Args:
+        db: Database session
+        player_id: Player's unique ID
+        question: The question that was answered
+        answer_hash: Hash of the correct answer
+        expiry: When this validation expires
+    """
+    # Delete any existing validation for this player
+    existing = db.query(DBCaptchaValidation).filter(
+        DBCaptchaValidation.player_id == player_id
+    ).first()
+    
+    if existing:
+        db.delete(existing)
+    
+    # Create new validation record
+    validation = DBCaptchaValidation(
+        player_id=player_id,
+        question=question,
+        answer_hash=answer_hash,
+        expiry=expiry,
+        validated_at=datetime.utcnow()
+    )
+    db.add(validation)
+    db.commit()
+    db.refresh(validation)
+    return validation
+
+
+def get_captcha_validation(db, player_id: str) -> Optional[DBCaptchaValidation]:
+    """Get captcha validation record for a player."""
+    return db.query(DBCaptchaValidation).filter(
+        DBCaptchaValidation.player_id == player_id
+    ).first()
+
+
+def delete_expired_captcha_validations(db):
+    """Clean up expired captcha validations from database."""
+    now = datetime.utcnow()
+    db.query(DBCaptchaValidation).filter(
+        DBCaptchaValidation.expiry <= now
+    ).delete()
+    db.commit()
 
 
 # Initialize default city pairs if database is empty

@@ -7,6 +7,8 @@ from models import Player, GameRoom, GameConfig, GameStatus
 from game_logic import GameLogic
 from pydantic import BaseModel, ValidationError
 import uuid
+from captcha_service import CaptchaService
+from database import is_captcha_valid, save_captcha_validation, get_db, delete_expired_captcha_validations
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +58,11 @@ class UpdateSettingsMessage(BaseModel):
     wrong_answer_points_others: bool = False
     enable_road_questions: bool = True
     road_question_ratio_percent: int = 50
+
+
+class SubmitCaptchaMessage(BaseModel):
+    """Message for submitting captcha answer"""
+    answer: int
 
 
 class WebSocketHandler:
@@ -220,6 +227,10 @@ class WebSocketHandler:
                 await self.handle_leave_game(player_id)
             elif msg_type == "set_name":
                 await self.handle_set_name(player_id, message.data)
+            elif msg_type == "request_captcha":
+                await self.handle_request_captcha(player_id)
+            elif msg_type == "submit_captcha":
+                await self.handle_submit_captcha(player_id, message.data)
             elif msg_type == "tab_leaving":
                 await self.handle_tab_leaving(player_id)
             elif msg_type == "tab_active":
@@ -336,6 +347,15 @@ class WebSocketHandler:
     async def handle_join_game(self, player_id: str, data: Dict[str, Any]):
         """Handle joining a game"""
         try:
+            # Check if player has valid captcha
+            db = next(get_db())
+            try:
+                if not is_captcha_valid(db, player_id):
+                    await self.send_error(player_id, "Please complete the CAPTCHA first")
+                    return
+            finally:
+                db.close()
+
             join_msg = JoinGameMessage.parse_obj(data)
             game_id = join_msg.game_id
 
@@ -370,6 +390,89 @@ class WebSocketHandler:
 
         except ValidationError:
             await self.send_error(player_id, "Invalid game join data")
+
+    async def handle_request_captcha(self, player_id: str):
+        """Generate and send a new captcha question"""
+        try:
+            question, answer = CaptchaService.generate_captcha()
+            answer_hash = CaptchaService.hash_answer(answer)
+            
+            # Send question to player (without revealing the answer)
+            await self.send_to_player(
+                player_id,
+                {
+                    "type": "captcha_challenge",
+                    "question": question,
+                }
+            )
+            
+            # Store the question and answer hash in a session (not in DB yet, only after successful submission)
+            # We'll use player's active connections to store temporary state
+            if player_id not in self.active_connections:
+                self.active_connections[player_id] = []
+            
+            # Store in player object temporarily
+            player = self.game_room.players.get(player_id)
+            if player:
+                player._captcha_answer_hash = answer_hash
+                player._captcha_question = question
+                
+        except Exception as e:
+            logger.error("Error generating captcha: %s", e)
+            await self.send_error(player_id, "Error generating captcha")
+
+    async def handle_submit_captcha(self, player_id: str, data: Dict[str, Any]):
+        """Handle captcha answer submission"""
+        try:
+            submit_msg = SubmitCaptchaMessage.parse_obj(data)
+            player = self.game_room.players.get(player_id)
+            
+            if not player:
+                await self.send_error(player_id, "Player not found")
+                return
+            
+            # Check if answer matches
+            stored_hash = getattr(player, "_captcha_answer_hash", None)
+            if not stored_hash or not CaptchaService.verify_answer(submit_msg.answer, stored_hash):
+                await self.send_error(player_id, "Incorrect answer. Please try again.")
+                return
+            
+            # Captcha is correct - save validation to database
+            db = next(get_db())
+            try:
+                expiry = CaptchaService.get_expiry_time()
+                save_captcha_validation(
+                    db,
+                    player_id,
+                    getattr(player, "_captcha_question", ""),
+                    stored_hash,
+                    expiry
+                )
+                
+                # Clean up temporary captcha data from player
+                if hasattr(player, "_captcha_answer_hash"):
+                    delattr(player, "_captcha_answer_hash")
+                if hasattr(player, "_captcha_question"):
+                    delattr(player, "_captcha_question")
+                
+                # Send success message
+                await self.send_to_player(
+                    player_id,
+                    {
+                        "type": "captcha_validated",
+                        "message": "CAPTCHA completed successfully!"
+                    }
+                )
+                
+            finally:
+                db.close()
+                
+        except ValidationError as e:
+            logger.error("Validation error in captcha submission: %s", e)
+            await self.send_error(player_id, "Invalid captcha answer format")
+        except Exception as e:
+            logger.error("Error processing captcha answer: %s", e)
+            await self.send_error(player_id, "Error processing captcha")
 
     async def handle_leave_game(self, player_id: str):
         """Handle leaving a game"""

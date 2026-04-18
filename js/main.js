@@ -44,6 +44,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   await initializeI18n();
   updateUILanguage();
 
+  // Initialize CAPTCHA system
+  initializeCaptcha();
+
   // Wire "Kein Zeitlimit" toggle visibility based on firstAnswerEndsRound checkbox
   const firstAnswerEl = document.getElementById("settingFirstAnswerEndsRound");
   const noTimeLimitRowEl = document.getElementById("noTimeLimitRow");
@@ -936,7 +939,22 @@ function renderQuestionMap(coordinates) {
 function handleJsonMessage(msg) {
   console.log("Message received:", msg);
 
-  if (msg.type === "lobby_info") {
+  if (msg.type === "captcha_challenge") {
+    // Server sent a CAPTCHA question
+    displayCaptchaChallenge(msg.question);
+    showCaptchaModal();
+  } else if (msg.type === "captcha_validated") {
+    // CAPTCHA was successfully validated
+    handleCaptchaValidated();
+    appendMessage(t("captcha.success") || "CAPTCHA validated!");
+  } else if (msg.type === "error") {
+    // Check if it's a captcha error
+    if (msg.message && msg.message.includes("CAPTCHA")) {
+      showCaptchaError(msg.message);
+    } else {
+      appendMessage(`❌ ${msg.message || t("messages.connectionError")}`);
+    }
+  } else if (msg.type === "lobby_info") {
     const startedGamesCounter = document.getElementById("startedGamesCounter");
     if (startedGamesCounter) {
       startedGamesCounter.textContent = String(msg.started_games_count || 0);
@@ -1849,6 +1867,14 @@ function setPlayerName() {
 }
 
 function createGame() {
+  // Check if captcha is validated
+  if (!captchaValidationToken) {
+    showCaptchaError(t("captcha.invalidAnswer") || "Please complete CAPTCHA first");
+    showCaptchaModal();
+    requestCaptchaChallenge();
+    return;
+  }
+
   const storedSettings = getStoredCreatorSettings();
   const message = {
     type: "create_game",
@@ -1876,6 +1902,14 @@ function hideJoinGame() {
 }
 
 function joinGame() {
+  // Check if captcha is validated
+  if (!captchaValidationToken) {
+    showCaptchaError(t("captcha.invalidAnswer") || "Please complete CAPTCHA first");
+    showCaptchaModal();
+    requestCaptchaChallenge();
+    return;
+  }
+
   const gameId = document.getElementById("gameIdInput").value.trim();
   const pin = document.getElementById("gamePinInput").value.trim();
   if (!gameId) return alert(t("messages.enterGameId"));
