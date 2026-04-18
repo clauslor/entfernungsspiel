@@ -19,6 +19,7 @@
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    --content-max-width: 1080px;
 }
 
 * {
@@ -65,6 +66,11 @@ header.header {
     font-weight: 700;
     margin-bottom: 10px;
     letter-spacing: -0.5px;
+}
+
+.header-content {
+    width: min(100%, var(--content-max-width));
+    margin: 0 auto;
 }
 
 .header-content p.subtitle {
@@ -2334,18 +2340,11 @@ main.game-layout.pre-round {
 
 main.game-layout.lobby-mode .info-column,
 main.game-layout.pre-round .info-column {
-    max-width: 980px;
+    max-width: var(--content-max-width);
     width: 100%;
     margin: 0 auto;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: 14px;
-}
-
-main.game-layout.lobby-mode .player-setup,
-main.game-layout.pre-round .player-setup,
-main.game-layout.lobby-mode .messages-card,
-main.game-layout.pre-round .messages-card {
-    grid-column: 1 / -1;
 }
 
 main.game-layout.lobby-mode .game-column,
