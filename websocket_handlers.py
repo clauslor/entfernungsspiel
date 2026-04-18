@@ -414,8 +414,8 @@ class WebSocketHandler:
                 await self.send_error(player_id, "Player not found")
                 return
 
-            if not config.HCAPTCHA_SECRET_KEY:
-                logger.error("HCAPTCHA_SECRET_KEY is not configured")
+            if not config.HCAPTCHA_SECRET_KEY or not config.HCAPTCHA_SITE_KEY:
+                logger.error("HCAPTCHA_SECRET_KEY or HCAPTCHA_SITE_KEY is not configured")
                 await self.send_error(player_id, "CAPTCHA configuration is incomplete")
                 return
 
