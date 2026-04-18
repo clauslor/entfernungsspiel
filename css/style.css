@@ -236,6 +236,10 @@ main.game-layout.lobby-mode .game-column {
     background: #f1f5f9;
 }
 
+.name-edit-close-btn {
+    color: #475569;
+}
+
 .name-edit-controls {
     display: none;
     margin-bottom: 12px;
