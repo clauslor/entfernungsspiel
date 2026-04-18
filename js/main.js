@@ -89,6 +89,7 @@ function connect() {
     : "";
   ws = new WebSocket(`wss://${window.location.host}/ws${playerParam}`);
   window.ws = ws;
+  console.log('WebSocket created and stored globally:', { ws_exists: !!ws, window_ws_exists: !!window.ws });
 
   ws.onmessage = (event) => {
     const data = event.data;
