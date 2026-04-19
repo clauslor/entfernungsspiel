@@ -185,7 +185,7 @@ function updateUILayout() {
     matchControls.style.display = inGame && !roundActive ? "block" : "none";
   }
   if (lobbyGuideCard) {
-    lobbyGuideCard.style.display = inGame ? "none" : "block";
+    lobbyGuideCard.style.display = inGame ? "block" : "none";
   }
 
   if (countdownCard) {
