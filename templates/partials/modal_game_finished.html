@@ -1,6 +1,6 @@
 <div id="gameFinishedModal">
     <div class="game-finished-modal-content">
-        <div class="game-finished-celebration">🎉🎉🎉</div>
+        <div class="game-finished-celebration">🎉</div>
 
         <h1 class="game-finished-title" data-i18n="gameEnd.title">Game Finished!</h1>
 
@@ -35,13 +35,20 @@
         <div class="round-review-section">
             <h3 class="round-review-title" data-i18n="gameEnd.questionsAndAnswers">🗺️ Fragen und empfangene
                 Antworten</h3>
+            <div class="round-review-mode-toggle" role="group" aria-label="Auswertungsansicht">
+                <span class="round-review-mode-label" data-i18n="gameEnd.viewModeLabel">Ansicht:</span>
+                <button id="gameEndViewSimpleBtn" type="button" class="round-review-mode-btn is-active"
+                    onclick="setGameEndViewMode('simple')" data-i18n="gameEnd.viewModeSimple">Einfach</button>
+                <button id="gameEndViewDetailsBtn" type="button" class="round-review-mode-btn"
+                    onclick="setGameEndViewMode('details')" data-i18n="gameEnd.viewModeDetails">Details</button>
+            </div>
             <div id="roundReviewList" class="round-review-list"></div>
         </div>
-        <div class="accuracy-section">
-            <h3 class="round-review-title" data-i18n="gameEnd.accuracy">🎯 Genauigkeit</h3>
+        <details class="accuracy-section accuracy-section-collapsible">
+            <summary class="round-review-title" data-i18n="gameEnd.accuracy">🎯 Genauigkeit</summary>
             <div id="accuracyFormula" class="accuracy-list" data-i18n-html="gameEnd.accuracy_formula">Die Formel ist: <math display="block" mathsize="2rem">Genauigkeit = 100 - (|Schätzung - Tatsächlich| / Tatsächlich) * 100</math></div>
             <div id="accuracyExplanations" class="accuracy-list" data-i18n="gameEnd.accuracy_explanation">Je näher die Schätzung an der tatsächlichen Entfernung liegt, desto höher ist die Genauigkeit. Eine perfekte Schätzung (0 km Unterschied) ergibt 100% Genauigkeit, während eine Schätzung, die doppelt so hoch oder niedrig wie die tatsächliche Entfernung ist, 0% Genauigkeit ergibt.</div>
-        </div>
+        </details>
 
         <div class="game-finished-actions">
             <button onclick="playAgain()" class="game-finished-btn game-finished-btn-primary"

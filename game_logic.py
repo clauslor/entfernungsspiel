@@ -953,6 +953,13 @@ class GameLogic:
                     "points_behind_before": trailing_before,
                 }
 
+        bonus_events_by_player: Dict[str, List[Dict[str, Any]]] = {}
+        for event in bonus_events:
+            player_id = event.get("player_id")
+            if not player_id:
+                continue
+            bonus_events_by_player.setdefault(player_id, []).append(event)
+
         round_review = {
             "round": game.current_round,
             "question_type": question.question_variant,
@@ -969,20 +976,97 @@ class GameLogic:
             "correct_distance": correct_distance if not is_sorting else None,
             "correct_order": correct_order if is_sorting else None,
             "winner": winner.name,
+            "closest_result": closest_result,
+            "biggest_miss": biggest_miss_result,
+            "precision_bonus": precision_bonus_payload,
+            "comeback_highlight": comeback_payload,
+            "bonus_events": bonus_events,
             "submissions": [],
         }
 
         for player in game.players.values():
             submission_events = game.answer_submission_history.get(player.id, [])
+            final_guess = game.answers.get(player.id)
+            points_earned = round_deltas.get(player.id, 0)
+
+            if final_guess is None:
+                accuracy_pct: Optional[float] = None
+            elif is_sorting:
+                guess_diff = sorting_difference(final_guess)
+                accuracy_pct = (
+                    100.0
+                    if guess_diff == 0
+                    else max(0.0, 100.0 - (guess_diff / max(1, len(correct_order))) * 100.0)
+                )
+            else:
+                accuracy_pct = game.calculate_accuracy_percentage(int(final_guess), correct_distance)
+
+            point_breakdown: List[Dict[str, Any]] = []
+            explained_points = 0
+            if not game.warmup_active and player.id == winner_id:
+                point_breakdown.append({
+                    "type": "winner_point",
+                    "label": "Rundensieg",
+                    "points": 1,
+                })
+                explained_points += 1
+
+            for event in bonus_events_by_player.get(player.id, []):
+                event_type = event.get("type")
+                points = int(event.get("points", 0))
+                if points <= 0:
+                    continue
+                explained_points += points
+                if event_type == "perfect_hit_bonus":
+                    point_breakdown.append({
+                        "type": event_type,
+                        "label": "Genauigkeitsbonus",
+                        "points": points,
+                        "distance_error_km": event.get("distance_error_km"),
+                    })
+                elif event_type == "streak_bonus":
+                    point_breakdown.append({
+                        "type": event_type,
+                        "label": "Streak-Bonus",
+                        "points": points,
+                        "streak": event.get("streak"),
+                    })
+
+            other_points = max(0, points_earned - explained_points)
+            if other_points > 0:
+                point_breakdown.append({
+                    "type": "other_miss_bonus",
+                    "label": "Bonus durch Fehlantworten anderer",
+                    "points": other_points,
+                })
+
             round_review["submissions"].append(
                 {
                     "player_id": player.id,
                     "player_name": player.name,
-                    "final_guess": game.answers.get(player.id),
+                    "final_guess": final_guess,
                     "final_submitted_at": game.answer_submissions.get(player.id).isoformat() if player.id in game.answer_submissions else None,
                     "received_answers": submission_events,
+                    "accuracy_pct": accuracy_pct,
+                    "points_earned": points_earned,
+                    "point_breakdown": point_breakdown,
                 }
             )
+
+        standings = sorted(
+            game.players.values(),
+            key=lambda p: p.score,
+            reverse=True,
+        )
+        round_review["standings"] = [
+            {
+                "player_id": p.id,
+                "player_name": p.name,
+                "score": p.score,
+                "delta": round_deltas.get(p.id, 0),
+            }
+            for p in standings
+        ]
 
         # Calculate and persist accuracy for every submitted answer in this round
         winner_accuracy_pct = (
@@ -1021,11 +1105,6 @@ class GameLogic:
                     save_game_result(db, result_data)
 
         if self.ws_handler:
-            standings = sorted(
-                game.players.values(),
-                key=lambda p: p.score,
-                reverse=True,
-            )
             await self.ws_handler.broadcast_to_game(
                 game_id,
                 "round_result",

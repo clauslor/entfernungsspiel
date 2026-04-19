@@ -244,7 +244,10 @@
     "at": "um",
     "accuracy_formula": "Die Formel ist: Genauigkeit = 100 - (|Schätzung - Tatsächlich| / Tatsächlich) * 100",
     "noAnswersSent": "Keine Antworten gesendet.",
-    "sortOrder": "Sortierung"
+    "sortOrder": "Sortierung",
+    "viewModeLabel": "Ansicht:",
+    "viewModeSimple": "Einfach",
+    "viewModeDetails": "Details"
   },
   "mapPlaceholder": "Karte wird für die aktuelle Frage geladen.",
   "captcha": {

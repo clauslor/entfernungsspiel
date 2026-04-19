@@ -244,7 +244,10 @@
     "at": "at",
     "accuracy_formula": "The formula is:    <math display='block' mathsize='2rem' >Genauigkeit = 100 - (|Schätzung - Tatsächlich| / Tatsächlich) * 100</math>",
     "noAnswersSent": "No answers sent.",
-    "sortOrder": "Order"
+    "sortOrder": "Order",
+    "viewModeLabel": "View:",
+    "viewModeSimple": "Simple",
+    "viewModeDetails": "Details"
   },
   "mapPlaceholder": "Map is loading for the current question.",
   "captcha": {

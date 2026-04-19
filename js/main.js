@@ -43,12 +43,18 @@ const STORAGE_KEYS = {
   PLAYER_ID: "entfernungsspiel.playerId",
   GAME_ID: "entfernungsspiel.gameId",
   CREATOR_SETTINGS: "entfernungsspiel.creatorSettings",
+  GAME_END_VIEW_MODE: "entfernungsspiel.gameEndViewMode",
 };
+
+let gameEndViewMode = localStorage.getItem(STORAGE_KEYS.GAME_END_VIEW_MODE) === "details"
+  ? "details"
+  : "simple";
 
 // Initialize i18n system on page load
 document.addEventListener("DOMContentLoaded", async () => {
   await initializeI18n();
   updateUILanguage();
+  applyGameEndViewMode(gameEndViewMode);
   updateGameShareLink("");
 
   // Initialize CAPTCHA system
@@ -757,6 +763,34 @@ function formatSubmissionTime(isoValue) {
   });
 }
 
+function applyGameEndViewMode(mode) {
+  const normalized = mode === "details" ? "details" : "simple";
+  const content = document.querySelector("#gameFinishedModal .game-finished-modal-content");
+  if (content) {
+    content.classList.toggle("is-simple", normalized === "simple");
+    content.classList.toggle("is-detailed", normalized === "details");
+  }
+
+  const simpleBtn = document.getElementById("gameEndViewSimpleBtn");
+  const detailsBtn = document.getElementById("gameEndViewDetailsBtn");
+  if (simpleBtn) {
+    simpleBtn.classList.toggle("is-active", normalized === "simple");
+    simpleBtn.setAttribute("aria-pressed", normalized === "simple" ? "true" : "false");
+  }
+  if (detailsBtn) {
+    detailsBtn.classList.toggle("is-active", normalized === "details");
+    detailsBtn.setAttribute("aria-pressed", normalized === "details" ? "true" : "false");
+  }
+
+  gameEndViewMode = normalized;
+}
+
+function setGameEndViewMode(mode) {
+  const normalized = mode === "details" ? "details" : "simple";
+  localStorage.setItem(STORAGE_KEYS.GAME_END_VIEW_MODE, normalized);
+  applyGameEndViewMode(normalized);
+}
+
 function renderRoundHistory(roundHistory) {
   const list = document.getElementById("roundReviewList");
   if (!list) return;
@@ -773,14 +807,14 @@ function renderRoundHistory(roundHistory) {
 
   roundHistory.forEach((round) => {
     const card = document.createElement("section");
-    card.className = "round-review-card";
+    card.className = "round-review-card rr-card";
 
     const question = document.createElement("div");
-    question.className = "round-review-question";
+    question.className = "round-review-question rr-question";
     question.textContent = `Runde ${round.round}: ${round.question}`;
 
     const solution = document.createElement("div");
-    solution.className = "round-review-solution";
+    solution.className = "round-review-solution rr-solution";
     if (round.question_type === "sorting") {
       solution.innerHTML = `✅ <strong>Richtige Reihenfolge: ${(round.correct_order || []).join(" > ")}</strong> | 🏆 Gewinner: ${round.winner}`;
     } else {
@@ -790,31 +824,122 @@ function renderRoundHistory(roundHistory) {
     card.appendChild(question);
     card.appendChild(solution);
 
+    const highlights = [];
+    if (round.closest_result?.player_name) {
+      if (typeof round.closest_result.difference_km === "number") {
+        highlights.push(`📍 Nächster dran: ${round.closest_result.player_name} (${round.closest_result.difference_km} km daneben)`);
+      } else if (typeof round.closest_result.difference_positions === "number") {
+        highlights.push(`📍 Nächster dran: ${round.closest_result.player_name} (${round.closest_result.difference_positions} Positionsfehler)`);
+      }
+    }
+    if (round.biggest_miss?.player_name) {
+      if (typeof round.biggest_miss.difference_km === "number") {
+        highlights.push(`💥 Größter Fehlschuss: ${round.biggest_miss.player_name} (${round.biggest_miss.difference_km} km)`);
+      } else if (typeof round.biggest_miss.difference_positions === "number") {
+        highlights.push(`💥 Größter Fehlschuss: ${round.biggest_miss.player_name} (${round.biggest_miss.difference_positions} Positionsfehler)`);
+      }
+    }
+    if (round.comeback_highlight?.player_name) {
+      highlights.push(`🚀 Comeback: ${round.comeback_highlight.player_name} (${round.comeback_highlight.from_rank}→${round.comeback_highlight.to_rank})`);
+    }
+
+    if (highlights.length > 0) {
+      const highlightWrap = document.createElement("div");
+      highlightWrap.className = "rr-highlight-wrap";
+      highlights.forEach((labelText) => {
+        const chip = document.createElement("span");
+        chip.className = "rr-highlight-chip";
+        chip.textContent = labelText;
+        highlightWrap.appendChild(chip);
+      });
+      card.appendChild(highlightWrap);
+    }
+
+    const table = document.createElement("div");
+    table.className = "rr-table";
+
     (round.submissions || []).forEach((submission) => {
-      const playerBlock = document.createElement("div");
-      playerBlock.className = "round-review-player";
+      const row = document.createElement("article");
+      row.className = "rr-player-row";
 
-      const playerName = document.createElement("div");
-      playerName.className = "round-review-player-name";
-      playerName.textContent = submission.player_name;
+      const head = document.createElement("div");
+      head.className = "rr-player-head";
 
-      const finalEntry = document.createElement("div");
-      finalEntry.className = "round-review-player-final";
+      const name = document.createElement("div");
+      name.className = "rr-player-name";
+      name.textContent = submission.player_name || "-";
+
+      const guess = document.createElement("div");
+      guess.className = "rr-player-guess";
       if (submission.final_guess === null || submission.final_guess === undefined) {
-        finalEntry.textContent = t("gameEnd.noValidAnswer");
+        guess.textContent = t("gameEnd.noValidAnswer");
       } else {
         const finalGuessText = Array.isArray(submission.final_guess)
           ? submission.final_guess.join(" > ")
           : String(submission.final_guess);
-        finalEntry.textContent = round.question_type === "sorting"
-          ? `Gewertet wurde: ${finalGuessText} um ${formatSubmissionTime(submission.final_submitted_at)}`
-          : `Gewertet wurde: ${finalGuessText} km um ${formatSubmissionTime(submission.final_submitted_at)}`;
+        const suffix = round.question_type === "sorting" ? "" : " km";
+        guess.textContent = `${finalGuessText}${suffix} (${formatSubmissionTime(submission.final_submitted_at)})`;
       }
 
-      const logList = document.createElement("ul");
-      logList.className = "round-review-answer-log";
+      const stats = document.createElement("div");
+      stats.className = "rr-player-stats";
+
+      const points = Number(submission.points_earned || 0);
+      const pointsBadge = document.createElement("span");
+      pointsBadge.className = "rr-badge rr-badge-points";
+      pointsBadge.classList.add(points > 0 ? "is-positive" : points < 0 ? "is-negative" : "is-neutral");
+      pointsBadge.textContent = `Punkte ${points > 0 ? `+${points}` : points}`;
+
+      const accuracyBadge = document.createElement("span");
+      accuracyBadge.className = "rr-badge rr-badge-accuracy";
+      if (typeof submission.accuracy_pct === "number") {
+        accuracyBadge.textContent = `Genauigkeit ${Math.round(submission.accuracy_pct)}%`;
+      } else {
+        accuracyBadge.textContent = "Genauigkeit -";
+      }
+
+      stats.appendChild(pointsBadge);
+      stats.appendChild(accuracyBadge);
+
+      head.appendChild(name);
+      head.appendChild(guess);
+      head.appendChild(stats);
+      row.appendChild(head);
+
+      const breakdown = Array.isArray(submission.point_breakdown) ? submission.point_breakdown : [];
+      if (breakdown.length > 0) {
+        const reasons = document.createElement("div");
+        reasons.className = "rr-reasons";
+
+        breakdown.forEach((entry) => {
+          const reason = document.createElement("span");
+          reason.className = "rr-reason-chip";
+
+          const pointsText = Number(entry.points || 0);
+          if (entry.type === "perfect_hit_bonus" && typeof entry.distance_error_km === "number") {
+            reason.textContent = `${entry.label} +${pointsText} (±${entry.distance_error_km} km)`;
+          } else if (entry.type === "streak_bonus" && typeof entry.streak === "number") {
+            reason.textContent = `${entry.label} +${pointsText} (${entry.streak} Siege)`;
+          } else {
+            reason.textContent = `${entry.label} ${pointsText > 0 ? `+${pointsText}` : pointsText}`;
+          }
+
+          reasons.appendChild(reason);
+        });
+
+        row.appendChild(reasons);
+      }
 
       const receivedAnswers = submission.received_answers || [];
+      const detail = document.createElement("details");
+      detail.className = "rr-answer-log-details";
+
+      const summary = document.createElement("summary");
+      summary.textContent = `Antwortverlauf (${receivedAnswers.length})`;
+      detail.appendChild(summary);
+
+      const logList = document.createElement("ul");
+      logList.className = "round-review-answer-log rr-answer-log";
       if (receivedAnswers.length === 0) {
         const none = document.createElement("li");
         none.textContent = t("gameEnd.noAnswersSent");
@@ -823,19 +948,18 @@ function renderRoundHistory(roundHistory) {
         receivedAnswers.forEach((answer, index) => {
           const item = document.createElement("li");
           const prefix = index === receivedAnswers.length - 1 ? "Letzte Antwort" : `Antwort ${index + 1}`;
-          item.textContent = round.question_type === "sorting"
-            ? `${prefix}: ${answer.guess} um ${formatSubmissionTime(answer.submitted_at)}`
-            : `${prefix}: ${answer.guess} km um ${formatSubmissionTime(answer.submitted_at)}`;
+          const suffix = round.question_type === "sorting" ? "" : " km";
+          item.textContent = `${prefix}: ${answer.guess}${suffix} um ${formatSubmissionTime(answer.submitted_at)}`;
           logList.appendChild(item);
         });
       }
+      detail.appendChild(logList);
+      row.appendChild(detail);
 
-      playerBlock.appendChild(playerName);
-      playerBlock.appendChild(finalEntry);
-      playerBlock.appendChild(logList);
-      card.appendChild(playerBlock);
+      table.appendChild(row);
     });
 
+    card.appendChild(table);
     list.appendChild(card);
   });
 }
@@ -1837,6 +1961,7 @@ function handleJsonMessage(msg) {
       });
     }
 
+    applyGameEndViewMode(gameEndViewMode);
     renderRoundHistory(msg.round_history || []);
 
     // Cleanup game resources before showing results

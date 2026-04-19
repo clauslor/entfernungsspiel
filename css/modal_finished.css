@@ -115,11 +115,197 @@
     color: #2d3748;
 }
 
+.round-review-mode-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+    padding: 5px;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    background: #f8fafc;
+}
+
+.round-review-mode-label {
+    font-size: 0.78rem;
+    color: #64748b;
+    margin: 0 2px 0 4px;
+}
+
+.round-review-mode-btn {
+    border: 1px solid transparent;
+    background: transparent;
+    color: #475569;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.round-review-mode-btn.is-active {
+    background: #1d4ed8;
+    color: #ffffff;
+}
+
 .round-review-list {
-    max-height: 300px;
-    overflow-y: auto;
+    max-height: none;
+    overflow: visible;
     gap: 10px;
     display: grid;
+}
+
+.rr-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+    padding: 12px;
+}
+
+.rr-question {
+    font-size: 0.98rem;
+    margin-bottom: 8px;
+}
+
+.rr-solution {
+    margin-bottom: 8px;
+}
+
+.rr-highlight-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.rr-highlight-chip {
+    font-size: 0.78rem;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+    background: #ffffff;
+    border-radius: 999px;
+    padding: 3px 8px;
+}
+
+.rr-table {
+    display: grid;
+    gap: 8px;
+}
+
+.rr-player-row {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 10px;
+}
+
+.rr-player-head {
+    display: grid;
+    grid-template-columns: minmax(130px, 1fr) minmax(140px, 1.2fr) auto;
+    gap: 8px;
+    align-items: center;
+}
+
+.rr-player-name {
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.rr-player-guess {
+    font-size: 0.9rem;
+    color: #475569;
+}
+
+.rr-player-stats {
+    display: inline-flex;
+    gap: 6px;
+    justify-self: end;
+    flex-wrap: wrap;
+}
+
+.rr-badge {
+    font-size: 0.75rem;
+    border-radius: 999px;
+    padding: 3px 8px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.rr-badge-points.is-positive {
+    background: #ecfdf3;
+    border-color: #86efac;
+    color: #166534;
+}
+
+.rr-badge-points.is-neutral {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #334155;
+}
+
+.rr-badge-points.is-negative {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #991b1b;
+}
+
+.rr-badge-accuracy {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+    color: #1d4ed8;
+}
+
+.rr-reasons {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.rr-reason-chip {
+    font-size: 0.74rem;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #475569;
+    border-radius: 999px;
+    padding: 2px 8px;
+}
+
+.rr-answer-log-details {
+    margin-top: 8px;
+    text-align: left;
+}
+
+.rr-answer-log-details > summary {
+    cursor: pointer;
+    color: #64748b;
+    font-size: 0.84rem;
+}
+
+.rr-answer-log {
+    margin-top: 6px;
+}
+
+.game-finished-modal-content.is-simple .rr-reasons,
+.game-finished-modal-content.is-simple .rr-answer-log-details {
+    display: none;
+}
+
+.game-finished-modal-content.is-simple .rr-card {
+    background: #ffffff;
+}
+
+.game-finished-modal-content.is-simple .rr-highlight-wrap {
+    margin-bottom: 8px;
+}
+
+.game-finished-modal-content.is-simple .rr-highlight-chip {
+    font-size: 0.74rem;
+    opacity: 0.85;
+}
+
+.game-finished-modal-content.is-simple .accuracy-section-collapsible {
+    opacity: 0.75;
 }
 
 /* ----------------------------------------
@@ -129,6 +315,22 @@
 .accuracy-section {
     text-align: left;
     margin-bottom: 20px;
+}
+
+.accuracy-section-collapsible {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #f8fafc;
+    padding: 10px 12px;
+}
+
+.accuracy-section-collapsible > summary {
+    cursor: pointer;
+    margin-bottom: 8px;
+}
+
+.accuracy-section-collapsible[open] > summary {
+    margin-bottom: 10px;
 }
 
 .accuracy-list {
@@ -259,7 +461,21 @@
     }
 
     .round-review-list {
-        max-height: 250px;
+        max-height: none;
+    }
+
+    .round-review-mode-toggle {
+        display: flex;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .rr-player-head {
+        grid-template-columns: 1fr;
+    }
+
+    .rr-player-stats {
+        justify-self: start;
     }
 
     .accuracy-list {
@@ -364,8 +580,30 @@
     }
 
     .round-review-list {
-        max-height: 200px;
+        max-height: none;
         gap: 8px;
+    }
+
+    .rr-player-row {
+        padding: 8px;
+    }
+
+    .rr-question,
+    .rr-solution,
+    .rr-player-guess {
+        font-size: 0.86rem;
+    }
+
+    .rr-highlight-chip,
+    .rr-badge,
+    .rr-reason-chip,
+    .rr-answer-log-details > summary {
+        font-size: 0.72rem;
+    }
+
+    .round-review-mode-label,
+    .round-review-mode-btn {
+        font-size: 0.72rem;
     }
 
     .accuracy-list {
