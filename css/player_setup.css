@@ -169,22 +169,63 @@
 
 #lobbyGames {
     display: block;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 10px;
     margin-bottom: 15px;
 }
 
 .lobby-games-title {
     margin: 0 0 8px 0;
-    font-size: 0.9em;
+    font-size: 0.82em;
+    font-weight: 600;
     color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 #lobbyGamesList {
     margin: 0;
-    padding-left: 18px;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.lobby-game-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: #f0f9ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 8px 12px;
+}
+
+.lobby-game-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.lobby-game-id {
+    font-family: monospace;
+    font-weight: 700;
+    font-size: 0.95em;
+    color: #1e40af;
+    white-space: nowrap;
+}
+
+.lobby-game-players {
+    font-size: 0.85em;
+    color: #64748b;
+    white-space: nowrap;
+}
+
+.lobby-game-join-btn {
+    flex-shrink: 0;
+    padding: 4px 10px !important;
+    font-size: 0.82em !important;
 }
 
 /* ----------------------------------------

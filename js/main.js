@@ -2346,17 +2346,19 @@ function renderLobbyGames(activeGames) {
 
   waitingGames.forEach((game) => {
     const item = document.createElement("li");
-    const link = document.createElement("a");
-    link.href = "#";
-    link.textContent = `${game.id} (${game.player_count} players)`;
-    link.onclick = (event) => {
-      event.preventDefault();
-      // Pre-fill the game ID and show the join form
+    item.className = "lobby-game-item";
+    item.innerHTML = `
+      <div class="lobby-game-info">
+        <span class="lobby-game-id">${game.id}</span>
+        <span class="lobby-game-players">&#128101; ${game.player_count}</span>
+      </div>
+      <button class="btn btn-sm btn-primary lobby-game-join-btn" data-i18n="lobbyControls.joinButton">Beitreten</button>
+    `;
+    item.querySelector(".lobby-game-join-btn").addEventListener("click", () => {
       document.getElementById("gameIdInput").value = game.id;
       document.getElementById("gamePinInput").value = "";
       showJoinGame();
-    };
-    item.appendChild(link);
+    });
     list.appendChild(item);
   });
 }
@@ -2441,6 +2443,21 @@ function registerKeyboardUX() {
 
   if (gameIdInput) {
     gameIdInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        const pinInput = document.getElementById("gamePinInput");
+        if (pinInput && pinInput.value.trim() === "") {
+          focusAndSelect("gamePinInput");
+        } else {
+          joinGame();
+        }
+      }
+    });
+  }
+
+  const gamePinInput = document.getElementById("gamePinInput");
+  if (gamePinInput) {
+    gamePinInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         event.preventDefault();
         joinGame();
