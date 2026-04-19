@@ -49,6 +49,7 @@ const STORAGE_KEYS = {
 document.addEventListener("DOMContentLoaded", async () => {
   await initializeI18n();
   updateUILanguage();
+  updateGameShareLink("");
 
   // Initialize CAPTCHA system
   initializeCaptcha();
@@ -1362,6 +1363,7 @@ function handleJsonMessage(msg) {
       },
     ];
     document.getElementById("gameIdDisplay").textContent = msg.game_id;
+    updateGameShareLink(msg.game_id);
     document.getElementById("gameInfo").style.display = "block";
 
     const pinSection = document.getElementById("pinSection");
@@ -1383,6 +1385,7 @@ function handleJsonMessage(msg) {
     currentGameId = msg.game_id;
     saveSessionToStorage();
     document.getElementById("gameIdDisplay").textContent = msg.game_id;
+    updateGameShareLink(msg.game_id);
     document.getElementById("gameInfo").style.display = "block";
     appendMessage(`✅ ${t("messages.gameJoined")} ${msg.game_id}`);
     document.getElementById("inGameButtons").style.display = "block";
@@ -1395,6 +1398,7 @@ function handleJsonMessage(msg) {
     currentIsHost = !!msg.is_host;
     currentPlayers = msg.players;
     document.getElementById("gameIdDisplay").textContent = msg.game_id;
+    updateGameShareLink(msg.game_id);
     
     // Show PIN only to host
     const pinSection = document.getElementById("pinSection");
@@ -2029,6 +2033,7 @@ function clearStoredGame() {
   currentIsHost = false;
   currentSettingsLocked = false;
   localStorage.removeItem(STORAGE_KEYS.GAME_ID);
+  updateGameShareLink("");
   updateUILayout();
 }
 
@@ -2295,7 +2300,6 @@ function restoreSessionFromStorage() {
   }
 }
 
-async function copyRejoinLink() {
 function getStoredCreatorSettings() {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.CREATOR_SETTINGS);
