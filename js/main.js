@@ -1692,6 +1692,43 @@ function handleJsonMessage(msg) {
 function set_countdown(countdownLimitSeconds) {
   startManagedCountdown(countdownLimitSeconds);
 }
+
+function syncQuestionTypeTiles() {
+  const mappings = [
+    { inputId: "settingEnableRoadQuestions", tileId: "tileRoadQuestions" },
+    { inputId: "settingEnableSortingQuestions", tileId: "tileSortingQuestions" },
+    { inputId: "settingEnableSpeedRounds", tileId: "tileSpeedRounds" },
+  ];
+
+  mappings.forEach(({ inputId, tileId }) => {
+    const inputEl = document.getElementById(inputId);
+    const tileEl = document.getElementById(tileId);
+    if (!inputEl || !tileEl) return;
+    const active = !!inputEl.checked;
+    tileEl.classList.toggle("is-active", active);
+    tileEl.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+}
+
+function toggleQuestionTypeTile(kind) {
+  const tileMap = {
+    road: "settingEnableRoadQuestions",
+    sorting: "settingEnableSortingQuestions",
+    speed: "settingEnableSpeedRounds",
+  };
+  const inputId = tileMap[kind];
+  if (!inputId) return;
+  const inputEl = document.getElementById(inputId);
+  if (!inputEl || inputEl.disabled) return;
+
+  inputEl.checked = !inputEl.checked;
+  syncQuestionTypeTiles();
+  if (kind === "road") {
+    applyRoadQuestionControls(inputEl.checked);
+  }
+  debouncedSaveSettings();
+}
+
 function updateGameSettings(game_id, config) {
   if (config) {
     currentMaxRounds = config.max_rounds || currentMaxRounds;
@@ -1710,6 +1747,8 @@ function updateGameSettings(game_id, config) {
     const firstAnswerEndsRoundInput = document.getElementById("settingFirstAnswerEndsRound");
     const wrongAnswerPointsOthersInput = document.getElementById("settingWrongAnswerPointsOthers");
     const enableRoadQuestionsInput = document.getElementById("settingEnableRoadQuestions");
+    const enableSortingQuestionsInput = document.getElementById("settingEnableSortingQuestions");
+    const enableSpeedRoundsInput = document.getElementById("settingEnableSpeedRounds");
     const roadQuestionRatioInput = document.getElementById("settingRoadQuestionRatio");
     if (maxRoundsInput) maxRoundsInput.value = config.max_rounds;
     if (countdownInput) countdownInput.value = config.countdown_seconds;
@@ -1719,6 +1758,8 @@ function updateGameSettings(game_id, config) {
     if (wrongAnswerPointsOthersInput) wrongAnswerPointsOthersInput.checked = !!config.wrong_answer_points_others;
     const roadQuestionsEnabled = config.enable_road_questions !== false;
     if (enableRoadQuestionsInput) enableRoadQuestionsInput.checked = roadQuestionsEnabled;
+    if (enableSortingQuestionsInput) enableSortingQuestionsInput.checked = config.enable_sorting_questions !== false;
+    if (enableSpeedRoundsInput) enableSpeedRoundsInput.checked = config.enable_speed_rounds !== false;
     if (roadQuestionRatioInput) {
       const parsedRatio = Number.parseInt(config.road_question_ratio_percent, 10);
       roadQuestionRatioInput.value = Number.isNaN(parsedRatio) ? "50" : String(Math.max(0, Math.min(100, parsedRatio)));
@@ -1733,6 +1774,7 @@ function updateGameSettings(game_id, config) {
     }
     applyNoTimeLimitVisibility(!!config.first_answer_ends_round);
     applyRoadQuestionControls(roadQuestionsEnabled);
+    syncQuestionTypeTiles();
     if (currentIsHost) {
       localStorage.setItem(STORAGE_KEYS.CREATOR_SETTINGS, JSON.stringify(config));
     }
@@ -1905,6 +1947,8 @@ function updateHostControls() {
     document.getElementById("settingWrongAnswerPointsOthers"),
     document.getElementById("settingNoTimeLimit"),
     document.getElementById("settingEnableRoadQuestions"),
+    document.getElementById("settingEnableSortingQuestions"),
+    document.getElementById("settingEnableSpeedRounds"),
   ].forEach((inputEl) => {
     if (inputEl) {
       inputEl.disabled = !canEditSettings;
@@ -1917,6 +1961,18 @@ function updateHostControls() {
   const enableRoadQuestionsEl = document.getElementById("settingEnableRoadQuestions");
   if (answerTimeEl) answerTimeEl.disabled = !canEditSettings || !!(noTimeLimitEl?.checked);
   if (roadRatioEl) roadRatioEl.disabled = !canEditSettings || !(enableRoadQuestionsEl?.checked);
+
+  [
+    document.getElementById("tileRoadQuestions"),
+    document.getElementById("tileSortingQuestions"),
+    document.getElementById("tileSpeedRounds"),
+  ].forEach((tileEl) => {
+    if (tileEl) {
+      tileEl.disabled = !canEditSettings;
+    }
+  });
+
+  syncQuestionTypeTiles();
 
   if (saveSettingsBtn) {
     saveSettingsBtn.disabled = !canEditSettings;
@@ -1955,6 +2011,8 @@ function saveGameSettings() {
   const autoAdvanceOnAllAnswers = !!document.getElementById("settingAutoAdvanceAllAnswered")?.checked;
   const wrongAnswerPointsOthers = !!document.getElementById("settingWrongAnswerPointsOthers")?.checked;
   const enableRoadQuestions = !!document.getElementById("settingEnableRoadQuestions")?.checked;
+  const enableSortingQuestions = !!document.getElementById("settingEnableSortingQuestions")?.checked;
+  const enableSpeedRounds = !!document.getElementById("settingEnableSpeedRounds")?.checked;
   const roadQuestionRatioPercent = parseInt(document.getElementById("settingRoadQuestionRatio")?.value || "", 10);
 
   const ranges = [
@@ -1985,6 +2043,8 @@ function saveGameSettings() {
       wrong_answer_points_others: wrongAnswerPointsOthers,
       enable_road_questions: enableRoadQuestions,
       road_question_ratio_percent: roadQuestionRatioPercent,
+      enable_sorting_questions: enableSortingQuestions,
+      enable_speed_rounds: enableSpeedRounds,
     },
   });
 
@@ -2000,6 +2060,8 @@ function saveGameSettings() {
       wrong_answer_points_others: wrongAnswerPointsOthers,
       enable_road_questions: enableRoadQuestions,
       road_question_ratio_percent: roadQuestionRatioPercent,
+      enable_sorting_questions: enableSortingQuestions,
+      enable_speed_rounds: enableSpeedRounds,
     }),
   );
 

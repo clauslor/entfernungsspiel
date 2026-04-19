@@ -64,6 +64,7 @@ class UpdateSettingsMessage(BaseModel):
     road_question_ratio_percent: int = 50
     enable_sorting_questions: Optional[bool] = None
     sorting_question_ratio_percent: Optional[int] = None
+    enable_speed_rounds: Optional[bool] = None
 
 
 class SubmitCaptchaMessage(BaseModel):
@@ -753,7 +754,11 @@ class WebSocketHandler:
                 if msg.sorting_question_ratio_percent is not None
                 else game.config.sorting_question_ratio_percent
             ),
-            enable_speed_rounds=game.config.enable_speed_rounds,
+            enable_speed_rounds=(
+                msg.enable_speed_rounds
+                if msg.enable_speed_rounds is not None
+                else game.config.enable_speed_rounds
+            ),
             speed_round_ratio_percent=game.config.speed_round_ratio_percent,
             speed_round_time_seconds=game.config.speed_round_time_seconds,
         )

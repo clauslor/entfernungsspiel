@@ -289,10 +289,26 @@
                                 <span data-i18n="settings.kickOnDisconnectLabel">Spieler wird gekickt wenn er das Tab
                                     schließt (statt Pause)</span>
                             </label>
-                            <label class="host-settings-toggle">
-                                <input type="checkbox" id="settingEnableRoadQuestions" onchange="debouncedSaveSettings()">
-                                <span data-i18n="settings.enableRoadQuestionsLabel">Straßenentfernungsfragen aktivieren</span>
-                            </label>
+                        </div>
+                        <div class="question-type-section">
+                            <p class="question-type-title">Fragetypen</p>
+                            <div class="question-type-carousel" role="group" aria-label="Fragetypen aktivieren oder deaktivieren">
+                                <button type="button" id="tileRoadQuestions" class="question-type-tile is-active" onclick="toggleQuestionTypeTile('road')" aria-pressed="true">
+                                    <span class="question-type-emoji">🛣️</span>
+                                    <span class="question-type-name">Straße</span>
+                                </button>
+                                <button type="button" id="tileSortingQuestions" class="question-type-tile is-active" onclick="toggleQuestionTypeTile('sorting')" aria-pressed="true">
+                                    <span class="question-type-emoji">🔢</span>
+                                    <span class="question-type-name">Sortieren</span>
+                                </button>
+                                <button type="button" id="tileSpeedRounds" class="question-type-tile is-active" onclick="toggleQuestionTypeTile('speed')" aria-pressed="true">
+                                    <span class="question-type-emoji">⚡</span>
+                                    <span class="question-type-name">Speed</span>
+                                </button>
+                            </div>
+                            <input type="checkbox" id="settingEnableRoadQuestions" onchange="debouncedSaveSettings()" hidden>
+                            <input type="checkbox" id="settingEnableSortingQuestions" onchange="debouncedSaveSettings()" hidden>
+                            <input type="checkbox" id="settingEnableSpeedRounds" onchange="debouncedSaveSettings()" hidden>
                         </div>
                     </div>
                 </section>

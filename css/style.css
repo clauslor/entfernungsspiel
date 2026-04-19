@@ -1291,6 +1291,83 @@ main.game-layout.lobby-mode .game-column {
     height: 16px;
 }
 
+.question-type-section {
+    margin-top: 12px;
+}
+
+.question-type-title {
+    margin: 0 0 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.question-type-carousel {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 2px 2px 6px;
+}
+
+.question-type-tile {
+    flex: 0 0 120px;
+    min-height: 86px;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #f3f4f6, #e5e7eb);
+    color: #6b7280;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.question-type-tile .question-type-emoji {
+    font-size: 1.2rem;
+}
+
+.question-type-tile .question-type-name {
+    font-size: 0.86rem;
+}
+
+.question-type-tile:hover {
+    transform: translateY(-1px);
+}
+
+.question-type-tile.is-active {
+    color: #0f172a;
+    border-color: transparent;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+}
+
+#tileRoadQuestions.is-active {
+    background: linear-gradient(135deg, #22d3ee, #0891b2);
+    color: #042f2e;
+}
+
+#tileSortingQuestions.is-active {
+    background: linear-gradient(135deg, #34d399, #10b981);
+    color: #052e16;
+}
+
+#tileSpeedRounds.is-active {
+    background: linear-gradient(135deg, #fb7185, #f97316);
+    color: #431407;
+}
+
+.question-type-tile:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+    transform: none;
+    box-shadow: none;
+}
+
 .podium-section {
     display: grid;
     gap: 8px;
@@ -1316,12 +1393,9 @@ main.game-layout.lobby-mode .game-column {
         grid-template-columns: 1fr;
     }
 
-    .host-settings-actions {
-        justify-content: stretch;
-    }
-
-    .host-settings-actions .btn {
-        width: 100%;
+    .question-type-tile {
+        flex-basis: 104px;
+        min-height: 80px;
     }
 }
 
