@@ -217,7 +217,13 @@ function updateUILayout() {
 
   if (roundActive) {
     setTimeout(() => focusAndSelect("guessInput"), 0);
-    queueMapPreparation();
+    const variantNeedsMap = currentQuestionVariant !== "sorting" && currentQuestionVariant !== "air";
+    if (variantNeedsMap) {
+      queueMapPreparation();
+    } else if (pendingMapPreparationTimeoutId) {
+      clearTimeout(pendingMapPreparationTimeoutId);
+      pendingMapPreparationTimeoutId = null;
+    }
   }
 
   updateMatchHud();
@@ -666,6 +672,12 @@ function applyQuestionVariantUI(questionVariant) {
   if (ortsschildContainer) ortsschildContainer.style.display = (isSorting || isAirMap) ? "none" : "flex";
   // air (signs only): hide map; sorting: hide map; everything else: show map
   if (mapContainer) mapContainer.style.display = (isSorting || isAirSigns) ? "none" : "block";
+
+  // Stop queued map retries for variants that intentionally hide the map.
+  if ((isSorting || isAirSigns) && pendingMapPreparationTimeoutId) {
+    clearTimeout(pendingMapPreparationTimeoutId);
+    pendingMapPreparationTimeoutId = null;
+  }
 }
 
 function submitSortingAnswer() {
@@ -963,20 +975,21 @@ function ensureLeafletMap() {
       return null;
     }
 
+    // Use OSM as default basemap for maximum reliability across hosts.
     gameMapBaseLayer = new ol.layer.Tile({
-      source: new ol.source.XYZ({
-        // basemap.de Web Raster with OSM fallback
-        url: "https://sgx.geodatenzentrum.de/wmts_basemapde/tile/1.0.0/de_basemapde_web_raster_farbe/default/GLOBAL_WEBMERCATOR/{z}/{y}/{x}.png",
-        attributions: "© basemap.de / BKG, © OpenStreetMap contributors",
+      source: new ol.source.OSM({
+        attributions: "© OpenStreetMap contributors",
         crossOrigin: "anonymous",
         imageSmoothing: true,
       }),
+      visible: true,
     });
 
-    // Add fallback layer (OSM) that will be used if basemap.de fails
+    // Optional secondary layer (basemap.de), kept as non-default fallback option.
     gameMapFallbackLayer = new ol.layer.Tile({
-      source: new ol.source.OSM({
-        attributions: "© OpenStreetMap contributors",
+      source: new ol.source.XYZ({
+        url: "https://sgx.geodatenzentrum.de/wmts_basemapde/tile/1.0.0/de_basemapde_web_raster_farbe/default/GLOBAL_WEBMERCATOR/{z}/{y}/{x}.png",
+        attributions: "© basemap.de / BKG",
         crossOrigin: "anonymous",
         imageSmoothing: true,
       }),
@@ -1027,14 +1040,7 @@ function ensureLeafletMap() {
       }),
     });
 
-    // Handle basemap.de tile load failure: switch to OSM fallback
-    gameMapBaseLayer.on("error", () => {
-      if (gameMapFallbackLayer) {
-        gameMapBaseLayer.setVisible(false);
-        gameMapFallbackLayer.setVisible(true);
-        console.warn("[Map] basemap.de tiles failed to load, switched to OSM fallback");
-      }
-    });
+    // Keep old fallback switch logic disabled for now because OSM is already the stable default.
 
   }
 
