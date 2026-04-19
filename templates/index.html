@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Gidole&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@9.2.4/ol.css">
+    <link rel="stylesheet" href="/static/vendor/ol/ol.css?v=20260419">
 </head>
 
 <body>
@@ -41,14 +41,15 @@
     {% include "partials/modal_game_finished.html" %}
     {% include "partials/modal_captcha.html" %}
 
-    <script src="https://cdn.jsdelivr.net/npm/ol@9.2.4/dist/ol.js"></script>
+    <script src="/static/vendor/ol/ol.js?v=20260419"></script>
     <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/proj4@2.11.0/dist/proj4.js"></script>
-    <script type="module">
-        import { register } from "https://cdn.jsdelivr.net/npm/ol@9.2.4/proj/proj4.js";
-        window.olRegisterProj4 = register;
+    <script src="/static/vendor/proj4/proj4.js?v=20260419"></script>
+    <script>
+        window.olRegisterProj4 = (window.ol && window.ol.proj && window.ol.proj.proj4 && typeof window.ol.proj.proj4.register === "function")
+            ? window.ol.proj.proj4.register
+            : null;
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/ol-mapbox-style@12.4.0/dist/olms.js"></script>
+    <script src="/static/vendor/olms/olms.js?v=20260419"></script>
     <script src="js/i18n.js?v=20260419"></script>
     <script src="js/captcha.js?v=20260419"></script>
     <script src="js/main.js?v=20260419"></script>
