@@ -1035,6 +1035,9 @@ class WebSocketHandler:
                     ],
                     "is_host": player.id == game.host_player_id,
                 }
+                # Only show PIN to host
+                if player.id == game.host_player_id:
+                    game_data["pin"] = game.pin
                 for websocket in self.active_connections[player.id]:
                     try:
                         await websocket.send_text(json.dumps(game_data))
