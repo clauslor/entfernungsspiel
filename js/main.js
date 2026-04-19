@@ -660,7 +660,7 @@ function applyQuestionVariantUI(questionVariant) {
   if (distanceControls) distanceControls.style.display = isSorting ? "none" : "flex";
   if (sortingControls) sortingControls.style.display = isSorting ? "block" : "none";
   if (sortingPromptBanner) sortingPromptBanner.hidden = !isSorting;
-  if (ortsschildContainer) ortsschildContainer.style.display = isSorting ? "none" : "block";
+  if (ortsschildContainer) ortsschildContainer.style.display = isSorting ? "none" : "flex";
   if (mapContainer) mapContainer.style.display = isSorting ? "none" : "block";
 }
 

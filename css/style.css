@@ -951,8 +951,7 @@ main.game-layout.lobby-mode .game-column {
     letter-spacing: var(--ortsschild-letter-spacing, 0.03em);
     line-height: 1.08;
     white-space: normal;
-    overflow-wrap: anywhere;
-    word-break: break-word;
+    overflow: hidden;
     text-align: center;
 }
 
