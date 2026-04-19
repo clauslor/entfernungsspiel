@@ -537,6 +537,16 @@ function setGuessControlsDisabled(disabled) {
   }
 }
 
+function getSortingChipColorIndex(value) {
+  const text = String(value || "");
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    hash = ((hash << 5) - hash) + text.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash) % 4;
+}
+
 function renderSortingUI() {
   const poolEl = document.getElementById("sortingNumberPool");
   const selectionEl = document.getElementById("sortingSelection");
@@ -546,7 +556,7 @@ function renderSortingUI() {
   currentSortingPool.forEach((value, index) => {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "sorting-chip";
+    btn.className = `sorting-chip sorting-chip-color-${getSortingChipColorIndex(value)}`;
     btn.textContent = String(value);
     btn.onclick = () => {
       currentSortingSelection.push(value);
@@ -560,7 +570,7 @@ function renderSortingUI() {
   currentSortingSelection.forEach((value, index) => {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "sorting-chip sorting-chip-selected";
+    btn.className = `sorting-chip sorting-chip-color-${getSortingChipColorIndex(value)} sorting-chip-selected`;
     btn.textContent = String(value);
     btn.onclick = () => {
       currentSortingPool.push(value);
@@ -587,12 +597,14 @@ function resetSortingSelection() {
 function applyQuestionVariantUI(questionVariant) {
   const distanceControls = document.getElementById("distanceAnswerControls");
   const sortingControls = document.getElementById("sortingAnswerControls");
+  const sortingPromptBanner = document.getElementById("sortingPromptBanner");
   const ortsschildContainer = document.getElementById("ortsschildContainer");
   const mapContainer = document.getElementById("mapContainer");
 
   const isSorting = questionVariant === "sorting";
   if (distanceControls) distanceControls.style.display = isSorting ? "none" : "flex";
   if (sortingControls) sortingControls.style.display = isSorting ? "block" : "none";
+  if (sortingPromptBanner) sortingPromptBanner.hidden = !isSorting;
   if (ortsschildContainer) ortsschildContainer.style.display = isSorting ? "none" : "block";
   if (mapContainer) mapContainer.style.display = isSorting ? "none" : "block";
 }
@@ -1383,6 +1395,7 @@ function handleJsonMessage(msg) {
     const city2El = document.getElementById("city2");
     const guessInputEl = document.getElementById("guessInput");
     const countdownTextEl = document.getElementById("countdownText");
+    const sortingPromptBannerEl = document.getElementById("sortingPromptBanner");
 
     if (city1El) city1El.textContent = questionVariant === "sorting" ? "-" : cityFrom;
     if (city2El) city2El.textContent = questionVariant === "sorting" ? "-" : cityTo;
@@ -1393,6 +1406,11 @@ function handleJsonMessage(msg) {
         : t(
           questionVariant === "road" ? "question.askRoadDistance" : "question.askDistance",
         );
+    }
+
+    if (sortingPromptBannerEl) {
+      sortingPromptBannerEl.textContent = msg.sorting_prompt
+        || `Sortiere die Zahlen ${msg.sorting_order === "desc" ? "von groß nach klein" : "von klein nach groß"}`;
     }
 
     if (questionVariant === "sorting") {

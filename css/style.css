@@ -507,15 +507,26 @@ main.game-layout.lobby-mode .game-column {
     display: none;
 }
 
+.sorting-prompt-banner {
+    margin: 8px 0 10px;
+    padding: 10px 12px;
+    border: 2px solid #93c5fd;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    color: #0f172a;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
 .sorting-number-list,
 .sorting-selection {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    min-height: 42px;
-    padding: 8px;
+    gap: 10px;
+    min-height: 56px;
+    padding: 12px;
     border: 1px dashed #cbd5e1;
-    border-radius: 8px;
+    border-radius: 10px;
     background: #f8fafc;
     margin-bottom: 10px;
 }
@@ -526,25 +537,49 @@ main.game-layout.lobby-mode .game-column {
 }
 
 .sorting-chip {
-    min-width: 46px;
-    padding: 8px 12px;
-    border: 1px solid #94a3b8;
-    border-radius: 8px;
+    min-width: 96px;
+    padding: 12px 16px;
+    border: 2px solid transparent;
+    border-radius: 12px;
     background: #ffffff;
-    color: #1e293b;
+    color: #111827;
     font-weight: 700;
+    font-size: 1.18rem;
+    line-height: 1.15;
     font-variant-numeric: tabular-nums;
     cursor: pointer;
+    box-shadow: 0 8px 16px rgba(15, 23, 42, 0.12);
+    transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
 }
 
 .sorting-chip:hover {
-    border-color: #64748b;
-    background: #f1f5f9;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 18px rgba(15, 23, 42, 0.16);
 }
 
 .sorting-chip-selected {
-    border-color: #334155;
-    background: #e2e8f0;
+    filter: saturate(0.45);
+    transform: scale(0.98);
+}
+
+.sorting-chip-color-0 {
+    background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
+    border-color: #ef4444;
+}
+
+.sorting-chip-color-1 {
+    background: linear-gradient(135deg, #fef9c3 0%, #fde047 100%);
+    border-color: #eab308;
+}
+
+.sorting-chip-color-2 {
+    background: linear-gradient(135deg, #bbf7d0 0%, #86efac 100%);
+    border-color: #22c55e;
+}
+
+.sorting-chip-color-3 {
+    background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%);
+    border-color: #3b82f6;
 }
 
 .sorting-action-buttons {
