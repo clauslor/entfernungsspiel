@@ -1064,6 +1064,25 @@ function createQuestionPointStyle(variant = "from") {
   });
 }
 
+function calculateGeoDistanceKm(from, to) {
+  if (!from || !to) return 0;
+  const lat1 = Number(from.lat);
+  const lon1 = Number(from.lon);
+  const lat2 = Number(to.lat);
+  const lon2 = Number(to.lon);
+  if (![lat1, lon1, lat2, lon2].every((v) => Number.isFinite(v))) return 0;
+
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const r = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2)
+    + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2))
+    * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return 2 * r * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 function renderQuestionMap(coordinates) {
   const container = document.getElementById("mapContainer");
 
@@ -1073,6 +1092,16 @@ function renderQuestionMap(coordinates) {
     if (container) {
       container.classList.remove("has-map");
     }
+    return;
+  }
+
+  if (calculateGeoDistanceKm(coordinates.from, coordinates.to) < 5) {
+    pendingQuestionCoordinates = null;
+    clearMapOverlays();
+    if (container) {
+      container.classList.remove("has-map");
+    }
+    console.warn("[Map] Skipped invalid near-zero distance coordinates for question", coordinates);
     return;
   }
 
