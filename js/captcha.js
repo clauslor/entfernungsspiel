@@ -16,6 +16,7 @@ function updateCaptchaStatusUi(state) {
     if (state === 'required') {
         if (statusRow) {
             statusRow.hidden = false;
+            statusRow.style.display = 'flex';
         }
         badge.classList.add('is-required');
         badge.setAttribute('data-i18n', 'captcha.statusRequired');
@@ -26,6 +27,7 @@ function updateCaptchaStatusUi(state) {
     } else if (state === 'ok') {
         if (statusRow) {
             statusRow.hidden = true;
+            statusRow.style.display = 'none';
         }
         badge.classList.add('is-ok');
         badge.setAttribute('data-i18n', 'captcha.statusReady');
@@ -36,6 +38,7 @@ function updateCaptchaStatusUi(state) {
     } else {
         if (statusRow) {
             statusRow.hidden = false;
+            statusRow.style.display = 'flex';
         }
         badge.setAttribute('data-i18n', 'captcha.statusLazy');
         if (typeof t === 'function') {
@@ -51,7 +54,7 @@ function updateCaptchaStatusUi(state) {
 function initializeCaptcha() {
     // Wait for server lobby info before showing a required/verified status.
     captchaValidationToken = localStorage.getItem('captchaToken');
-    updateCaptchaStatusUi('lazy');
+    updateCaptchaStatusUi(captchaValidationToken ? 'ok' : 'lazy');
 
     // Do not force modal on page load; only show when a protected action actually needs it.
     hideCaptchaModal();
