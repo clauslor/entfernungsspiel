@@ -207,7 +207,7 @@
 }
 
 .game-id-display {
-    margin: 0 0 15px 0;
+    margin: 0;
     font-size: 1.3em;
     font-weight: 700;
     color: #1e293b;
@@ -215,14 +215,33 @@
     font-family: monospace;
 }
 
-.game-share-actions {
+.game-id-row {
     display: flex;
+    align-items: center;
     justify-content: center;
+    gap: 8px;
     margin: 0 0 12px;
 }
 
-.game-share-actions .btn {
-    min-width: 220px;
+.game-link-icon-btn {
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: #3b82f6;
+    cursor: pointer;
+    font-size: 0.95rem;
+    line-height: 1;
+    text-decoration: none;
+    padding: 0;
+}
+
+.game-link-icon-btn:hover {
+    color: #1d4ed8;
 }
 
 .game-pin-display {
@@ -314,6 +333,9 @@
 
     .game-id-display {
         font-size: 1.2em;
+    }
+
+    .game-id-row {
         margin-bottom: 8px;
     }
 

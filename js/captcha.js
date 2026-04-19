@@ -63,10 +63,12 @@ function syncCaptchaRequirement(captchaRequired) {
         localStorage.removeItem('captchaToken');
         updateCaptchaStatusUi('required');
     } else {
-        // If no verification is currently required, keep the UI in neutral mode.
-        captchaValidationToken = null;
-        localStorage.removeItem('captchaToken');
-        updateCaptchaStatusUi('lazy');
+        // Server says no verification needed (already valid): treat as verified in UI.
+        if (!captchaValidationToken) {
+            captchaValidationToken = localStorage.getItem('captchaToken') || 'server_valid';
+            localStorage.setItem('captchaToken', captchaValidationToken);
+        }
+        updateCaptchaStatusUi('ok');
         hideCaptchaModal();
     }
 }

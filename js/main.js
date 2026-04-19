@@ -2260,6 +2260,24 @@ function startWarmup() {
   sendMessage({ type: "start_warmup", data: {} });
 }
 
+function updateGameShareLink(gameId) {
+  const gameLinkIcon = document.getElementById("gameLinkIcon");
+  if (!gameLinkIcon) return;
+
+  if (!gameId || gameId === "-") {
+    gameLinkIcon.href = "#";
+    gameLinkIcon.setAttribute("aria-disabled", "true");
+    gameLinkIcon.tabIndex = -1;
+    return;
+  }
+
+  const baseUrl = `${window.location.origin}${window.location.pathname}`;
+  const rejoinUrl = `${baseUrl}?game=${encodeURIComponent(gameId)}`;
+  gameLinkIcon.href = rejoinUrl;
+  gameLinkIcon.removeAttribute("aria-disabled");
+  gameLinkIcon.tabIndex = 0;
+}
+
 function restoreSessionFromStorage() {
   const storedName = localStorage.getItem(STORAGE_KEYS.PLAYER_NAME) || "";
   const storedGameId = localStorage.getItem(STORAGE_KEYS.GAME_ID) || "";
@@ -2278,35 +2296,6 @@ function restoreSessionFromStorage() {
 }
 
 async function copyRejoinLink() {
-  if (!currentGameId) {
-    alert("Es gibt aktuell keinen Spielcode zum Teilen.");
-    return;
-  }
-
-  const baseUrl = `${window.location.origin}${window.location.pathname}`;
-  const rejoinUrl = `${baseUrl}?game=${encodeURIComponent(currentGameId)}`;
-
-  try {
-    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
-      await navigator.clipboard.writeText(rejoinUrl);
-    } else {
-      const helper = document.createElement("textarea");
-      helper.value = rejoinUrl;
-      helper.setAttribute("readonly", "true");
-      helper.style.position = "absolute";
-      helper.style.left = "-9999px";
-      document.body.appendChild(helper);
-      helper.select();
-      document.execCommand("copy");
-      document.body.removeChild(helper);
-    }
-    appendMessage(`🔗 Rejoin-Link kopiert: ${rejoinUrl}`);
-  } catch (error) {
-    console.error("Could not copy rejoin link:", error);
-    appendMessage("❌ Rejoin-Link konnte nicht kopiert werden.");
-  }
-}
-
 function getStoredCreatorSettings() {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.CREATOR_SETTINGS);
