@@ -294,6 +294,7 @@ function translateServerMessage(rawMessage) {
     "Settings can only be changed before countdown": "serverErrors.settingsOnlyBeforeCountdown",
     "Settings are locked": "serverErrors.settingsLocked",
     "Invalid settings values": "serverErrors.invalidSettingsValues",
+    "At least one question type must be enabled": "serverErrors.atLeastOneQuestionType",
     "Only host can start warmup": "serverErrors.onlyHostStartWarmup",
     "Warmup only available before countdown": "serverErrors.warmupOnlyBeforeCountdown",
     "Could not start warmup": "serverErrors.couldNotStartWarmup",

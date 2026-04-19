@@ -233,23 +233,23 @@
                     <div id="hostSettingsEditor" class="host-settings-editor" aria-live="polite">
                         <h3 class="host-settings-title" data-i18n="settings.editorTitle">Spiel-Einstellungen (Host)</h3>
                         <div class="question-type-section">
-                            <p class="question-type-title">Fragetypen</p>
+                            <p class="question-type-title" data-i18n="settings.questionTypesTitle">Fragetypen</p>
                             <div class="question-type-carousel" role="group" aria-label="Fragetypen aktivieren oder deaktivieren">
                                 <button type="button" id="tileAirQuestions" class="question-type-tile is-active" onclick="toggleQuestionTypeTile('air')" aria-pressed="true">
                                     <span class="question-type-emoji">🛫</span>
-                                    <span class="question-type-name">Luftlinie</span>
+                                    <span class="question-type-name" data-i18n="settings.questionTypeAir">Luftlinie</span>
                                 </button>
                                 <button type="button" id="tileRoadQuestions" class="question-type-tile is-active" onclick="toggleQuestionTypeTile('road')" aria-pressed="true">
                                     <span class="question-type-emoji">🛣️</span>
-                                    <span class="question-type-name">Straße</span>
+                                    <span class="question-type-name" data-i18n="settings.questionTypeRoad">Straße</span>
                                 </button>
                                 <button type="button" id="tileSortingQuestions" class="question-type-tile is-active" onclick="toggleQuestionTypeTile('sorting')" aria-pressed="true">
                                     <span class="question-type-emoji">🧠</span>
-                                    <span class="question-type-name">Kneipenquiz</span>
+                                    <span class="question-type-name" data-i18n="settings.questionTypePubQuiz">Kneipenquiz</span>
                                 </button>
                                 <button type="button" id="tileSpeedRounds" class="question-type-tile is-active" onclick="toggleQuestionTypeTile('speed')" aria-pressed="true">
                                     <span class="question-type-emoji">⚡</span>
-                                    <span class="question-type-name">Speed</span>
+                                    <span class="question-type-name" data-i18n="settings.questionTypeSpeed">Speed</span>
                                 </button>
                             </div>
                             <input type="checkbox" id="settingEnableAirQuestions" onchange="debouncedSaveSettings()" hidden>

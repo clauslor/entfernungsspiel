@@ -56,6 +56,70 @@ class DBSortingQuizQuestion(Base):
     source = Column(String, default="pubquiz")
 
 
+DEFAULT_SORTING_QUIZ_QUESTIONS = [
+    {
+        "prompt": "Ordne diese Ereignisse chronologisch (frueh nach spaet). / Order these events chronologically (early to late).",
+        "items": [
+            "Fall der Berliner Mauer / Fall of the Berlin Wall",
+            "Mondlandung / Moon landing",
+            "Einfuehrung des Euro-Bargelds / Euro cash introduction",
+            "Erster iPhone-Release / First iPhone release",
+        ],
+        "correct_order": [
+            "Mondlandung / Moon landing",
+            "Fall der Berliner Mauer / Fall of the Berlin Wall",
+            "Einfuehrung des Euro-Bargelds / Euro cash introduction",
+            "Erster iPhone-Release / First iPhone release",
+        ],
+    },
+    {
+        "prompt": "Ordne diese Planeten nach Abstand zur Sonne (nah nach fern). / Order these planets by distance to the sun (near to far).",
+        "items": ["Venus", "Mars", "Erde / Earth", "Jupiter"],
+        "correct_order": ["Venus", "Erde / Earth", "Mars", "Jupiter"],
+    },
+    {
+        "prompt": "Ordne diese Fluesse nach Laenge (kurz nach lang). / Order these rivers by length (short to long).",
+        "items": ["Main", "Neckar", "Mosel", "Rhein / Rhine"],
+        "correct_order": ["Main", "Neckar", "Mosel", "Rhein / Rhine"],
+    },
+    {
+        "prompt": "Ordne diese Berge nach Hoehe (niedrig nach hoch). / Order these mountains by elevation (low to high).",
+        "items": ["Brocken", "Feldberg", "Watzmann", "Zugspitze"],
+        "correct_order": ["Brocken", "Feldberg", "Watzmann", "Zugspitze"],
+    },
+    {
+        "prompt": "Ordne diese deutschen Staedte nach Einwohnerzahl (klein nach gross). / Order these German cities by population (small to large).",
+        "items": ["Leipzig", "Koeln / Cologne", "Hamburg", "Berlin"],
+        "correct_order": ["Leipzig", "Koeln / Cologne", "Hamburg", "Berlin"],
+    },
+    {
+        "prompt": "Ordne diese Ozeane nach Flaeche (klein nach gross). / Order these oceans by area (small to large).",
+        "items": ["Arktischer Ozean / Arctic", "Indischer Ozean / Indian", "Atlantik / Atlantic", "Pazifik / Pacific"],
+        "correct_order": ["Arktischer Ozean / Arctic", "Indischer Ozean / Indian", "Atlantik / Atlantic", "Pazifik / Pacific"],
+    },
+    {
+        "prompt": "Ordne diese Sportarten nach Teamgroesse auf dem Feld (klein nach gross). / Order these sports by on-field team size (small to large).",
+        "items": ["Basketball", "Handball", "Volleyball", "Fussball / Soccer"],
+        "correct_order": ["Basketball", "Volleyball", "Handball", "Fussball / Soccer"],
+    },
+    {
+        "prompt": "Ordne diese Waehrungen nach typischem Wert gegen 1 EUR (niedrig nach hoch, grob). / Order these currencies by typical value vs 1 EUR (low to high, rough).",
+        "items": ["Japanischer Yen / JPY", "US-Dollar / USD", "Schweizer Franken / CHF", "Britisches Pfund / GBP"],
+        "correct_order": ["Japanischer Yen / JPY", "US-Dollar / USD", "Schweizer Franken / CHF", "Britisches Pfund / GBP"],
+    },
+    {
+        "prompt": "Ordne diese Temperaturen von kalt nach warm. / Order these temperatures from cold to warm.",
+        "items": ["-10 C", "0 C", "15 C", "30 C"],
+        "correct_order": ["-10 C", "0 C", "15 C", "30 C"],
+    },
+    {
+        "prompt": "Ordne diese Medien nach Jahr der Gruendung (frueh nach spaet). / Order these platforms by launch year (early to late).",
+        "items": ["YouTube", "Wikipedia", "Instagram", "TikTok"],
+        "correct_order": ["Wikipedia", "YouTube", "Instagram", "TikTok"],
+    },
+]
+
+
 class DBGameResult(Base):
     __tablename__ = "game_results"
 
@@ -97,6 +161,7 @@ class DBCaptchaValidation(Base):
 def init_db():
     """Initialize database tables"""
     Base.metadata.create_all(bind=engine)
+    seed_default_sorting_quiz_questions()
 
 
 def get_db():
@@ -139,6 +204,43 @@ def add_sorting_quiz_question(db, prompt: str, items: list, correct_order: list,
     db.commit()
     db.refresh(question)
     return question
+
+
+def upsert_sorting_quiz_question(db, prompt: str, items: list, correct_order: list, source: str = "pubquiz") -> DBSortingQuizQuestion:
+    """Insert or update a sorting quiz question identified by prompt text."""
+    row = db.query(DBSortingQuizQuestion).filter(DBSortingQuizQuestion.prompt == prompt).first()
+    payload_items = json.dumps(items, ensure_ascii=False)
+    payload_order = json.dumps(correct_order, ensure_ascii=False)
+
+    if row:
+        row.items_json = payload_items
+        row.correct_order_json = payload_order
+        row.source = source
+    else:
+        row = DBSortingQuizQuestion(
+            prompt=prompt,
+            items_json=payload_items,
+            correct_order_json=payload_order,
+            source=source,
+        )
+        db.add(row)
+
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def seed_default_sorting_quiz_questions():
+    """Ensure the default bilingual pub-quiz sorting questions exist."""
+    with SessionLocal() as db:
+        for question in DEFAULT_SORTING_QUIZ_QUESTIONS:
+            upsert_sorting_quiz_question(
+                db,
+                prompt=question["prompt"],
+                items=question["items"],
+                correct_order=question["correct_order"],
+                source="pubquiz",
+            )
 
 
 def get_cached_route_distance_km(db, city_pair_id: int, provider: str = "graphhopper", profile: str = "car") -> Optional[int]:
