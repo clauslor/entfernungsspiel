@@ -28,11 +28,13 @@
     "title": "❓ Aktuelle Frage",
     "askDistance": "Was ist der Abstand zwischen:",
     "askRoadDistance": "Was ist die Straßenentfernung zwischen:",
+    "askAirMapDistance": "Wie weit sind die beiden Punkte auf der Karte voneinander entfernt? (Luftlinie, in km)",
     "sortCities": "Ordne die Städte von nächste zu entfernteste:",
     "placeholder": "Entfernung in km",
     "hint": "Shortcut: Drücke G um hier zu springen, Enter zum Absenden.",
     "distanceTemplate": "Wie weit ist es von {city1} nach {city2}? (in km)",
-    "roadDistanceTemplate": "Wie lang ist die Straßenentfernung von {city1} nach {city2}? (in km)"
+    "roadDistanceTemplate": "Wie lang ist die Straßenentfernung von {city1} nach {city2}? (in km)",
+    "airMapDistanceTemplate": "Wie weit sind die beiden Punkte voneinander entfernt? (Luftlinie, in km)"
   },
   "answer": {
     "title": "📍 Deine Antwort",
@@ -86,6 +88,7 @@
     "sortingRatioLabel": "Anteil Sortierfragen (%)",
     "questionTypesTitle": "Fragetypen",
     "questionTypeAir": "Luftlinie",
+    "questionTypeAirMap": "Karte",
     "questionTypeRoad": "Straße",
     "questionTypePubQuiz": "Kneipenquiz",
     "questionTypeSpeed": "Speed",

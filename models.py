@@ -25,6 +25,7 @@ class GameConfig:
     first_answer_ends_round: bool = False
     wrong_answer_points_others: bool = False
     enable_air_questions: bool = True
+    enable_air_map_questions: bool = True
     enable_road_questions: bool = True
     road_question_ratio_percent: int = 50
     enable_sorting_questions: bool = True

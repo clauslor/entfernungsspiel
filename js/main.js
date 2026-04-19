@@ -657,11 +657,15 @@ function applyQuestionVariantUI(questionVariant) {
   const mapContainer = document.getElementById("mapContainer");
 
   const isSorting = questionVariant === "sorting";
+  const isAirMap = questionVariant === "air_map";  // map only, no signs
+  const isAirSigns = questionVariant === "air";    // signs only, no map
   if (distanceControls) distanceControls.style.display = isSorting ? "none" : "flex";
   if (sortingControls) sortingControls.style.display = isSorting ? "block" : "none";
   if (sortingPromptBanner) sortingPromptBanner.hidden = !isSorting;
-  if (ortsschildContainer) ortsschildContainer.style.display = isSorting ? "none" : "flex";
-  if (mapContainer) mapContainer.style.display = isSorting ? "none" : "block";
+  // air_map: hide signs; air (signs only) or road: show signs
+  if (ortsschildContainer) ortsschildContainer.style.display = (isSorting || isAirMap) ? "none" : "flex";
+  // air (signs only): hide map; sorting: hide map; everything else: show map
+  if (mapContainer) mapContainer.style.display = (isSorting || isAirSigns) ? "none" : "block";
 }
 
 function submitSortingAnswer() {
@@ -1165,8 +1169,11 @@ function renderQuestionMap(coordinates) {
     );
 
     gameMapFeatureSource.addFeatures([lineFeature, fromFeature, toFeature]);
-    createOrtsschildOverlay(coordinates.from.name, "from");
-    createOrtsschildOverlay(coordinates.to.name, "to");
+    // air_map variant: cities are anonymous — only show dots on map, no city signs
+    if (currentQuestionVariant !== "air_map") {
+      createOrtsschildOverlay(coordinates.from.name, "from");
+      createOrtsschildOverlay(coordinates.to.name, "to");
+    }
 
     const extent = gameMapFeatureSource.getExtent();
     map.getView().fit(extent, {
@@ -1445,7 +1452,11 @@ function handleJsonMessage(msg) {
     const cityTo = msg.city2 || msg.cities?.[1] || msg.coordinates?.to?.name || "-";
     const questionVariant = msg.question_variant === "sorting"
       ? "sorting"
-      : (msg.question_variant === "road" ? "road" : "air");
+      : msg.question_variant === "road"
+        ? "road"
+        : msg.question_variant === "air_map"
+          ? "air_map"
+          : "air";
     currentQuestionVariant = questionVariant;
     const routePoints = Array.isArray(msg.route_points)
       ? msg.route_points
@@ -1478,7 +1489,14 @@ function handleJsonMessage(msg) {
     updateUILayout();
 
     // Store coordinates FIRST before starting map preparation
-    if (coordinates && questionVariant !== "sorting") {
+    if (coordinates && questionVariant === "air") {
+      // Air-signs variant: only show city signs, no map
+      clearMapOverlays();
+      createOrtsschildOverlay(coordinates.from.name, "from");
+      createOrtsschildOverlay(coordinates.to.name, "to");
+      pendingQuestionCoordinates = null;
+    } else if (coordinates && questionVariant !== "sorting") {
+      // air_map or road: render map (air_map will skip signs inside renderQuestionMap)
       pendingQuestionCoordinates = coordinates;
       // START MAP PREPARATION IMMEDIATELY (do not wait for updateUILayout)
       queueMapPreparation();
@@ -1486,6 +1504,7 @@ function handleJsonMessage(msg) {
       renderQuestionMap(coordinates);
     } else if (questionVariant === "sorting") {
       pendingQuestionCoordinates = null;
+      clearMapOverlays();
     }
 
     applyQuestionVariantUI(questionVariant);
@@ -1493,11 +1512,17 @@ function handleJsonMessage(msg) {
     const localizedQuestion = questionVariant === "sorting"
       ? (msg.sorting_prompt || `Sortiere die Zahlen ${msg.sorting_order === "desc" ? "absteigend" : "aufsteigend"}: ${(msg.sorting_numbers || []).join(", ")}`)
       : t(
-        questionVariant === "road" ? "question.roadDistanceTemplate" : "question.distanceTemplate",
-        {
-          city1: cityFrom,
-          city2: cityTo,
-        },
+        questionVariant === "road"
+          ? "question.roadDistanceTemplate"
+          : questionVariant === "air_map"
+            ? "question.airMapDistanceTemplate"
+            : "question.distanceTemplate",
+        questionVariant === "air_map"
+          ? {}
+          : {
+            city1: cityFrom,
+            city2: cityTo,
+          },
       );
     appendMessage(`🟡 ${t("messages.roundUpdate")} ${msg.round}/${msg.max_rounds}: ${localizedQuestion}`);
     const city1El = document.getElementById("city1");
@@ -1506,14 +1531,18 @@ function handleJsonMessage(msg) {
     const countdownTextEl = document.getElementById("countdownText");
     const sortingPromptBannerEl = document.getElementById("sortingPromptBanner");
 
-    if (city1El) city1El.textContent = questionVariant === "sorting" ? "-" : cityFrom;
-    if (city2El) city2El.textContent = questionVariant === "sorting" ? "-" : cityTo;
+    if (city1El) city1El.textContent = (questionVariant === "sorting" || questionVariant === "air_map") ? "?" : cityFrom;
+    if (city2El) city2El.textContent = (questionVariant === "sorting" || questionVariant === "air_map") ? "?" : cityTo;
     const questionTextEl = document.querySelector("#questionCard .question-text");
     if (questionTextEl) {
       questionTextEl.textContent = questionVariant === "sorting"
         ? (msg.sorting_prompt || `Sortiere die Zahlen ${msg.sorting_order === "desc" ? "von groß nach klein" : "von klein nach groß"}`)
         : t(
-          questionVariant === "road" ? "question.askRoadDistance" : "question.askDistance",
+          questionVariant === "road"
+            ? "question.askRoadDistance"
+            : questionVariant === "air_map"
+              ? "question.askAirMapDistance"
+              : "question.askDistance",
         );
     }
 
@@ -1828,6 +1857,7 @@ function set_countdown(countdownLimitSeconds) {
 function syncQuestionTypeTiles() {
   const mappings = [
     { inputId: "settingEnableAirQuestions", tileId: "tileAirQuestions" },
+    { inputId: "settingEnableAirMapQuestions", tileId: "tileAirMapQuestions" },
     { inputId: "settingEnableRoadQuestions", tileId: "tileRoadQuestions" },
     { inputId: "settingEnableSortingQuestions", tileId: "tileSortingQuestions" },
     { inputId: "settingEnableSpeedRounds", tileId: "tileSpeedRounds" },
@@ -1846,6 +1876,8 @@ function syncQuestionTypeTiles() {
 function toggleQuestionTypeTile(kind) {
   const tileMap = {
     air: "settingEnableAirQuestions",
+    air_map: "settingEnableAirMapQuestions",
+    air_map: "settingEnableAirMapQuestions",
     road: "settingEnableRoadQuestions",
     sorting: "settingEnableSortingQuestions",
     speed: "settingEnableSpeedRounds",
@@ -1855,9 +1887,9 @@ function toggleQuestionTypeTile(kind) {
   const inputEl = document.getElementById(inputId);
   if (!inputEl || inputEl.disabled) return;
 
-  const isPrimaryType = kind === "air" || kind === "road" || kind === "sorting";
+  const isPrimaryType = kind === "air" || kind === "air_map" || kind === "road" || kind === "sorting";
   if (isPrimaryType && inputEl.checked) {
-    const enabledPrimaryCount = ["settingEnableAirQuestions", "settingEnableRoadQuestions", "settingEnableSortingQuestions"]
+    const enabledPrimaryCount = ["settingEnableAirQuestions", "settingEnableAirMapQuestions", "settingEnableRoadQuestions", "settingEnableSortingQuestions"]
       .map((id) => document.getElementById(id))
       .filter((el) => el && el.checked)
       .length;
@@ -1890,6 +1922,7 @@ function updateGameSettings(game_id, config) {
     const firstAnswerEndsRoundInput = document.getElementById("settingFirstAnswerEndsRound");
     const wrongAnswerPointsOthersInput = document.getElementById("settingWrongAnswerPointsOthers");
     const enableAirQuestionsInput = document.getElementById("settingEnableAirQuestions");
+    const enableAirMapQuestionsInput = document.getElementById("settingEnableAirMapQuestions");
     const enableRoadQuestionsInput = document.getElementById("settingEnableRoadQuestions");
     const enableSortingQuestionsInput = document.getElementById("settingEnableSortingQuestions");
     const enableSpeedRoundsInput = document.getElementById("settingEnableSpeedRounds");
@@ -1902,6 +1935,7 @@ function updateGameSettings(game_id, config) {
     if (enableAirQuestionsInput && typeof config.enable_air_questions === "boolean") {
       enableAirQuestionsInput.checked = config.enable_air_questions;
     }
+    if (enableAirMapQuestionsInput) enableAirMapQuestionsInput.checked = config.enable_air_map_questions !== false;
     if (enableRoadQuestionsInput) enableRoadQuestionsInput.checked = config.enable_road_questions !== false;
     if (enableSortingQuestionsInput) enableSortingQuestionsInput.checked = config.enable_sorting_questions !== false;
     if (enableSpeedRoundsInput) enableSpeedRoundsInput.checked = config.enable_speed_rounds !== false;
@@ -2089,6 +2123,7 @@ function updateHostControls() {
     document.getElementById("settingWrongAnswerPointsOthers"),
     document.getElementById("settingNoTimeLimit"),
     document.getElementById("settingEnableAirQuestions"),
+    document.getElementById("settingEnableAirMapQuestions"),
     document.getElementById("settingEnableRoadQuestions"),
     document.getElementById("settingEnableSortingQuestions"),
     document.getElementById("settingEnableSpeedRounds"),
@@ -2104,6 +2139,7 @@ function updateHostControls() {
 
   [
     document.getElementById("tileAirQuestions"),
+    document.getElementById("tileAirMapQuestions"),
     document.getElementById("tileRoadQuestions"),
     document.getElementById("tileSortingQuestions"),
     document.getElementById("tileSpeedRounds"),
@@ -2145,6 +2181,7 @@ function saveGameSettings() {
   const autoAdvanceOnAllAnswers = !!document.getElementById("settingAutoAdvanceAllAnswered")?.checked;
   const wrongAnswerPointsOthers = !!document.getElementById("settingWrongAnswerPointsOthers")?.checked;
   const enableAirQuestions = !!document.getElementById("settingEnableAirQuestions")?.checked;
+  const enableAirMapQuestions = !!document.getElementById("settingEnableAirMapQuestions")?.checked;
   const enableRoadQuestions = !!document.getElementById("settingEnableRoadQuestions")?.checked;
   const enableSortingQuestions = !!document.getElementById("settingEnableSortingQuestions")?.checked;
   const enableSpeedRounds = !!document.getElementById("settingEnableSpeedRounds")?.checked;
@@ -2175,6 +2212,7 @@ function saveGameSettings() {
       first_answer_ends_round: firstAnswerEndsRound,
       wrong_answer_points_others: wrongAnswerPointsOthers,
       enable_air_questions: enableAirQuestions,
+      enable_air_map_questions: enableAirMapQuestions,
       enable_road_questions: enableRoadQuestions,
       enable_sorting_questions: enableSortingQuestions,
       enable_speed_rounds: enableSpeedRounds,
@@ -2192,6 +2230,7 @@ function saveGameSettings() {
       first_answer_ends_round: firstAnswerEndsRound,
       wrong_answer_points_others: wrongAnswerPointsOthers,
       enable_air_questions: enableAirQuestions,
+      enable_air_map_questions: enableAirMapQuestions,
       enable_road_questions: enableRoadQuestions,
       enable_sorting_questions: enableSortingQuestions,
       enable_speed_rounds: enableSpeedRounds,

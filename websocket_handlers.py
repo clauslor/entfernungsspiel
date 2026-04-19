@@ -61,6 +61,7 @@ class UpdateSettingsMessage(BaseModel):
     first_answer_ends_round: bool = False
     wrong_answer_points_others: bool = False
     enable_air_questions: bool = True
+    enable_air_map_questions: bool = True
     enable_road_questions: bool = True
     road_question_ratio_percent: int = 50
     enable_sorting_questions: Optional[bool] = None
@@ -367,6 +368,10 @@ class WebSocketHandler:
                 enable_air_questions=_bool_setting(
                     "enable_air_questions",
                     self.default_config.enable_air_questions,
+                ),
+                enable_air_map_questions=_bool_setting(
+                    "enable_air_map_questions",
+                    self.default_config.enable_air_map_questions,
                 ),
                 enable_road_questions=_bool_setting(
                     "enable_road_questions",
@@ -757,7 +762,7 @@ class WebSocketHandler:
         if not (1 <= msg.pause_between_rounds_seconds <= 30):
             await self.send_error(player_id, "Invalid settings values")
             return
-        if not (msg.enable_air_questions or msg.enable_road_questions or (msg.enable_sorting_questions is not False)):
+        if not (msg.enable_air_questions or msg.enable_air_map_questions or msg.enable_road_questions or (msg.enable_sorting_questions is not False)):
             await self.send_error(player_id, "At least one question type must be enabled")
             return
 
@@ -770,8 +775,8 @@ class WebSocketHandler:
             first_answer_ends_round=msg.first_answer_ends_round,
             wrong_answer_points_others=msg.wrong_answer_points_others,
             enable_air_questions=msg.enable_air_questions,
+            enable_air_map_questions=msg.enable_air_map_questions,
             enable_road_questions=msg.enable_road_questions,
-            # Question-type weighting is system-decided for fairness.
             road_question_ratio_percent=game.config.road_question_ratio_percent,
             enable_sorting_questions=(
                 msg.enable_sorting_questions

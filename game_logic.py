@@ -46,13 +46,15 @@ class GameLogic:
         enabled_variants: List[str] = []
         if bool(getattr(game_config, "enable_air_questions", True)):
             enabled_variants.append("air")
+        if bool(getattr(game_config, "enable_air_map_questions", True)):
+            enabled_variants.append("air_map")
         if bool(getattr(game_config, "enable_road_questions", True)):
             enabled_variants.append("road")
         if bool(getattr(game_config, "enable_sorting_questions", True)):
             enabled_variants.append("sorting")
 
         if not enabled_variants:
-            return "air"
+            return "air_map"
 
         usage_counts: Dict[str, int] = {variant: 0 for variant in enabled_variants}
         for round_entry in (game.round_history or []):
@@ -296,7 +298,12 @@ class GameLogic:
         )
 
         air_enabled = bool(getattr(game_config, "enable_air_questions", True))
+        air_map_enabled = bool(getattr(game_config, "enable_air_map_questions", True))
         road_enabled = bool(getattr(game_config, "enable_road_questions", True))
+
+        if preferred_variant == "air_map" and air_map_enabled:
+            question.question_variant = "air_map"
+            return question
 
         if preferred_variant == "road" and road_enabled:
             road_route = await self._try_get_road_route(question)
@@ -311,6 +318,9 @@ class GameLogic:
 
         if preferred_variant == "air":
             if air_enabled:
+                return question
+            if air_map_enabled:
+                question.question_variant = "air_map"
                 return question
             if road_enabled:
                 road_route = await self._try_get_road_route(question)

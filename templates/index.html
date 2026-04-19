@@ -247,6 +247,10 @@
                                     <span class="question-type-emoji">🛫</span>
                                     <span class="question-type-name" data-i18n="settings.questionTypeAir">Luftlinie</span>
                                 </button>
+                                <button type="button" id="tileAirMapQuestions" class="question-type-tile is-active" onclick="toggleQuestionTypeTile('air_map')" aria-pressed="true">
+                                    <span class="question-type-emoji">🗺️</span>
+                                    <span class="question-type-name" data-i18n="settings.questionTypeAirMap">Karte</span>
+                                </button>
                                 <button type="button" id="tileRoadQuestions" class="question-type-tile is-active" onclick="toggleQuestionTypeTile('road')" aria-pressed="true">
                                     <span class="question-type-emoji">🛣️</span>
                                     <span class="question-type-name" data-i18n="settings.questionTypeRoad">Straße</span>
@@ -261,6 +265,7 @@
                                 </button>
                             </div>
                             <input type="checkbox" id="settingEnableAirQuestions" onchange="debouncedSaveSettings()" hidden>
+                            <input type="checkbox" id="settingEnableAirMapQuestions" onchange="debouncedSaveSettings()" hidden>
                             <input type="checkbox" id="settingEnableRoadQuestions" onchange="debouncedSaveSettings()" hidden>
                             <input type="checkbox" id="settingEnableSortingQuestions" onchange="debouncedSaveSettings()" hidden>
                             <input type="checkbox" id="settingEnableSpeedRounds" onchange="debouncedSaveSettings()" hidden>
