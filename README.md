@@ -321,6 +321,39 @@ sudo systemctl stop entfernungsspiel
 journalctl -u entfernungsspiel -f          # live logs
 ```
 
+### Apache reverse proxy (beta) with HSTS
+
+If you run beta behind Apache, use the config at [deploy/apache/entfernungsspiel-beta.conf](deploy/apache/entfernungsspiel-beta.conf).
+
+Enable required Apache modules:
+
+```bash
+sudo a2enmod ssl headers rewrite proxy proxy_http proxy_wstunnel
+```
+
+Issue one certificate that includes BOTH beta hostnames (canonical + typo redirect host):
+
+```bash
+sudo certbot --apache \
+  -d beta.entfernungsspiel.tianalorenz.de \
+  -d beta.enfernungsspiel.tianalorenz.de
+```
+
+Activate site and reload Apache:
+
+```bash
+sudo cp deploy/apache/entfernungsspiel-beta.conf /etc/apache2/sites-available/
+sudo a2ensite entfernungsspiel-beta.conf
+sudo apachectl configtest
+sudo systemctl reload apache2
+```
+
+Verify HSTS header:
+
+```bash
+curl -I https://beta.entfernungsspiel.tianalorenz.de/ | grep -i strict-transport-security
+```
+
 ### Gunicorn configuration
 
 The server runs with **1 gunicorn worker** (`uvicorn.workers.UvicornWorker`). This is intentional: all game state is held in-process. Increasing `workers` in `gunicorn.conf.py` would give each worker its own isolated state, breaking multiplayer. Migrate to a shared state backend (e.g. Redis) before scaling beyond 1 worker.
