@@ -757,12 +757,6 @@ class WebSocketHandler:
         if not (1 <= msg.pause_between_rounds_seconds <= 30):
             await self.send_error(player_id, "Invalid settings values")
             return
-        if not (0 <= msg.road_question_ratio_percent <= 100):
-            await self.send_error(player_id, "Invalid settings values")
-            return
-        if msg.sorting_question_ratio_percent is not None and not (0 <= msg.sorting_question_ratio_percent <= 100):
-            await self.send_error(player_id, "Invalid settings values")
-            return
         if not (msg.enable_air_questions or msg.enable_road_questions or (msg.enable_sorting_questions is not False)):
             await self.send_error(player_id, "At least one question type must be enabled")
             return
@@ -777,17 +771,14 @@ class WebSocketHandler:
             wrong_answer_points_others=msg.wrong_answer_points_others,
             enable_air_questions=msg.enable_air_questions,
             enable_road_questions=msg.enable_road_questions,
-            road_question_ratio_percent=msg.road_question_ratio_percent,
+            # Question-type weighting is system-decided for fairness.
+            road_question_ratio_percent=game.config.road_question_ratio_percent,
             enable_sorting_questions=(
                 msg.enable_sorting_questions
                 if msg.enable_sorting_questions is not None
                 else game.config.enable_sorting_questions
             ),
-            sorting_question_ratio_percent=(
-                msg.sorting_question_ratio_percent
-                if msg.sorting_question_ratio_percent is not None
-                else game.config.sorting_question_ratio_percent
-            ),
+            sorting_question_ratio_percent=game.config.sorting_question_ratio_percent,
             enable_speed_rounds=(
                 msg.enable_speed_rounds
                 if msg.enable_speed_rounds is not None

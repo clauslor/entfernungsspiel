@@ -35,64 +35,38 @@ class GameLogic:
         """Set the WebSocket handler for broadcasting messages"""
         self.ws_handler = ws_handler
 
-    def _pick_question_variant(self, game_config) -> str:
-        """Pick the next question variant using configured shares.
+    def _pick_question_variant(self, game: GameState) -> str:
+        """Pick the next variant fairly, independent from host-defined ratios.
 
-        Road and sorting shares are explicit percentages. Air gets the remaining
-        share when enabled. If weights collapse to 0, falls back to an equal pick
-        among enabled variants.
+        Strategy: among enabled variants, pick one of the least-used types so far.
+        Ties are broken randomly to avoid deterministic cycles.
         """
-        air_enabled = bool(getattr(game_config, "enable_air_questions", True))
-        road_enabled = bool(getattr(game_config, "enable_road_questions", True))
-        sorting_enabled = bool(getattr(game_config, "enable_sorting_questions", True))
+        game_config = game.config
+        enabled_variants: List[str] = []
+        if bool(getattr(game_config, "enable_air_questions", True)):
+            enabled_variants.append("air")
+        if bool(getattr(game_config, "enable_road_questions", True)):
+            enabled_variants.append("road")
+        if bool(getattr(game_config, "enable_sorting_questions", True)):
+            enabled_variants.append("sorting")
 
-        road_ratio = max(0, min(100, int(getattr(game_config, "road_question_ratio_percent", 50) or 0))) if road_enabled else 0
-        sorting_ratio = max(0, min(100, int(getattr(game_config, "sorting_question_ratio_percent", 20) or 0))) if sorting_enabled else 0
-        air_ratio = max(0, 100 - road_ratio - sorting_ratio) if air_enabled else 0
+        if not enabled_variants:
+            return "air"
 
-        weighted: List[Tuple[str, int]] = []
-        if air_enabled and air_ratio > 0:
-            weighted.append(("air", air_ratio))
-        if road_enabled and road_ratio > 0:
-            weighted.append(("road", road_ratio))
-        if sorting_enabled and sorting_ratio > 0:
-            weighted.append(("sorting", sorting_ratio))
+        usage_counts: Dict[str, int] = {variant: 0 for variant in enabled_variants}
+        for round_entry in (game.round_history or []):
+            variant = str(round_entry.get("question_type") or "")
+            if variant in usage_counts:
+                usage_counts[variant] += 1
 
-        if not weighted:
-            enabled_variants: List[str] = []
-            if air_enabled:
-                enabled_variants.append("air")
-            if road_enabled:
-                enabled_variants.append("road")
-            if sorting_enabled:
-                enabled_variants.append("sorting")
-            fallback_variant = random.choice(enabled_variants) if enabled_variants else "air"
-            logger.info(
-                "Question variant decision fallback: enabled=%s chosen=%s",
-                enabled_variants,
-                fallback_variant,
-            )
-            return fallback_variant
-
-        total_weight = sum(weight for _, weight in weighted)
-        roll = random.uniform(0, total_weight)
-        upto = 0.0
-        for variant, weight in weighted:
-            upto += weight
-            if roll <= upto:
-                logger.info(
-                    "Question variant decision weighted: weights=%s roll=%.2f chosen=%s",
-                    weighted,
-                    roll,
-                    variant,
-                )
-                return variant
-
-        chosen = weighted[-1][0]
+        min_count = min(usage_counts.values())
+        candidates = [variant for variant, count in usage_counts.items() if count == min_count]
+        chosen = random.choice(candidates)
         logger.info(
-            "Question variant decision weighted-tail: weights=%s roll=%.2f chosen=%s",
-            weighted,
-            roll,
+            "Question variant fair decision: enabled=%s usage=%s candidates=%s chosen=%s",
+            enabled_variants,
+            usage_counts,
+            candidates,
             chosen,
         )
         return chosen
@@ -441,7 +415,7 @@ class GameLogic:
 
     async def _assign_random_question(self, game: GameState) -> Optional[CityPair]:
         """Load and assign a random city pair for a game."""
-        preferred_variant = self._pick_question_variant(game.config)
+        preferred_variant = self._pick_question_variant(game)
         if preferred_variant == "sorting":
             game.current_question = self._build_sorting_question()
             return game.current_question
@@ -467,7 +441,7 @@ class GameLogic:
 
     async def _assign_random_question_for_preload(self, game: GameState) -> Optional[CityPair]:
         """Load a random city pair WITHOUT modifying game.current_question (for pre-loading)."""
-        preferred_variant = self._pick_question_variant(game.config)
+        preferred_variant = self._pick_question_variant(game)
         if preferred_variant == "sorting":
             return self._build_sorting_question()
 
