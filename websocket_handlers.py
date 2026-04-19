@@ -31,7 +31,7 @@ class SetReadyMessage(BaseModel):
 
 class SubmitAnswerMessage(BaseModel):
     guess: Optional[int] = None
-    sorted_numbers: Optional[list[int]] = None
+    sorted_numbers: Optional[list[Any]] = None
 
 
 class CreateGameMessage(BaseModel):
@@ -60,6 +60,7 @@ class UpdateSettingsMessage(BaseModel):
     auto_advance_on_all_answers: bool = True
     first_answer_ends_round: bool = False
     wrong_answer_points_others: bool = False
+    enable_air_questions: bool = True
     enable_road_questions: bool = True
     road_question_ratio_percent: int = 50
     enable_sorting_questions: Optional[bool] = None
@@ -351,6 +352,10 @@ class WebSocketHandler:
                     "wrong_answer_points_others",
                     self.default_config.wrong_answer_points_others,
                 ),
+                enable_air_questions=_bool_setting(
+                    "enable_air_questions",
+                    self.default_config.enable_air_questions,
+                ),
                 enable_road_questions=_bool_setting(
                     "enable_road_questions",
                     self.default_config.enable_road_questions,
@@ -371,9 +376,22 @@ class WebSocketHandler:
                     0,
                     100,
                 ),
-                enable_speed_rounds=self.default_config.enable_speed_rounds,
-                speed_round_ratio_percent=self.default_config.speed_round_ratio_percent,
-                speed_round_time_seconds=self.default_config.speed_round_time_seconds,
+                enable_speed_rounds=_bool_setting(
+                    "enable_speed_rounds",
+                    self.default_config.enable_speed_rounds,
+                ),
+                speed_round_ratio_percent=_int_setting(
+                    "speed_round_ratio_percent",
+                    self.default_config.speed_round_ratio_percent,
+                    0,
+                    100,
+                ),
+                speed_round_time_seconds=_int_setting(
+                    "speed_round_time_seconds",
+                    self.default_config.speed_round_time_seconds,
+                    5,
+                    30,
+                ),
             )
 
             game = self.game_room.create_game(game_id, config)
@@ -733,6 +751,9 @@ class WebSocketHandler:
         if msg.sorting_question_ratio_percent is not None and not (0 <= msg.sorting_question_ratio_percent <= 100):
             await self.send_error(player_id, "Invalid settings values")
             return
+        if not (msg.enable_air_questions or msg.enable_road_questions or (msg.enable_sorting_questions is not False)):
+            await self.send_error(player_id, "At least one question type must be enabled")
+            return
 
         game.config = GameConfig(
             max_rounds=msg.max_rounds,
@@ -742,6 +763,7 @@ class WebSocketHandler:
             auto_advance_on_all_answers=msg.auto_advance_on_all_answers,
             first_answer_ends_round=msg.first_answer_ends_round,
             wrong_answer_points_others=msg.wrong_answer_points_others,
+            enable_air_questions=msg.enable_air_questions,
             enable_road_questions=msg.enable_road_questions,
             road_question_ratio_percent=msg.road_question_ratio_percent,
             enable_sorting_questions=(
@@ -862,6 +884,7 @@ class WebSocketHandler:
                         "auto_advance_on_all_answers": game.config.auto_advance_on_all_answers,
                         "first_answer_ends_round": game.config.first_answer_ends_round,
                         "wrong_answer_points_others": game.config.wrong_answer_points_others,
+                        "enable_air_questions": game.config.enable_air_questions,
                         "enable_road_questions": game.config.enable_road_questions,
                         "road_question_ratio_percent": game.config.road_question_ratio_percent,
                         "enable_sorting_questions": game.config.enable_sorting_questions,
@@ -918,6 +941,7 @@ class WebSocketHandler:
                     "auto_advance_on_all_answers": game.config.auto_advance_on_all_answers,
                     "first_answer_ends_round": game.config.first_answer_ends_round,
                     "wrong_answer_points_others": game.config.wrong_answer_points_others,
+                    "enable_air_questions": game.config.enable_air_questions,
                     "enable_road_questions": game.config.enable_road_questions,
                     "road_question_ratio_percent": game.config.road_question_ratio_percent,
                     "enable_sorting_questions": game.config.enable_sorting_questions,

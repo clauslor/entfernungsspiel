@@ -46,6 +46,16 @@ class DBRoutePointsCache(Base):
     updated_at = Column(DateTime, default=datetime.utcnow)
 
 
+class DBSortingQuizQuestion(Base):
+    __tablename__ = "sorting_quiz_questions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    prompt = Column(String)
+    items_json = Column(String)
+    correct_order_json = Column(String)
+    source = Column(String, default="pubquiz")
+
+
 class DBGameResult(Base):
     __tablename__ = "game_results"
 
@@ -110,6 +120,25 @@ def add_city_pair(db, city1: str, city2: str, distance: int, lat1: float, lon1: 
     db.commit()
     db.refresh(city_pair)
     return city_pair
+
+
+def get_sorting_quiz_questions(db) -> List[DBSortingQuizQuestion]:
+    """Get all stored pub-quiz sorting questions from database."""
+    return db.query(DBSortingQuizQuestion).all()
+
+
+def add_sorting_quiz_question(db, prompt: str, items: list, correct_order: list, source: str = "pubquiz") -> DBSortingQuizQuestion:
+    """Add a sorting quiz question to database."""
+    question = DBSortingQuizQuestion(
+        prompt=prompt,
+        items_json=json.dumps(items, ensure_ascii=False),
+        correct_order_json=json.dumps(correct_order, ensure_ascii=False),
+        source=source,
+    )
+    db.add(question)
+    db.commit()
+    db.refresh(question)
+    return question
 
 
 def get_cached_route_distance_km(db, city_pair_id: int, provider: str = "graphhopper", profile: str = "car") -> Optional[int]:

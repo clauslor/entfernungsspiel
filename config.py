@@ -28,6 +28,7 @@ class Config:
     DEFAULT_COUNTDOWN: int = int(os.getenv("DEFAULT_COUNTDOWN", "3"))
     DEFAULT_ANSWER_TIME: int = int(os.getenv("DEFAULT_ANSWER_TIME", "15"))
     DEFAULT_PAUSE_BETWEEN_ROUNDS: int = int(os.getenv("DEFAULT_PAUSE_BETWEEN_ROUNDS", "3"))
+    DEFAULT_ENABLE_AIR_QUESTIONS: bool = os.getenv("DEFAULT_ENABLE_AIR_QUESTIONS", "true").lower() == "true"
     DEFAULT_ENABLE_ROAD_QUESTIONS: bool = os.getenv("DEFAULT_ENABLE_ROAD_QUESTIONS", "true").lower() == "true"
     DEFAULT_ROAD_QUESTION_RATIO_PERCENT: int = int(os.getenv("DEFAULT_ROAD_QUESTION_RATIO_PERCENT", "50"))
     DEFAULT_ENABLE_SORTING_QUESTIONS: bool = os.getenv("DEFAULT_ENABLE_SORTING_QUESTIONS", "true").lower() == "true"

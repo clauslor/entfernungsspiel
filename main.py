@@ -94,6 +94,7 @@ game_config = GameConfig(
     countdown_seconds=config.DEFAULT_COUNTDOWN,
     answer_time_seconds=config.DEFAULT_ANSWER_TIME,
     pause_between_rounds_seconds=config.DEFAULT_PAUSE_BETWEEN_ROUNDS,
+    enable_air_questions=config.DEFAULT_ENABLE_AIR_QUESTIONS,
     enable_road_questions=config.DEFAULT_ENABLE_ROAD_QUESTIONS,
     road_question_ratio_percent=max(0, min(100, config.DEFAULT_ROAD_QUESTION_RATIO_PERCENT)),
     enable_sorting_questions=config.DEFAULT_ENABLE_SORTING_QUESTIONS,

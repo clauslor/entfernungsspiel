@@ -1366,7 +1366,7 @@ function handleJsonMessage(msg) {
     applyQuestionVariantUI(questionVariant);
 
     const localizedQuestion = questionVariant === "sorting"
-      ? `Sortiere die Zahlen ${msg.sorting_order === "desc" ? "absteigend" : "aufsteigend"}: ${(msg.sorting_numbers || []).join(", ")}`
+      ? (msg.sorting_prompt || `Sortiere die Zahlen ${msg.sorting_order === "desc" ? "absteigend" : "aufsteigend"}: ${(msg.sorting_numbers || []).join(", ")}`)
       : t(
         questionVariant === "road" ? "question.roadDistanceTemplate" : "question.distanceTemplate",
         {
@@ -1385,7 +1385,7 @@ function handleJsonMessage(msg) {
     const questionTextEl = document.querySelector("#questionCard .question-text");
     if (questionTextEl) {
       questionTextEl.textContent = questionVariant === "sorting"
-        ? `Sortiere die Zahlen ${msg.sorting_order === "desc" ? "von groß nach klein" : "von klein nach groß"}`
+        ? (msg.sorting_prompt || `Sortiere die Zahlen ${msg.sorting_order === "desc" ? "von groß nach klein" : "von klein nach groß"}`)
         : t(
           questionVariant === "road" ? "question.askRoadDistance" : "question.askDistance",
         );
@@ -1695,6 +1695,7 @@ function set_countdown(countdownLimitSeconds) {
 
 function syncQuestionTypeTiles() {
   const mappings = [
+    { inputId: "settingEnableAirQuestions", tileId: "tileAirQuestions" },
     { inputId: "settingEnableRoadQuestions", tileId: "tileRoadQuestions" },
     { inputId: "settingEnableSortingQuestions", tileId: "tileSortingQuestions" },
     { inputId: "settingEnableSpeedRounds", tileId: "tileSpeedRounds" },
@@ -1712,6 +1713,7 @@ function syncQuestionTypeTiles() {
 
 function toggleQuestionTypeTile(kind) {
   const tileMap = {
+    air: "settingEnableAirQuestions",
     road: "settingEnableRoadQuestions",
     sorting: "settingEnableSortingQuestions",
     speed: "settingEnableSpeedRounds",
@@ -1720,6 +1722,17 @@ function toggleQuestionTypeTile(kind) {
   if (!inputId) return;
   const inputEl = document.getElementById(inputId);
   if (!inputEl || inputEl.disabled) return;
+
+  const isPrimaryType = kind === "air" || kind === "road" || kind === "sorting";
+  if (isPrimaryType && inputEl.checked) {
+    const enabledPrimaryCount = ["settingEnableAirQuestions", "settingEnableRoadQuestions", "settingEnableSortingQuestions"]
+      .map((id) => document.getElementById(id))
+      .filter((el) => el && el.checked)
+      .length;
+    if (enabledPrimaryCount <= 1) {
+      return;
+    }
+  }
 
   inputEl.checked = !inputEl.checked;
   syncQuestionTypeTiles();
@@ -1746,6 +1759,7 @@ function updateGameSettings(game_id, config) {
     const autoAdvanceAllAnsweredInput = document.getElementById("settingAutoAdvanceAllAnswered");
     const firstAnswerEndsRoundInput = document.getElementById("settingFirstAnswerEndsRound");
     const wrongAnswerPointsOthersInput = document.getElementById("settingWrongAnswerPointsOthers");
+    const enableAirQuestionsInput = document.getElementById("settingEnableAirQuestions");
     const enableRoadQuestionsInput = document.getElementById("settingEnableRoadQuestions");
     const enableSortingQuestionsInput = document.getElementById("settingEnableSortingQuestions");
     const enableSpeedRoundsInput = document.getElementById("settingEnableSpeedRounds");
@@ -1756,6 +1770,7 @@ function updateGameSettings(game_id, config) {
     if (autoAdvanceAllAnsweredInput) autoAdvanceAllAnsweredInput.checked = !!config.auto_advance_on_all_answers;
     if (firstAnswerEndsRoundInput) firstAnswerEndsRoundInput.checked = !!config.first_answer_ends_round;
     if (wrongAnswerPointsOthersInput) wrongAnswerPointsOthersInput.checked = !!config.wrong_answer_points_others;
+    if (enableAirQuestionsInput) enableAirQuestionsInput.checked = config.enable_air_questions !== false;
     const roadQuestionsEnabled = config.enable_road_questions !== false;
     if (enableRoadQuestionsInput) enableRoadQuestionsInput.checked = roadQuestionsEnabled;
     if (enableSortingQuestionsInput) enableSortingQuestionsInput.checked = config.enable_sorting_questions !== false;
@@ -1946,6 +1961,7 @@ function updateHostControls() {
     document.getElementById("settingFirstAnswerEndsRound"),
     document.getElementById("settingWrongAnswerPointsOthers"),
     document.getElementById("settingNoTimeLimit"),
+    document.getElementById("settingEnableAirQuestions"),
     document.getElementById("settingEnableRoadQuestions"),
     document.getElementById("settingEnableSortingQuestions"),
     document.getElementById("settingEnableSpeedRounds"),
@@ -1963,6 +1979,7 @@ function updateHostControls() {
   if (roadRatioEl) roadRatioEl.disabled = !canEditSettings || !(enableRoadQuestionsEl?.checked);
 
   [
+    document.getElementById("tileAirQuestions"),
     document.getElementById("tileRoadQuestions"),
     document.getElementById("tileSortingQuestions"),
     document.getElementById("tileSpeedRounds"),
@@ -2010,6 +2027,7 @@ function saveGameSettings() {
   const pauseBetweenRoundsSeconds = parseInt(document.getElementById("settingPauseTime")?.value || "", 10);
   const autoAdvanceOnAllAnswers = !!document.getElementById("settingAutoAdvanceAllAnswered")?.checked;
   const wrongAnswerPointsOthers = !!document.getElementById("settingWrongAnswerPointsOthers")?.checked;
+  const enableAirQuestions = !!document.getElementById("settingEnableAirQuestions")?.checked;
   const enableRoadQuestions = !!document.getElementById("settingEnableRoadQuestions")?.checked;
   const enableSortingQuestions = !!document.getElementById("settingEnableSortingQuestions")?.checked;
   const enableSpeedRounds = !!document.getElementById("settingEnableSpeedRounds")?.checked;
@@ -2041,6 +2059,7 @@ function saveGameSettings() {
       auto_advance_on_all_answers: autoAdvanceOnAllAnswers,
       first_answer_ends_round: firstAnswerEndsRound,
       wrong_answer_points_others: wrongAnswerPointsOthers,
+      enable_air_questions: enableAirQuestions,
       enable_road_questions: enableRoadQuestions,
       road_question_ratio_percent: roadQuestionRatioPercent,
       enable_sorting_questions: enableSortingQuestions,
@@ -2058,6 +2077,7 @@ function saveGameSettings() {
       auto_advance_on_all_answers: autoAdvanceOnAllAnswers,
       first_answer_ends_round: firstAnswerEndsRound,
       wrong_answer_points_others: wrongAnswerPointsOthers,
+      enable_air_questions: enableAirQuestions,
       enable_road_questions: enableRoadQuestions,
       road_question_ratio_percent: roadQuestionRatioPercent,
       enable_sorting_questions: enableSortingQuestions,
@@ -2350,11 +2370,6 @@ function createGame() {
   const sanitizedSettings = storedSettings && typeof storedSettings === "object"
     ? { ...storedSettings }
     : null;
-  if (sanitizedSettings) {
-    // Keep server-side sorting defaults authoritative for new games.
-    delete sanitizedSettings.enable_sorting_questions;
-    delete sanitizedSettings.sorting_question_ratio_percent;
-  }
   const message = {
     type: "create_game",
     data: sanitizedSettings ? { config: sanitizedSettings } : {},

@@ -1351,6 +1351,11 @@ main.game-layout.lobby-mode .game-column {
     color: #042f2e;
 }
 
+#tileAirQuestions.is-active {
+    background: linear-gradient(135deg, #60a5fa, #3b82f6);
+    color: #0f172a;
+}
+
 #tileSortingQuestions.is-active {
     background: linear-gradient(135deg, #34d399, #10b981);
     color: #052e16;

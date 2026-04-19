@@ -3,9 +3,12 @@ import asyncio
 from typing import List, Dict, Tuple, Optional, Any
 from datetime import datetime
 import statistics
+import json
+from collections import Counter
 from models import GameState, Player, CityPair, GameStatus, GameRoom
 from database import (
     get_city_pairs,
+    get_sorting_quiz_questions,
     save_game_result,
     save_high_score,
     SessionLocal,
@@ -39,6 +42,9 @@ class GameLogic:
         ratio_pct = max(0, min(100, ratio_pct))
         return random.random() < (ratio_pct / 100.0)
 
+    def _is_air_enabled(self, game_config) -> bool:
+        return bool(getattr(game_config, "enable_air_questions", True))
+
     def _should_use_speed_round(self, game_config) -> bool:
         if not getattr(game_config, "enable_speed_rounds", True):
             return False
@@ -65,6 +71,36 @@ class GameLogic:
         return use_sorting
 
     def _build_sorting_question(self) -> CityPair:
+        with SessionLocal() as db:
+            quiz_rows = get_sorting_quiz_questions(db)
+
+        if quiz_rows:
+            selected = random.choice(quiz_rows)
+            try:
+                items = json.loads(selected.items_json or "[]")
+                correct_order = json.loads(selected.correct_order_json or "[]")
+            except Exception:
+                items = []
+                correct_order = []
+
+            if isinstance(items, list) and isinstance(correct_order, list) and len(items) >= 3 and Counter(items) == Counter(correct_order):
+                return CityPair(
+                    id=-1,
+                    city1="-",
+                    city2="-",
+                    distance=0,
+                    lat1=0.0,
+                    lon1=0.0,
+                    lat2=0.0,
+                    lon2=0.0,
+                    question_id=str(uuid.uuid4().hex[:8]),
+                    question_variant="sorting",
+                    sorting_numbers=items,
+                    sorting_order="custom",
+                    correct_order=correct_order,
+                    sorting_prompt=selected.prompt or "Bringe die Begriffe in die richtige Reihenfolge.",
+                )
+
         numbers = random.sample(range(1, 151), 4)
         sorting_order = random.choice(["asc", "desc"])
         correct_order = sorted(numbers, reverse=(sorting_order == "desc"))
@@ -82,6 +118,7 @@ class GameLogic:
             sorting_numbers=numbers,
             sorting_order=sorting_order,
             correct_order=correct_order,
+            sorting_prompt="",
         )
 
     def _routing_provider(self) -> str:
@@ -167,7 +204,8 @@ class GameLogic:
             question_variant="air",
         )
 
-        if self._should_use_road_variant(game_config):
+        should_try_road = self._should_use_road_variant(game_config)
+        if should_try_road:
             road_route = await self._try_get_road_route(question)
             if road_route is not None:
                 question.distance = int(road_route["distance_km"])
@@ -179,6 +217,17 @@ class GameLogic:
                     question.city1,
                     question.city2,
                 )
+
+        if question.question_variant == "air" and not self._is_air_enabled(game_config):
+            if should_try_road:
+                return None
+            road_route = await self._try_get_road_route(question)
+            if road_route is not None:
+                question.distance = int(road_route["distance_km"])
+                question.question_variant = "road"
+                question.route_points = road_route.get("points") or []
+            else:
+                return None
 
         return question
 
@@ -360,8 +409,13 @@ class GameLogic:
                 logger.error(f"No city pairs available for game {game.id}")
                 return None
 
-            db_city_pair = random.choice(city_pairs)
-            game.current_question = await self._build_question_from_db_pair(db_city_pair, game.config)
+            random.shuffle(city_pairs)
+            game.current_question = None
+            for db_city_pair in city_pairs:
+                candidate = await self._build_question_from_db_pair(db_city_pair, game.config)
+                if candidate is not None:
+                    game.current_question = candidate
+                    break
         return game.current_question
 
     async def _assign_random_question_for_preload(self, game: GameState) -> Optional[CityPair]:
@@ -375,8 +429,12 @@ class GameLogic:
                 logger.error(f"No city pairs available for pre-load in game {game.id}")
                 return None
 
-            db_city_pair = random.choice(city_pairs)
-            return await self._build_question_from_db_pair(db_city_pair, game.config)
+            random.shuffle(city_pairs)
+            for db_city_pair in city_pairs:
+                candidate = await self._build_question_from_db_pair(db_city_pair, game.config)
+                if candidate is not None:
+                    return candidate
+            return None
 
     async def broadcast_question(self, game_id: str):
         """Broadcast current question to all players in the game"""
@@ -403,7 +461,11 @@ class GameLogic:
                 "city1": question.city1 if not is_sorting else "",
                 "city2": question.city2 if not is_sorting else "",
                 "question": (
-                    f"Sort the numbers in {'descending' if question.sorting_order == 'desc' else 'ascending'} order"
+                    (
+                        question.sorting_prompt
+                        if question.sorting_order == "custom" and question.sorting_prompt
+                        else f"Sort the numbers in {'descending' if question.sorting_order == 'desc' else 'ascending'} order"
+                    )
                     if is_sorting
                     else (
                         f"What is the road distance from {question.city1} to {question.city2}? (in km)"
@@ -430,6 +492,7 @@ class GameLogic:
                 ),
                 "sorting_numbers": question.sorting_numbers if is_sorting else [],
                 "sorting_order": question.sorting_order if is_sorting else None,
+                "sorting_prompt": question.sorting_prompt if is_sorting else None,
             }
             
             # Broadcast to all players in the game
@@ -472,15 +535,15 @@ class GameLogic:
         answer_for_response: Any
 
         if question.question_variant == "sorting":
-            if not isinstance(answer, list) or not all(isinstance(x, int) for x in answer):
+            if not isinstance(answer, list) or not all(isinstance(x, (int, str)) for x in answer):
                 if self.ws_handler:
                     await self.ws_handler.send_error(player_id, "Invalid sorting answer format")
                 return None
 
             expected = question.sorting_numbers
-            if len(answer) != len(expected) or sorted(answer) != sorted(expected):
+            if len(answer) != len(expected) or Counter(answer) != Counter(expected):
                 if self.ws_handler:
-                    await self.ws_handler.send_error(player_id, "Sorting answer must use each provided number exactly once")
+                    await self.ws_handler.send_error(player_id, "Sorting answer must use each provided item exactly once")
                 return None
 
             answer_to_store = list(answer)
@@ -603,7 +666,11 @@ class GameLogic:
             "round": game.current_round,
             "question_type": question.question_variant,
             "question": (
-                f"Sortiere die Zahlen {'absteigend' if question.sorting_order == 'desc' else 'aufsteigend'}"
+                (
+                    question.sorting_prompt
+                    if question.sorting_order == "custom" and question.sorting_prompt
+                    else f"Sortiere die Zahlen {'absteigend' if question.sorting_order == 'desc' else 'aufsteigend'}"
+                )
                 if is_sorting
                 else (
                     f"Wie lang ist die Straßenentfernung von {question.city1} nach {question.city2}?"

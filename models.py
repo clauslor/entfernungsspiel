@@ -24,6 +24,7 @@ class GameConfig:
     auto_advance_on_all_answers: bool = True
     first_answer_ends_round: bool = False
     wrong_answer_points_others: bool = False
+    enable_air_questions: bool = True
     enable_road_questions: bool = True
     road_question_ratio_percent: int = 50
     enable_sorting_questions: bool = True
@@ -67,9 +68,10 @@ class CityPair:
     question_id: str
     question_variant: str = "air"
     route_points: List[Dict[str, float]] = field(default_factory=list)
-    sorting_numbers: List[int] = field(default_factory=list)
+    sorting_numbers: List[Any] = field(default_factory=list)
     sorting_order: str = "asc"
-    correct_order: List[int] = field(default_factory=list)
+    correct_order: List[Any] = field(default_factory=list)
+    sorting_prompt: str = ""
     speed_round: bool = False
 
     @property
