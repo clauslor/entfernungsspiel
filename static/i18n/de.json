@@ -83,6 +83,7 @@
     "answerTimeLabel": "Antwortzeit (s)",
     "pauseTimeLabel": "Pause zwischen Runden (s)",
     "roadRatioLabel": "Anteil Straßenfragen (%)",
+    "sortingRatioLabel": "Anteil Sortierfragen (%)",
     "questionTypesTitle": "Fragetypen",
     "questionTypeAir": "Luftlinie",
     "questionTypeRoad": "Straße",

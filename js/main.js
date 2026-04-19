@@ -31,6 +31,7 @@ let currentQuestionVariant = "air";
 let currentSortingOrder = "asc";
 let currentSortingPool = [];
 let currentSortingSelection = [];
+let sortingAutoSubmitTimerId = null;
 
 const DEFAULT_MAP_VIEW = {
   center: [51.1657, 10.4515],
@@ -58,6 +59,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const noTimeLimitInputEl = document.getElementById("settingNoTimeLimit");
   const answerTimeInputEl = document.getElementById("settingAnswerTime");
   const enableRoadQuestionsEl = document.getElementById("settingEnableRoadQuestions");
+  const enableSortingQuestionsEl = document.getElementById("settingEnableSortingQuestions");
 
   if (firstAnswerEl && noTimeLimitRowEl) {
     firstAnswerEl.addEventListener("change", () => {
@@ -76,6 +78,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (enableRoadQuestionsEl) {
     enableRoadQuestionsEl.addEventListener("change", () => {
       applyRoadQuestionControls(enableRoadQuestionsEl.checked);
+    });
+  }
+  if (enableSortingQuestionsEl) {
+    enableSortingQuestionsEl.addEventListener("change", () => {
+      applySortingQuestionControls(enableSortingQuestionsEl.checked);
     });
   }
 
@@ -563,16 +570,12 @@ function resetCountdownDisplay(labelText = t("countdown.waiting")) {
 function setGuessControlsDisabled(disabled) {
   const guessInput = document.getElementById("guessInput");
   const submitButton = document.getElementById("submitGuessBtn");
-  const submitSortingButton = document.getElementById("submitSortingBtn");
   const resetSortingButton = document.getElementById("resetSortingBtn");
   if (guessInput) {
     guessInput.disabled = disabled;
   }
   if (submitButton) {
     submitButton.disabled = disabled;
-  }
-  if (submitSortingButton) {
-    submitSortingButton.disabled = disabled;
   }
   if (resetSortingButton) {
     resetSortingButton.disabled = disabled;
@@ -593,6 +596,11 @@ function renderSortingUI() {
   const poolEl = document.getElementById("sortingNumberPool");
   const selectionEl = document.getElementById("sortingSelection");
   if (!poolEl || !selectionEl) return;
+
+  if (sortingAutoSubmitTimerId) {
+    clearTimeout(sortingAutoSubmitTimerId);
+    sortingAutoSubmitTimerId = null;
+  }
 
   poolEl.innerHTML = "";
   currentSortingPool.forEach((value, index) => {
@@ -621,6 +629,15 @@ function renderSortingUI() {
     };
     selectionEl.appendChild(btn);
   });
+
+  const expectedLength = currentSortingSelection.length + currentSortingPool.length;
+  const isComplete = expectedLength > 0 && currentSortingSelection.length === expectedLength;
+  if (isComplete && !guessSubmissionPending && !guessLockedForRound) {
+    // Delay auto-submit slightly so the last click still feels responsive.
+    sortingAutoSubmitTimerId = setTimeout(() => {
+      submitSortingAnswer();
+    }, 180);
+  }
 }
 
 function initializeSortingQuestion(numbers, sortingOrder) {
@@ -1855,6 +1872,7 @@ function updateGameSettings(game_id, config) {
     const enableSortingQuestionsInput = document.getElementById("settingEnableSortingQuestions");
     const enableSpeedRoundsInput = document.getElementById("settingEnableSpeedRounds");
     const roadQuestionRatioInput = document.getElementById("settingRoadQuestionRatio");
+    const sortingQuestionRatioInput = document.getElementById("settingSortingQuestionRatio");
     if (maxRoundsInput) maxRoundsInput.value = config.max_rounds;
     if (countdownInput) countdownInput.value = config.countdown_seconds;
     if (pauseTimeInput) pauseTimeInput.value = config.pause_between_rounds_seconds;
@@ -1872,6 +1890,10 @@ function updateGameSettings(game_id, config) {
       const parsedRatio = Number.parseInt(config.road_question_ratio_percent, 10);
       roadQuestionRatioInput.value = Number.isNaN(parsedRatio) ? "50" : String(Math.max(0, Math.min(100, parsedRatio)));
     }
+    if (sortingQuestionRatioInput) {
+      const parsedRatio = Number.parseInt(config.sorting_question_ratio_percent, 10);
+      sortingQuestionRatioInput.value = Number.isNaN(parsedRatio) ? "20" : String(Math.max(0, Math.min(100, parsedRatio)));
+    }
     // Handle no-time-limit flag (answer_time_seconds == 0)
     const noTimeLimit = config.answer_time_seconds === 0;
     const noTimeLimitInput = document.getElementById("settingNoTimeLimit");
@@ -1882,6 +1904,7 @@ function updateGameSettings(game_id, config) {
     }
     applyNoTimeLimitVisibility(!!config.first_answer_ends_round);
     applyRoadQuestionControls(roadQuestionsEnabled);
+    applySortingQuestionControls(config.enable_sorting_questions !== false);
     syncQuestionTypeTiles();
     if (currentIsHost) {
       localStorage.setItem(STORAGE_KEYS.CREATOR_SETTINGS, JSON.stringify(config));
@@ -2067,9 +2090,12 @@ function updateHostControls() {
   const answerTimeEl = document.getElementById("settingAnswerTime");
   const noTimeLimitEl = document.getElementById("settingNoTimeLimit");
   const roadRatioEl = document.getElementById("settingRoadQuestionRatio");
+  const sortingRatioEl = document.getElementById("settingSortingQuestionRatio");
   const enableRoadQuestionsEl = document.getElementById("settingEnableRoadQuestions");
+  const enableSortingQuestionsEl = document.getElementById("settingEnableSortingQuestions");
   if (answerTimeEl) answerTimeEl.disabled = !canEditSettings || !!(noTimeLimitEl?.checked);
   if (roadRatioEl) roadRatioEl.disabled = !canEditSettings || !(enableRoadQuestionsEl?.checked);
+  if (sortingRatioEl) sortingRatioEl.disabled = !canEditSettings || !(enableSortingQuestionsEl?.checked);
 
   [
     document.getElementById("tileAirQuestions"),
@@ -2101,6 +2127,13 @@ function applyRoadQuestionControls(enabled) {
   if (ratioInput) ratioInput.disabled = !enabled;
 }
 
+function applySortingQuestionControls(enabled) {
+  const ratioField = document.getElementById("sortingRatioField");
+  const ratioInput = document.getElementById("settingSortingQuestionRatio");
+  if (ratioField) ratioField.style.opacity = enabled ? "1" : "0.6";
+  if (ratioInput) ratioInput.disabled = !enabled;
+}
+
 let _saveSettingsTimer = null;
 function debouncedSaveSettings() {
   clearTimeout(_saveSettingsTimer);
@@ -2125,6 +2158,7 @@ function saveGameSettings() {
   const enableSortingQuestions = !!document.getElementById("settingEnableSortingQuestions")?.checked;
   const enableSpeedRounds = !!document.getElementById("settingEnableSpeedRounds")?.checked;
   const roadQuestionRatioPercent = parseInt(document.getElementById("settingRoadQuestionRatio")?.value || "", 10);
+  const sortingQuestionRatioPercent = parseInt(document.getElementById("settingSortingQuestionRatio")?.value || "", 10);
 
   const ranges = [
     { value: maxRounds,               min: 1,  max: 20,  label: "Max. Runden" },
@@ -2135,6 +2169,7 @@ function saveGameSettings() {
     ranges.push({ value: answerTimeSeconds, min: 5, max: 180, label: "Antwortzeit" });
   }
   ranges.push({ value: roadQuestionRatioPercent, min: 0, max: 100, label: "Straßenanteil" });
+  ranges.push({ value: sortingQuestionRatioPercent, min: 0, max: 100, label: "Sortieranteil" });
   const invalid = ranges.filter((r) => Number.isNaN(r.value) || r.value < r.min || r.value > r.max);
   if (invalid.length > 0) {
     const details = invalid.map((r) => `${r.label}: ${r.min}–${r.max}`).join(", ");
@@ -2156,6 +2191,7 @@ function saveGameSettings() {
       enable_road_questions: enableRoadQuestions,
       road_question_ratio_percent: roadQuestionRatioPercent,
       enable_sorting_questions: enableSortingQuestions,
+      sorting_question_ratio_percent: sortingQuestionRatioPercent,
       enable_speed_rounds: enableSpeedRounds,
     },
   });
@@ -2174,6 +2210,7 @@ function saveGameSettings() {
       enable_road_questions: enableRoadQuestions,
       road_question_ratio_percent: roadQuestionRatioPercent,
       enable_sorting_questions: enableSortingQuestions,
+      sorting_question_ratio_percent: sortingQuestionRatioPercent,
       enable_speed_rounds: enableSpeedRounds,
     }),
   );

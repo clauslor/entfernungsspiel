@@ -74,7 +74,6 @@
                             <div id="sortingNumberPool" class="sorting-number-list"></div>
                             <div id="sortingSelection" class="sorting-selection"></div>
                             <div class="button-group sorting-action-buttons">
-                                <button onclick="submitSortingAnswer()" class="btn btn-primary" id="submitSortingBtn">Sortierung senden</button>
                                 <button onclick="resetSortingSelection()" class="btn btn-secondary" id="resetSortingBtn">Zurücksetzen</button>
                             </div>
                         </div>
@@ -298,6 +297,12 @@
                             <label class="host-settings-field" id="roadRatioField">
                                 <span data-i18n="settings.roadRatioLabel">Anteil Straßenfragen (%)</span>
                                 <input type="number" id="settingRoadQuestionRatio" min="0" max="100" step="5"
+                                    inputmode="numeric" onchange="debouncedSaveSettings()">
+                                <span class="field-hint">0 – 100 %</span>
+                            </label>
+                            <label class="host-settings-field" id="sortingRatioField">
+                                <span data-i18n="settings.sortingRatioLabel">Anteil Sortierfragen (%)</span>
+                                <input type="number" id="settingSortingQuestionRatio" min="0" max="100" step="5"
                                     inputmode="numeric" onchange="debouncedSaveSettings()">
                                 <span class="field-hint">0 – 100 %</span>
                             </label>

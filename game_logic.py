@@ -35,15 +35,67 @@ class GameLogic:
         """Set the WebSocket handler for broadcasting messages"""
         self.ws_handler = ws_handler
 
-    def _should_use_road_variant(self, game_config) -> bool:
-        if not getattr(game_config, "enable_road_questions", True):
-            return False
-        ratio_pct = int(getattr(game_config, "road_question_ratio_percent", 50) or 0)
-        ratio_pct = max(0, min(100, ratio_pct))
-        return random.random() < (ratio_pct / 100.0)
+    def _pick_question_variant(self, game_config) -> str:
+        """Pick the next question variant using configured shares.
 
-    def _is_air_enabled(self, game_config) -> bool:
-        return bool(getattr(game_config, "enable_air_questions", True))
+        Road and sorting shares are explicit percentages. Air gets the remaining
+        share when enabled. If weights collapse to 0, falls back to an equal pick
+        among enabled variants.
+        """
+        air_enabled = bool(getattr(game_config, "enable_air_questions", True))
+        road_enabled = bool(getattr(game_config, "enable_road_questions", True))
+        sorting_enabled = bool(getattr(game_config, "enable_sorting_questions", True))
+
+        road_ratio = max(0, min(100, int(getattr(game_config, "road_question_ratio_percent", 50) or 0))) if road_enabled else 0
+        sorting_ratio = max(0, min(100, int(getattr(game_config, "sorting_question_ratio_percent", 20) or 0))) if sorting_enabled else 0
+        air_ratio = max(0, 100 - road_ratio - sorting_ratio) if air_enabled else 0
+
+        weighted: List[Tuple[str, int]] = []
+        if air_enabled and air_ratio > 0:
+            weighted.append(("air", air_ratio))
+        if road_enabled and road_ratio > 0:
+            weighted.append(("road", road_ratio))
+        if sorting_enabled and sorting_ratio > 0:
+            weighted.append(("sorting", sorting_ratio))
+
+        if not weighted:
+            enabled_variants: List[str] = []
+            if air_enabled:
+                enabled_variants.append("air")
+            if road_enabled:
+                enabled_variants.append("road")
+            if sorting_enabled:
+                enabled_variants.append("sorting")
+            fallback_variant = random.choice(enabled_variants) if enabled_variants else "air"
+            logger.info(
+                "Question variant decision fallback: enabled=%s chosen=%s",
+                enabled_variants,
+                fallback_variant,
+            )
+            return fallback_variant
+
+        total_weight = sum(weight for _, weight in weighted)
+        roll = random.uniform(0, total_weight)
+        upto = 0.0
+        for variant, weight in weighted:
+            upto += weight
+            if roll <= upto:
+                logger.info(
+                    "Question variant decision weighted: weights=%s roll=%.2f chosen=%s",
+                    weighted,
+                    roll,
+                    variant,
+                )
+                return variant
+
+        chosen = weighted[-1][0]
+        logger.info(
+            "Question variant decision weighted-tail: weights=%s roll=%.2f chosen=%s",
+            weighted,
+            roll,
+            chosen,
+        )
+        return chosen
 
     def _should_use_speed_round(self, game_config) -> bool:
         if not getattr(game_config, "enable_speed_rounds", True):
@@ -51,24 +103,6 @@ class GameLogic:
         ratio_pct = int(getattr(game_config, "speed_round_ratio_percent", 15) or 0)
         ratio_pct = max(0, min(100, ratio_pct))
         return random.random() < (ratio_pct / 100.0)
-
-    def _should_use_sorting_variant(self, game_config) -> bool:
-        enabled = bool(getattr(game_config, "enable_sorting_questions", True))
-        if not enabled:
-            logger.info("Question variant decision: sorting disabled in game config")
-            return False
-        ratio_pct = int(getattr(game_config, "sorting_question_ratio_percent", 20) or 0)
-        ratio_pct = max(0, min(100, ratio_pct))
-        roll = random.random()
-        use_sorting = roll < (ratio_pct / 100.0)
-        logger.info(
-            "Question variant decision: sorting_enabled=%s sorting_ratio=%s roll=%.4f use_sorting=%s",
-            enabled,
-            ratio_pct,
-            roll,
-            use_sorting,
-        )
-        return use_sorting
 
     def _build_sorting_question(self) -> CityPair:
         with SessionLocal() as db:
@@ -190,7 +224,7 @@ class GameLogic:
             "points": points,
         }
 
-    async def _build_question_from_db_pair(self, db_city_pair, game_config) -> CityPair:
+    async def _build_question_from_db_pair(self, db_city_pair, game_config, preferred_variant: str = "air") -> Optional[CityPair]:
         question = CityPair(
             id=db_city_pair.id,
             city1=db_city_pair.city1,
@@ -204,32 +238,40 @@ class GameLogic:
             question_variant="air",
         )
 
-        should_try_road = self._should_use_road_variant(game_config)
-        if should_try_road:
+        air_enabled = bool(getattr(game_config, "enable_air_questions", True))
+        road_enabled = bool(getattr(game_config, "enable_road_questions", True))
+
+        if preferred_variant == "road" and road_enabled:
             road_route = await self._try_get_road_route(question)
             if road_route is not None:
                 question.distance = int(road_route["distance_km"])
                 question.question_variant = "road"
                 question.route_points = road_route.get("points") or []
-            else:
-                logger.info(
-                    "Road-variant requested for %s -> %s but no route was available (missing API key or route lookup failed).",
-                    question.city1,
-                    question.city2,
-                )
-
-        if question.question_variant == "air" and not self._is_air_enabled(game_config):
-            if should_try_road:
+                return question
+            if not air_enabled:
                 return None
+            return question
+
+        if preferred_variant == "air":
+            if air_enabled:
+                return question
+            if road_enabled:
+                road_route = await self._try_get_road_route(question)
+                if road_route is not None:
+                    question.distance = int(road_route["distance_km"])
+                    question.question_variant = "road"
+                    question.route_points = road_route.get("points") or []
+                    return question
+            return None
+
+        if road_enabled:
             road_route = await self._try_get_road_route(question)
             if road_route is not None:
                 question.distance = int(road_route["distance_km"])
                 question.question_variant = "road"
                 question.route_points = road_route.get("points") or []
-            else:
-                return None
-
-        return question
+                return question
+        return question if air_enabled else None
 
     async def start_game(self, game_id: str) -> bool:
         """Start a new game if all players are ready"""
@@ -399,7 +441,8 @@ class GameLogic:
 
     async def _assign_random_question(self, game: GameState) -> Optional[CityPair]:
         """Load and assign a random city pair for a game."""
-        if self._should_use_sorting_variant(game.config):
+        preferred_variant = self._pick_question_variant(game.config)
+        if preferred_variant == "sorting":
             game.current_question = self._build_sorting_question()
             return game.current_question
 
@@ -412,7 +455,11 @@ class GameLogic:
             random.shuffle(city_pairs)
             game.current_question = None
             for db_city_pair in city_pairs:
-                candidate = await self._build_question_from_db_pair(db_city_pair, game.config)
+                candidate = await self._build_question_from_db_pair(
+                    db_city_pair,
+                    game.config,
+                    preferred_variant=preferred_variant,
+                )
                 if candidate is not None:
                     game.current_question = candidate
                     break
@@ -420,7 +467,8 @@ class GameLogic:
 
     async def _assign_random_question_for_preload(self, game: GameState) -> Optional[CityPair]:
         """Load a random city pair WITHOUT modifying game.current_question (for pre-loading)."""
-        if self._should_use_sorting_variant(game.config):
+        preferred_variant = self._pick_question_variant(game.config)
+        if preferred_variant == "sorting":
             return self._build_sorting_question()
 
         with SessionLocal() as db:
@@ -431,7 +479,11 @@ class GameLogic:
 
             random.shuffle(city_pairs)
             for db_city_pair in city_pairs:
-                candidate = await self._build_question_from_db_pair(db_city_pair, game.config)
+                candidate = await self._build_question_from_db_pair(
+                    db_city_pair,
+                    game.config,
+                    preferred_variant=preferred_variant,
+                )
                 if candidate is not None:
                     return candidate
             return None

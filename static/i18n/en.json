@@ -83,6 +83,7 @@
     "answerTimeLabel": "Answer time (s)",
     "pauseTimeLabel": "Pause between rounds (s)",
     "roadRatioLabel": "Road question share (%)",
+    "sortingRatioLabel": "Sorting question share (%)",
     "questionTypesTitle": "Question Types",
     "questionTypeAir": "Air Distance",
     "questionTypeRoad": "Road",
