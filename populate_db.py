@@ -59,6 +59,31 @@ with SessionLocal() as db:
             "items": ["Watzmann", "Zugspitze", "Brocken", "Feldberg"],
             "correct_order": ["Brocken", "Feldberg", "Watzmann", "Zugspitze"],
         },
+        {
+            "prompt": "Ordne diese Bundeslaender nach Flaeche (klein nach gross).",
+            "items": ["Saarland", "Hessen", "Niedersachsen", "Bayern"],
+            "correct_order": ["Saarland", "Hessen", "Niedersachsen", "Bayern"],
+        },
+        {
+            "prompt": "Ordne diese Planeten nach Durchmesser (klein nach gross).",
+            "items": ["Venus", "Mars", "Erde", "Merkur"],
+            "correct_order": ["Merkur", "Mars", "Venus", "Erde"],
+        },
+        {
+            "prompt": "Ordne diese Ozeane nach Flaeche (klein nach gross).",
+            "items": ["Indischer Ozean", "Pazifik", "Atlantik", "Arktischer Ozean"],
+            "correct_order": ["Arktischer Ozean", "Indischer Ozean", "Atlantik", "Pazifik"],
+        },
+        {
+            "prompt": "Ordne diese Baende nach Erscheinungsjahr (frueh nach spaet).",
+            "items": ["Nirvana", "The Beatles", "Radiohead", "Queen"],
+            "correct_order": ["The Beatles", "Queen", "Radiohead", "Nirvana"],
+        },
+        {
+            "prompt": "Ordne diese Erfindungen nach Jahr (frueh nach spaet).",
+            "items": ["Telefon", "Dampfmaschine", "Gluehbirne", "Buchdruck"],
+            "correct_order": ["Buchdruck", "Dampfmaschine", "Telefon", "Gluehbirne"],
+        },
     ]
 
     for question in pubquiz_sorting_questions:
