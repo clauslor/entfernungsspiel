@@ -1,0 +1,292 @@
+/* ========================================
+   ANSWER CARD: DISTANCE INPUT & SORTING UI
+   ======================================== */
+
+/* ----------------------------------------
+   Answer Submission Hint
+   ---------------------------------------- */
+
+.answer-submission-hint {
+    min-height: 24px;
+    margin-top: 6px;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    opacity: 0;
+    transform: translateY(-2px);
+    transition: opacity 0.18s ease, transform 0.18s ease, color 0.18s ease;
+}
+
+.answer-submission-hint.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.answer-submission-hint.is-pending {
+    color: var(--text-secondary);
+}
+
+.answer-submission-hint.is-success {
+    color: #15803d;
+}
+
+.answer-submission-hint.is-error {
+    color: var(--danger-color);
+}
+
+/* ----------------------------------------
+   Sorting UI
+   ---------------------------------------- */
+
+.sorting-answer-controls {
+    display: none;
+}
+
+.sorting-prompt-banner {
+    margin: 8px 0 10px;
+    padding: 10px 12px;
+    border: 2px solid #93c5fd;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    color: #0f172a;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.sorting-number-list,
+.sorting-selection {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    min-height: 56px;
+    padding: 12px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    background: #f8fafc;
+    margin-bottom: 10px;
+}
+
+.sorting-selection {
+    border-style: solid;
+    border-color: #94a3b8;
+}
+
+.sorting-chip {
+    min-width: 96px;
+    padding: 12px 16px;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    background: #ffffff;
+    color: #111827;
+    font-weight: 700;
+    font-size: 1.18rem;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    box-shadow: 0 8px 16px rgba(15, 23, 42, 0.12);
+    transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+}
+
+.sorting-chip:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 18px rgba(15, 23, 42, 0.16);
+}
+
+.sorting-chip-selected {
+    filter: saturate(0.45);
+    transform: scale(0.98);
+}
+
+.sorting-chip-color-0 {
+    background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
+    border-color: #ef4444;
+}
+
+.sorting-chip-color-1 {
+    background: linear-gradient(135deg, #fef9c3 0%, #fde047 100%);
+    border-color: #eab308;
+}
+
+.sorting-chip-color-2 {
+    background: linear-gradient(135deg, #bbf7d0 0%, #86efac 100%);
+    border-color: #22c55e;
+}
+
+.sorting-chip-color-3 {
+    background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%);
+    border-color: #3b82f6;
+}
+
+.sorting-action-buttons {
+    margin-top: 4px;
+}
+
+/* ----------------------------------------
+   Answer Card
+   ---------------------------------------- */
+
+.answer-card {
+    border-left: 4px solid var(--success-color);
+}
+
+/* Laptop Layout */
+@media (min-width: 1025px) {
+    .answer-card {
+        position: sticky;
+        top: 20px;
+        z-index: 100;
+    }
+
+    .answer-card .input-group {
+        align-items: stretch;
+    }
+
+    .answer-card .btn {
+        min-width: 180px;
+    }
+
+    .game-column {
+        display: grid;
+        gap: 20px;
+        align-content: start;
+    }
+}
+
+/* Tablet Layout */
+@media (max-width: 1024px) and (min-width: 769px) {
+    .card {
+        padding: 18px;
+    }
+
+    .answer-card {
+        margin-bottom: 15px;
+    }
+
+    .question-card {
+        margin-bottom: 15px;
+    }
+}
+
+/* Phone Layout */
+@media (max-width: 768px) {
+    .game-column {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .card {
+        padding: 16px;
+        margin-bottom: 12px;
+    }
+
+    .card-title {
+        font-size: 1.1em;
+        margin-bottom: 12px;
+    }
+
+    .answer-card {
+        margin-bottom: 10px;
+        order: -1;
+    }
+
+    .answer-card .input-group {
+        flex-direction: row;
+        gap: 8px;
+    }
+
+    .guess-input {
+        font-size: 16px;
+        padding: 12px;
+    }
+
+    #submitGuessBtn {
+        padding: 12px 20px;
+        font-size: 0.95em;
+        white-space: nowrap;
+    }
+
+    .question-card {
+        margin-bottom: 12px;
+    }
+
+    .input-hint {
+        font-size: 0.85em;
+        line-height: 1.4;
+    }
+
+    main.game-layout.round-active .messages-card {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .card {
+        padding: 14px;
+        margin-bottom: 10px;
+    }
+
+    .card-title {
+        font-size: 1em;
+        margin-bottom: 10px;
+    }
+
+    .answer-card .input-group {
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .guess-input {
+        width: 100%;
+        font-size: 16px;
+        padding: 10px;
+    }
+
+    #submitGuessBtn {
+        width: 100%;
+        padding: 10px;
+        font-size: 0.9em;
+    }
+
+    .input-hint {
+        font-size: 0.8em;
+        line-height: 1.3;
+    }
+
+    .question-text {
+        font-size: 0.95em;
+    }
+
+    .cities-container {
+        padding: 10px 0;
+    }
+}
+
+/* ----------------------------------------
+   Fade / Answer Feedback Animation
+   ---------------------------------------- */
+
+.fade {
+    width: 200px;
+    height: 200px;
+    background: red;
+    opacity: 0;
+}
+
+.answerFeedback {
+    animation: fadeInOut 4s linear forwards;
+}
+
+@keyframes fadeInOut {
+    0%   { opacity: 0; }
+    50%  { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* ----------------------------------------
+   Phase redesign override
+   ---------------------------------------- */
+
+.answer-card {
+    border-left: none;
+    border-top: 5px solid #22c55e;
+}

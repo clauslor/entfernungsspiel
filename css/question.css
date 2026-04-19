@@ -1,0 +1,144 @@
+/* ========================================
+   QUESTION CARD: CITIES & ORTSSCHILD
+   ======================================== */
+
+.question-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+    border-left: 4px solid var(--secondary-color);
+}
+
+.question-content {
+    text-align: center;
+}
+
+.question-text {
+    font-size: 1.1em;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+}
+
+.city {
+    flex: 1;
+    max-width: 150px;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    border: 2px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.city:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.city-from {
+    border-color: #0000;
+}
+
+.city-to {
+    border-color: #0000;
+}
+
+.city-name {
+    font-size: 1.5em;
+    font-weight: 700;
+    font-family: "Gidole", "DIN 1451", "DIN 1451 Mittelschrift", "Bahnschrift", "Arial Narrow", Arial, sans-serif;
+    color: var(--text-primary);
+    text-align: center;
+}
+
+.city-separator {
+    font-size: 1.8em;
+    color: var(--text-secondary);
+}
+
+/* ----------------------------------------
+   Ortsschild (City Sign)
+   ---------------------------------------- */
+
+.ortsschild-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 16px;
+    padding: 8px 0 4px;
+    flex-wrap: wrap;
+    min-height: 0;
+}
+
+.ortsschild-container:empty {
+    display: none;
+}
+
+.ortsschild-overlay {
+    display: flex;
+    align-items: flex-end;
+    pointer-events: none;
+}
+
+.ortsschild-plate {
+    position: relative;
+    width: var(--ortsschild-width, 216px);
+    height: var(--ortsschild-height, 144px);
+    border: max(3px, calc(var(--ortsschild-height, 144px) * 0.06)) solid #111827;
+    border-radius: max(4px, calc(var(--ortsschild-height, 144px) * 0.045));
+    background: #facc15;
+    box-shadow: 0 5px 12px rgba(15, 23, 42, 0.24);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ortsschild-plate::before,
+.ortsschild-plate::after {
+    display: none;
+}
+
+.ortsschild-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 0 calc(var(--ortsschild-width, 216px) * 0.1);
+    color: #111827;
+    font-family: "Gidole", "DIN 1451", "DIN 1451 Mittelschrift", "Bahnschrift", "Arial Narrow", Arial, sans-serif;
+    font-size: var(--ortsschild-font-size, 32px);
+    font-weight: 900;
+    letter-spacing: var(--ortsschild-letter-spacing, 0.03em);
+    line-height: 1.08;
+    white-space: normal;
+    overflow: hidden;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .ortsschild-container {
+        gap: 10px;
+    }
+
+    .ortsschild-plate {
+        box-shadow: 0 3px 8px rgba(15, 23, 42, 0.18);
+    }
+
+    .ortsschild-text {
+        line-height: 0.95;
+    }
+}
+
+.ortsschild-from .ortsschild-plate {
+    border-color: #1d4ed8;
+}
+
+.ortsschild-to .ortsschild-plate {
+    border-color: #c2410c;
+}
+
+/* ----------------------------------------
+   Phase redesign override
+   ---------------------------------------- */
+
+.question-card {
+    border-left: none;
+    border-top: 5px solid #7c3aed;
+}

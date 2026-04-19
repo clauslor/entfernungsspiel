@@ -1,0 +1,66 @@
+/* ========================================
+   CARDS (BASE STYLES)
+   ======================================== */
+
+.card {
+    background: var(--card-bg);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+}
+
+.card-title {
+    font-size: 1.3em;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+}
+
+/* ----------------------------------------
+   Phase redesign overrides
+   ---------------------------------------- */
+
+.card {
+    border-radius: 14px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+.card-title {
+    font-size: 1.08rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.question-card,
+.answer-card,
+.player-setup,
+.countdown-card,
+.messages-card,
+.players-card,
+.rules-card {
+    background-image:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.96));
+}
+
+@media (max-width: 768px) {
+    .card {
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+
+    .card-title {
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+    }
+}

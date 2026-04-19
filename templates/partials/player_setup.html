@@ -1,0 +1,90 @@
+<section class="card player-setup">
+    <h2 class="card-title" data-i18n="playerSetup.title">👤 Player Setup</h2>
+    <div id="setupPhase">
+        <p class="input-hint" data-i18n="playerSetup.nameHint">Shortcut: press <strong>N</strong> to
+            focus your name field.</p>
+        <div class="input-group">
+            <input type="text" id="playerName" class="input-field" data-i18n="playerSetup.enterName"
+                placeholder="Enter your name">
+            <button onclick="setPlayerName()" class="btn btn-primary"
+                data-i18n="playerSetup.setName">Set Name</button>
+        </div>
+    </div>
+    <div id="gamePhase">
+        <div class="player-info-row">
+            <p class="player-info"><span data-i18n="playerSetup.player">Player</span>: <strong
+                    id="currentPlayerName"></strong></p>
+            <button id="editPlayerNameBtn" type="button" class="name-edit-icon-btn" onclick="toggleNameEditMode(true)"
+                title="Namen bearbeiten" aria-label="Namen bearbeiten">&#9998;</button>
+        </div>
+        <div id="playerNameEditControls" class="name-edit-controls">
+            <div class="input-group">
+                <input type="text" id="playerNameEdit" class="input-field" data-i18n="playerSetup.enterName"
+                    placeholder="Enter your name">
+                <button onclick="setPlayerName('playerNameEdit')" class="btn btn-secondary"
+                    data-i18n="playerSetup.setName">Set Name</button>
+                <button type="button" class="name-edit-icon-btn name-edit-close-btn" onclick="toggleNameEditMode(false)"
+                    title="Abbrechen" aria-label="Abbrechen">&#10005;</button>
+            </div>
+        </div>
+        <div id="lobbyControls">
+            <div id="captchaStatusRow" class="captcha-status-row" aria-live="polite">
+                <span id="captchaStatusBadge" class="captcha-status-badge" data-i18n="captcha.statusLazy">CAPTCHA wird nur bei Bedarf geprüft.</span>
+                <button id="captchaVerifyBtn" type="button" class="btn btn-secondary captcha-inline-btn" onclick="showCaptchaModal()" data-i18n="captcha.verifyNow" hidden>Jetzt verifizieren</button>
+            </div>
+            <div class="button-group">
+                <button onclick="createGame()" class="btn btn-primary"
+                    data-i18n="lobbyControls.create">➕ Create Game</button>
+                <button onclick="showJoinGame()" class="btn btn-secondary"
+                    data-i18n="lobbyControls.join">🔗 Join Game</button>
+            </div>
+            <div id="joinGameForm">
+                <p class="input-hint" data-i18n="lobbyControls.gameIdHint">Shortcut: press
+                    <strong>J</strong> to focus the game code field.</p>
+                <div class="input-group">
+                    <input type="text" id="gameIdInput" class="input-field"
+                        data-i18n="lobbyControls.gameIdPlaceholder" placeholder="Enter game ID">
+                    <button onclick="joinGame()" class="btn btn-primary"
+                        data-i18n="lobbyControls.joinButton">Join</button>
+                    <button onclick="hideJoinGame()" class="btn btn-secondary"
+                        data-i18n="lobbyControls.cancelButton">Cancel</button>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="gamePinInput" class="input-field"
+                        placeholder="PIN (optional, 4 digits)" maxlength="4" inputmode="numeric">
+                </div>
+            </div>
+            <div id="lobbyGames">
+                <p class="lobby-games-title" data-i18n="lobbyControls.openGames">Open games (countdown
+                    not started):</p>
+                <ul id="lobbyGamesList"></ul>
+            </div>
+        </div>
+        <div id="matchControls">
+            <div id="gameInfo">
+                <p class="game-info-label" data-i18n="matchControls.gameCode">📌 Game Code:</p>
+                <p class="game-id-display" id="gameIdDisplay">-</p>
+                <div class="game-share-actions">
+                    <button type="button" id="copyRejoinLinkBtn" class="btn btn-secondary" onclick="copyRejoinLink()">🔗 Rejoin-Link kopieren</button>
+                </div>
+                <div id="pinSection">
+                    <p class="game-info-label">🔐 PIN (nur für dich sichtbar):</p>
+                    <p class="game-pin-display" id="gamePinDisplay">-</p>
+                </div>
+                <p class="game-info-label"><span data-i18n="matchControls.players">👥 Players</span>
+                    (<span id="playerCount">0</span>):</p>
+                <ul id="inGamePlayerList"></ul>
+            </div>
+            <div class="button-group" id="inGameButtons">
+                <button id="readyBtn" onclick="setReady()" class="btn btn-success" data-i18n="matchControls.ready">✓
+                    Ready</button>
+                <button id="warmupBtn" onclick="startWarmup()" class="btn btn-secondary"
+                    data-i18n="matchControls.warmup">🔥 Warmup</button>
+                <button id="lockSettingsBtn" onclick="toggleLockSettings()" class="btn btn-secondary"
+                    data-i18n="matchControls.lockSettings">🔒 Lock Settings</button>
+                <button onclick="leaveGame()" class="btn btn-danger" data-i18n="matchControls.leave">✕
+                    Leave</button>
+            </div>
+        </div>
+    </div>
+</section>

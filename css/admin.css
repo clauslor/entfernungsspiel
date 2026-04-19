@@ -1,0 +1,211 @@
+/* ========================================
+   ADMIN UTILITIES
+   ======================================== */
+
+.admin-hidden {
+    display: none;
+}
+
+.admin-import-section {
+    margin-top: 16px;
+}
+
+.admin-suggestion-controls {
+    margin: 10px 0 14px 0;
+}
+
+.suggestion-item {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    background: #f8fafc;
+    display: grid;
+    gap: 6px;
+}
+
+.suggestion-main {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.suggestion-coords {
+    font-size: 0.9em;
+    color: var(--text-secondary);
+}
+
+/* ========================================
+   ADMIN PAGE LOOK & FEEL
+   ======================================== */
+
+body.admin-page {
+    background:
+        radial-gradient(circle at 10% -10%, rgba(99, 102, 241, 0.22), transparent 38%),
+        radial-gradient(circle at 90% 0%, rgba(14, 165, 233, 0.18), transparent 34%),
+        linear-gradient(160deg, #eef2ff 0%, #f8fafc 52%, #ecfeff 100%);
+}
+
+.admin-shell {
+    max-width: 1200px;
+    display: grid;
+    gap: 14px;
+}
+
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    border-left: none;
+    border-top: 5px solid #4f46e5;
+    background:
+        linear-gradient(140deg, rgba(79, 70, 229, 0.10), rgba(6, 182, 212, 0.08)),
+        #ffffff;
+}
+
+.admin-header h1 {
+    margin: 0;
+    font-size: 1.85rem;
+    letter-spacing: -0.02em;
+    color: #1f2937;
+}
+
+.admin-header p {
+    margin: 8px 0 0 0;
+    color: var(--text-secondary);
+}
+
+.admin-user-badge {
+    background: #1e293b;
+    color: #f8fafc;
+    border-radius: 999px;
+    padding: 7px 12px;
+    font-size: 0.86rem;
+    white-space: nowrap;
+}
+
+.admin-card {
+    margin-bottom: 0;
+    border-left: none;
+    border-top: 4px solid #c7d2fe;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.9));
+}
+
+.admin-card h2 {
+    margin: 0 0 10px 0;
+    font-size: 1.08rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #334155;
+}
+
+.admin-card h3 {
+    margin: 2px 0 8px 0;
+    font-size: 0.98rem;
+    color: #334155;
+}
+
+.admin-toolbar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.admin-form-grid {
+    display: grid;
+    grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+    gap: 10px 12px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.admin-form-grid label {
+    font-weight: 600;
+    color: #334155;
+}
+
+.admin-form-grid input,
+.admin-form-grid select,
+.admin-form-grid textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #0f172a;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-form-grid input:focus,
+.admin-form-grid select:focus,
+.admin-form-grid textarea:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.14);
+}
+
+.admin-import-section {
+    margin-top: 14px;
+    padding: 14px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+.admin-data-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.city-pair,
+.high-score,
+.game-result {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #f8fafc;
+    padding: 10px 12px;
+}
+
+.game-result em {
+    display: block;
+    color: #64748b;
+    margin-top: 3px;
+}
+
+.admin-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 6px;
+}
+
+@media (max-width: 900px) {
+    .admin-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .admin-user-badge {
+        width: fit-content;
+    }
+
+    .admin-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-form-grid label {
+        margin-top: 4px;
+    }
+
+    .admin-actions {
+        justify-content: stretch;
+    }
+
+    .admin-actions .btn {
+        width: 100%;
+    }
+}

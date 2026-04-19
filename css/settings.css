@@ -1,0 +1,228 @@
+/* ========================================
+   SETTINGS / RULES CARD
+   ======================================== */
+
+.rules-card {
+    border-left: 4px solid var(--info-color);
+}
+
+.settings-text {
+    color: var(--text-secondary);
+    font-size: 0.95em;
+    line-height: 1.6;
+    padding: 15px;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+
+/* ----------------------------------------
+   Host Settings Editor
+   ---------------------------------------- */
+
+.host-settings-editor {
+    margin-top: 12px;
+    padding: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: #ffffff;
+    display: none;
+}
+
+.host-settings-editor.visible {
+    display: block;
+}
+
+.host-settings-title {
+    margin: 0 0 10px 0;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.host-settings-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.host-settings-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.86rem;
+    color: var(--text-secondary);
+}
+
+.host-settings-field input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.95rem;
+}
+
+.host-settings-field input:disabled {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.no-time-limit-row {
+    display: none;
+}
+
+.field-hint {
+    font-size: 0.78rem;
+    color: var(--text-muted, #94a3b8);
+    line-height: 1;
+}
+
+.host-settings-actions {
+    margin-top: 12px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.host-settings-options {
+    margin-top: 10px;
+    display: grid;
+    gap: 8px;
+}
+
+.host-settings-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.host-settings-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+}
+
+/* ----------------------------------------
+   Question Type Carousel / Tiles
+   ---------------------------------------- */
+
+.question-type-section {
+    margin-top: 12px;
+}
+
+.question-type-title {
+    margin: 0 0 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.question-type-carousel {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 2px 2px 6px;
+}
+
+.question-type-tile {
+    flex: 0 0 120px;
+    min-height: 86px;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #f3f4f6, #e5e7eb);
+    color: #6b7280;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.question-type-tile .question-type-emoji {
+    font-size: 1.2rem;
+}
+
+.question-type-tile .question-type-name {
+    font-size: 0.86rem;
+}
+
+.question-type-tile:hover {
+    transform: translateY(-1px);
+}
+
+.question-type-tile.is-active {
+    color: #0f172a;
+    border-color: transparent;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+}
+
+#tileRoadQuestions.is-active {
+    background: linear-gradient(135deg, #22d3ee, #0891b2);
+    color: #042f2e;
+}
+
+#tileAirQuestions.is-active {
+    background: linear-gradient(135deg, #60a5fa, #3b82f6);
+    color: #0f172a;
+}
+
+#tileAirMapQuestions.is-active {
+    background: linear-gradient(135deg, #a78bfa, #7c3aed);
+    color: #1e1b4b;
+}
+
+#tileSortingQuestions.is-active {
+    background: linear-gradient(135deg, #34d399, #10b981);
+    color: #052e16;
+}
+
+#tileSpeedRounds.is-active {
+    background: linear-gradient(135deg, #fb7185, #f97316);
+    color: #431407;
+}
+
+.question-type-tile:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+    transform: none;
+    box-shadow: none;
+}
+
+/* ----------------------------------------
+   Podium
+   ---------------------------------------- */
+
+.podium-section {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.podium-place {
+    display: none;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: #f8fafc;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.podium-place.visible {
+    display: block;
+}
+
+@media (max-width: 760px) {
+    .host-settings-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .question-type-tile {
+        flex-basis: 104px;
+        min-height: 80px;
+    }
+}

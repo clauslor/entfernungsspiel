@@ -1,0 +1,58 @@
+/* ========================================
+   MESSAGES CARD
+   ======================================== */
+
+.messages-card {
+    border-left: 4px solid #0ea5e9;
+    grid-column: 1 / -1;
+}
+
+.messages-container {
+    height: 250px;
+    overflow-y: auto;
+    padding: 15px;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+
+.messages-container p {
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    background: var(--light-bg);
+    border-radius: 6px;
+    font-size: 0.95em;
+    color: var(--text-secondary);
+    animation: slideIn 0.3s ease;
+}
+
+.messages-container p:last-child {
+    margin-bottom: 0;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .messages-container {
+        height: 180px;
+        padding: 10px;
+    }
+}
+
+/* ----------------------------------------
+   Phase redesign override
+   ---------------------------------------- */
+
+.messages-card {
+    border-left: none;
+    border-top: 5px solid #06b6d4;
+}

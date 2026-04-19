@@ -1,0 +1,151 @@
+/* ========================================
+   PLAYERS CARD, LOBBY GUIDE & ROUND REVIEW
+   ======================================== */
+
+.players-card {
+    border-left: 4px solid var(--primary-color);
+}
+
+.lobby-guide-card {
+    border-left: 4px solid #0ea5e9;
+}
+
+.lobby-guide-list {
+    margin: 10px 0 0 20px;
+    color: var(--text-secondary);
+    display: grid;
+    gap: 8px;
+    line-height: 1.4;
+}
+
+.lobby-guide-subtitle {
+    margin: 12px 0 6px 0;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+/* ----------------------------------------
+   Player List
+   ---------------------------------------- */
+
+.player-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.player-list li {
+    padding: 12px 16px;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+}
+
+.player-list li:hover {
+    background: var(--light-bg);
+    border-color: var(--primary-color);
+}
+
+.player-list li:last-child {
+    margin-bottom: 0;
+}
+
+/* ----------------------------------------
+   Round Review (in-game / players section)
+   ---------------------------------------- */
+
+.round-review-section {
+    margin-bottom: 25px;
+    text-align: left;
+}
+
+.round-review-title {
+    font-size: 1.2em;
+    margin-bottom: 15px;
+    color: var(--text-primary);
+}
+
+.round-review-list {
+    max-height: 320px;
+    overflow-y: auto;
+    display: grid;
+    gap: 12px;
+}
+
+.round-review-card {
+    padding: 14px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+.round-review-question {
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+}
+
+.round-review-meta {
+    font-size: 0.92rem;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+
+.round-review-solution {
+    font-size: 1rem;
+    color: #22c55e;
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    background: #f0fdf4;
+    border-left: 4px solid #22c55e;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.round-review-player {
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: white;
+    border: 1px solid var(--border-color);
+    margin-bottom: 8px;
+}
+
+.round-review-player:last-child {
+    margin-bottom: 0;
+}
+
+.round-review-player-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.round-review-player-final {
+    font-size: 0.94rem;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.round-review-answer-log {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 4px;
+    font-size: 0.92rem;
+    color: var(--text-secondary);
+}
+
+/* ----------------------------------------
+   Phase redesign overrides
+   ---------------------------------------- */
+
+.players-card {
+    border-left: none;
+    border-top: 5px solid #3b82f6;
+}

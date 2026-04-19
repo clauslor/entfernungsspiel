@@ -1,0 +1,32 @@
+<header class="header">
+    <div class="header-content">
+        <h1 class="title" data-i18n="common.title">🌍 Kilometer Knobelei</h1>
+        <p class="subtitle" data-i18n="common.subtitle">Guess the distance between two cities!</p>
+        <div id="matchHud" class="match-hud" aria-live="polite">
+            <div class="hud-pill">
+                <span class="hud-label" data-i18n="hud.phase">Phase</span>
+                <strong id="hudPhase" class="hud-value">Lobby</strong>
+            </div>
+            <div class="hud-pill">
+                <span class="hud-label" data-i18n="hud.game">Spiel</span>
+                <strong id="hudGame" class="hud-value">-</strong>
+            </div>
+            <div class="hud-pill">
+                <span class="hud-label" data-i18n="hud.round">Runde</span>
+                <strong id="hudRound" class="hud-value">-</strong>
+            </div>
+            <div class="hud-pill">
+                <span class="hud-label" data-i18n="hud.points">Punkte</span>
+                <strong id="hudPoints" class="hud-value">-</strong>
+            </div>
+            <div class="hud-pill">
+                <span class="hud-label" data-i18n="hud.countdown">Countdown</span>
+                <strong id="hudCountdown" class="hud-value is-countdown">--:--</strong>
+            </div>
+        </div>
+    </div>
+    <div class="language-switcher">
+        <button onclick="changeLanguage('de')" id="langDE" class="lang-btn lang-btn-active">🇩🇪 Deutsch</button>
+        <button onclick="changeLanguage('en')" id="langEN" class="lang-btn">🇬🇧 English</button>
+    </div>
+</header>

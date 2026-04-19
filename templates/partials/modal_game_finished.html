@@ -1,0 +1,57 @@
+<div id="gameFinishedModal">
+    <div class="game-finished-modal-content">
+        <div class="game-finished-celebration">🎉🎉🎉</div>
+
+        <h1 class="game-finished-title" data-i18n="gameEnd.title">Game Finished!</h1>
+
+        <div class="winner-section">
+            <p class="winner-label" data-i18n="gameEnd.champion">🏆 Champion</p>
+            <h2 class="winner-name" id="winnerName">-</h2>
+        </div>
+
+        <div class="final-scores-section">
+            <h3 class="final-scores-title" data-i18n="gameEnd.finalScores">📊 Final Scores</h3>
+            <div id="podiumSection" class="podium-section">
+                <div id="podiumPlace1" class="podium-place"></div>
+                <div id="podiumPlace2" class="podium-place"></div>
+                <div id="podiumPlace3" class="podium-place"></div>
+            </div>
+            <table id="scoresTable">
+                <thead>
+                    <tr class="scores-header-row">
+                        <th class="scores-header-cell scores-header-cell-left" data-i18n="gameEnd.playerColumn">
+                            Player</th>
+                        <th class="scores-header-cell scores-header-cell-center" data-i18n="gameEnd.pointsColumn">
+                            Points</th>
+                        <th class="scores-header-cell scores-header-cell-center" data-i18n="gameEnd.accuracyColumn">
+                            Accuracy
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="scoresTableBody"></tbody>
+            </table>
+        </div>
+
+        <div class="round-review-section">
+            <h3 class="round-review-title" data-i18n="gameEnd.questionsAndAnswers">🗺️ Fragen und empfangene
+                Antworten</h3>
+            <div id="roundReviewList" class="round-review-list"></div>
+        </div>
+        <div class="accuracy-section">
+            <h3 class="round-review-title" data-i18n="gameEnd.accuracy">🎯 Genauigkeit</h3>
+            <div id="accuracyFormula" class="accuracy-list" data-i18n-html="gameEnd.accuracy_formula">Die Formel ist: <math display="block" mathsize="2rem">Genauigkeit = 100 - (|Schätzung - Tatsächlich| / Tatsächlich) * 100</math></div>
+            <div id="accuracyExplanations" class="accuracy-list" data-i18n="gameEnd.accuracy_explanation">Je näher die Schätzung an der tatsächlichen Entfernung liegt, desto höher ist die Genauigkeit. Eine perfekte Schätzung (0 km Unterschied) ergibt 100% Genauigkeit, während eine Schätzung, die doppelt so hoch oder niedrig wie die tatsächliche Entfernung ist, 0% Genauigkeit ergibt.</div>
+        </div>
+
+        <div class="game-finished-actions">
+            <button onclick="playAgain()" class="game-finished-btn game-finished-btn-primary"
+                data-i18n="gameEnd.newGame">
+                ➕ New Game
+            </button>
+            <button onclick="backToLobby()" class="game-finished-btn game-finished-btn-secondary"
+                data-i18n="gameEnd.backToLobby">
+                🔗 Back to Lobby
+            </button>
+        </div>
+    </div>
+</div>

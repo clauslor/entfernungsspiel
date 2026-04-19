@@ -1,0 +1,20 @@
+<section class="card answer-card" id="answerCard">
+    <h2 class="card-title" data-i18n="answer.title">📍 Your Answer</h2>
+    <p class="input-hint" data-i18n="answer.shortcut">Shortcut: press <strong>G</strong> to jump
+        here, <strong>Enter</strong> to submit.</p>
+    <p id="sortingPromptBanner" class="sorting-prompt-banner" hidden>Ordne die Einträge in die richtige Reihenfolge.</p>
+    <form id="distanceAnswerControls" class="input-group" onsubmit="sendGuess(); return false;">
+        <input type="number" id="guessInput" class="input-field guess-input"
+            data-i18n="question.placeholder" placeholder="Distance in km" min="0"
+            inputmode="numeric" autocomplete="off">
+    </form>
+    <div id="sortingAnswerControls" class="sorting-answer-controls">
+        <p class="input-hint" data-i18n="answer.sortingHint">Ordne die Einträge per Klick in die richtige Reihenfolge.</p>
+        <div id="sortingNumberPool" class="sorting-number-list"></div>
+        <div id="sortingSelection" class="sorting-selection"></div>
+        <div class="button-group sorting-action-buttons">
+            <button onclick="resetSortingSelection()" class="btn btn-secondary" id="resetSortingBtn">Zurücksetzen</button>
+        </div>
+    </div>
+    <div id="answerSubmissionHint" class="answer-submission-hint" aria-live="polite"></div>
+</section>

@@ -1,0 +1,479 @@
+/* ========================================
+   LAYOUT: CONTAINER, HEADER, FOOTER,
+   LANGUAGE SWITCHER & GAME GRID
+   ======================================== */
+
+.container {
+    max-width: var(--shell-max-width);
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header.header {
+    background: var(--gradient-primary);
+    color: white;
+    padding: 40px 20px;
+    border-radius: 12px;
+    width: min(100%, var(--shell-max-width));
+    margin: 0 auto 30px;
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+    position: relative;
+}
+
+.header-content h1.title {
+    font-size: 2.5em;
+    font-weight: 700;
+    margin-bottom: 10px;
+    letter-spacing: -0.5px;
+}
+
+.header-content {
+    width: min(100%, var(--content-max-width));
+    margin: 0 auto;
+}
+
+.header-content p.subtitle {
+    font-size: 1.1em;
+    opacity: 0.95;
+    font-weight: 400;
+}
+
+.header-stats {
+    margin-top: 18px;
+    display: flex;
+    justify-content: center;
+}
+
+.header-stat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.26);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+}
+
+.header-stat-label {
+    font-size: 0.95rem;
+    font-weight: 500;
+    opacity: 0.92;
+}
+
+.header-stat-value {
+    min-width: 2ch;
+    font-size: 1.15rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.site-footer {
+    margin: 12px auto 24px;
+    max-width: var(--shell-max-width);
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.footer-stat-pill {
+    background: rgba(30, 41, 59, 0.88);
+    border-color: rgba(226, 232, 240, 0.3);
+    color: #f8fafc;
+    box-shadow: var(--shadow-md);
+}
+
+.footer-commit-hint {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    letter-spacing: 0.04em;
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+.footer-stat-pill .header-stat-label {
+    opacity: 0.95;
+}
+
+/* ----------------------------------------
+   Language Switcher
+   ---------------------------------------- */
+
+.language-switcher {
+    display: flex;
+    gap: 8px;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+.lang-btn {
+    padding: 8px 12px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.lang-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.lang-btn-active {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+@media (max-width: 480px) {
+    .language-switcher {
+        gap: 4px;
+        top: 15px;
+        right: 15px;
+    }
+
+    .lang-btn {
+        padding: 6px 10px;
+        font-size: 0.8em;
+        border-radius: 4px;
+    }
+}
+
+/* ----------------------------------------
+   Main Game Grid (base / mobile-first)
+   ---------------------------------------- */
+
+main.game-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+main.game-layout.lobby-mode {
+    grid-template-columns: 1fr;
+}
+
+main.game-layout.lobby-mode .game-column {
+    display: none;
+}
+
+.game-column {
+    grid-column: 1 / -1;
+}
+
+.info-column {
+    grid-column: 1 / -1;
+}
+
+/* ----------------------------------------
+   Responsive Design
+   ---------------------------------------- */
+
+@media (max-width: 1024px) {
+    main.game-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .messages-card {
+        grid-column: 1;
+    }
+
+    .header-content h1.title {
+        font-size: 2em;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+
+    header.header {
+        padding: 30px 20px;
+        margin-bottom: 20px;
+    }
+
+    .header-content h1.title {
+        font-size: 1.8em;
+    }
+
+    .header-content p.subtitle {
+        font-size: 0.95em;
+    }
+
+    .question-text {
+        font-size: 1em;
+        margin-bottom: 15px;
+    }
+
+    .city-name {
+        font-size: 1.3em;
+    }
+
+    .cities-container {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .city-separator {
+        transform: rotate(90deg);
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 10px;
+    }
+
+    header.header {
+        padding: 20px 15px;
+        margin-bottom: 15px;
+    }
+
+    .header-content h1.title {
+        font-size: 1.5em;
+    }
+
+    .question-text {
+        font-size: 0.95em;
+        margin-bottom: 15px;
+    }
+
+    .city-name {
+        font-size: 1.2em;
+    }
+
+    .city-separator {
+        font-size: 1.5em;
+    }
+
+    .cities-container {
+        padding: 12px 0;
+        gap: 8px;
+    }
+
+    .city {
+        max-width: 110px;
+        padding: 10px;
+    }
+
+    #countdown {
+        height: 50px;
+        font-size: 1.5em;
+    }
+
+    .input-field,
+    .btn {
+        font-size: 16px;
+    }
+}
+
+/* ----------------------------------------
+   Phase-based Layout Redesign
+   ---------------------------------------- */
+
+main.game-layout {
+    grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr);
+    align-items: start;
+    gap: 18px;
+}
+
+.game-column {
+    display: grid;
+    gap: 16px;
+    align-content: start;
+}
+
+.round-top-panels {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.75fr);
+    gap: 14px;
+    align-items: start;
+}
+
+.round-top-panels .answer-card,
+.round-top-panels .countdown-card {
+    margin-bottom: 0;
+    height: 100%;
+}
+
+.info-column {
+    display: grid;
+    gap: 14px;
+    align-content: start;
+    align-items: stretch;
+}
+
+main.game-layout.lobby-mode,
+main.game-layout.pre-round {
+    grid-template-columns: 1fr;
+}
+
+main.game-layout.lobby-mode .info-column,
+main.game-layout.pre-round .info-column {
+    max-width: var(--content-max-width);
+    width: 100%;
+    margin: 0 auto;
+    grid-template-columns: 1fr;
+    gap: 14px;
+}
+
+main.game-layout.lobby-mode .info-column > .card,
+main.game-layout.pre-round .info-column > .card {
+    width: 100%;
+    max-width: none;
+    justify-self: stretch;
+}
+
+main.game-layout.lobby-mode .lobby-guide-card,
+main.game-layout.pre-round .lobby-guide-card {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.97));
+}
+
+main.game-layout.lobby-mode .lobby-guide-list,
+main.game-layout.pre-round .lobby-guide-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 18px;
+    row-gap: 8px;
+}
+
+main.game-layout.lobby-mode .game-column,
+main.game-layout.pre-round .game-column {
+    display: none;
+}
+
+main.game-layout.round-active .game-column {
+    display: grid;
+}
+
+main.game-layout.round-active .info-column {
+    grid-template-columns: 1fr;
+}
+
+main.game-layout.round-active .messages-card {
+    min-height: 240px;
+}
+
+main.game-layout.round-active .messages-container {
+    height: 220px;
+}
+
+/* UX Polish */
+main.game-layout.round-active .info-column {
+    position: sticky;
+    top: 14px;
+    align-self: start;
+}
+
+main.game-layout.pre-round .messages-container,
+main.game-layout.lobby-mode .messages-container {
+    height: 180px;
+}
+
+@media (max-width: 1024px) {
+    main.game-layout,
+    main.game-layout.pre-round,
+    main.game-layout.round-active {
+        grid-template-columns: 1fr;
+    }
+
+    main.game-layout .info-column,
+    main.game-layout.pre-round .info-column,
+    main.game-layout.round-active .info-column {
+        max-width: 100%;
+        margin: 0;
+        grid-template-columns: 1fr;
+    }
+
+    main.game-layout.round-active .info-column {
+        position: static;
+    }
+
+    .round-top-panels {
+        grid-template-columns: 1fr;
+    }
+
+    main.game-layout.lobby-mode .lobby-guide-list,
+    main.game-layout.pre-round .lobby-guide-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 12px;
+    }
+
+    header.header {
+        padding: 22px 14px 16px;
+        border-radius: 10px;
+        margin-bottom: 14px;
+    }
+
+    .header-content h1.title {
+        font-size: 1.45rem;
+        line-height: 1.2;
+    }
+
+    .header-content p.subtitle {
+        font-size: 0.9rem;
+        margin-top: 4px;
+    }
+
+    .header-stats {
+        margin-top: 10px;
+    }
+
+    .header-stat-pill {
+        width: 100%;
+        justify-content: center;
+        padding: 8px 10px;
+    }
+
+    .site-footer {
+        padding: 0 12px 8px;
+        margin: 4px auto 12px;
+    }
+
+    .site-footer .header-stat-pill {
+        width: 100%;
+    }
+
+    .language-switcher {
+        position: static;
+        justify-content: center;
+        margin-top: 10px;
+    }
+
+    .round-top-panels {
+        gap: 10px;
+    }
+
+    .button-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .button-group .btn {
+        width: 100%;
+        padding: 10px 8px;
+    }
+
+    #inGameButtons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+}
