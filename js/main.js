@@ -1126,6 +1126,9 @@ function renderRoundHighlights(msg) {
   const list = document.getElementById("roundHighlightsList");
   if (!panel || !list) return;
 
+  const standings = Array.isArray(msg.standings) ? msg.standings : [];
+  const multiPlayer = standings.length > 1;
+
   const items = [];
   if (msg.closest_result?.player_name) {
     if (typeof msg.closest_result.difference_km === "number") {
@@ -1141,7 +1144,7 @@ function renderRoundHighlights(msg) {
     }
   }
 
-  if (msg.biggest_miss?.player_name) {
+  if (multiPlayer && msg.biggest_miss?.player_name) {
     if (typeof msg.biggest_miss.difference_km === "number") {
       items.push({
         label: "Größter Fehlschuss",
@@ -1169,6 +1172,14 @@ function renderRoundHighlights(msg) {
     });
   }
 
+  if (multiPlayer) {
+    items.push({
+      label: "Platzierung nach Runde",
+      type: "standings",
+      standings,
+    });
+  }
+
   list.innerHTML = "";
   items.forEach((item) => {
     const article = document.createElement("article");
@@ -1180,7 +1191,21 @@ function renderRoundHighlights(msg) {
 
     const value = document.createElement("strong");
     value.className = "round-highlight-value";
-    value.textContent = item.value;
+    if (item.type === "standings") {
+      const ol = document.createElement("ol");
+      ol.className = "round-standings-list";
+      item.standings.forEach((entry, index) => {
+        const li = document.createElement("li");
+        li.className = "round-standings-item";
+        const delta = Number(entry.delta || 0);
+        const deltaText = delta === 0 ? "" : ` (${delta > 0 ? "+" : ""}${delta})`;
+        li.textContent = `${index + 1}. ${entry.player_name}: ${entry.score}${deltaText}`;
+        ol.appendChild(li);
+      });
+      value.appendChild(ol);
+    } else {
+      value.textContent = item.value;
+    }
 
     article.appendChild(label);
     article.appendChild(value);
@@ -1472,6 +1497,7 @@ function handleJsonMessage(msg) {
     updateUILayout();
   } else if (msg.type === "round_result") {
     renderRoundHighlights(msg);
+    const hasMultiplePlayers = Array.isArray(msg.standings) && msg.standings.length > 1;
     const summary = msg.standings
       .map((s) => `${s.player_name}: ${s.score} (${s.delta >= 0 ? "+" : ""}${s.delta})`)
       .join(" | ");
@@ -1516,7 +1542,7 @@ function handleJsonMessage(msg) {
       }
     }
 
-    if (msg.biggest_miss && msg.biggest_miss.player_name) {
+    if (hasMultiplePlayers && msg.biggest_miss && msg.biggest_miss.player_name) {
       if (typeof msg.biggest_miss.difference_km === "number") {
         appendMessage(
           `💥 Größter Fehlschuss: ${msg.biggest_miss.player_name} (${msg.biggest_miss.guess} km, ${msg.biggest_miss.difference_km} km daneben)`,
