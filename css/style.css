@@ -949,10 +949,11 @@ main.game-layout.lobby-mode .game-column {
     font-size: var(--ortsschild-font-size, 32px);
     font-weight: 900;
     letter-spacing: var(--ortsschild-letter-spacing, 0.03em);
-    line-height: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: clip;
+    line-height: 1.08;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    text-align: center;
 }
 
 @media (max-width: 768px) {
