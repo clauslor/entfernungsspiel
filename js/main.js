@@ -1772,7 +1772,9 @@ function updateGameSettings(game_id, config) {
     if (autoAdvanceAllAnsweredInput) autoAdvanceAllAnsweredInput.checked = !!config.auto_advance_on_all_answers;
     if (firstAnswerEndsRoundInput) firstAnswerEndsRoundInput.checked = !!config.first_answer_ends_round;
     if (wrongAnswerPointsOthersInput) wrongAnswerPointsOthersInput.checked = !!config.wrong_answer_points_others;
-    if (enableAirQuestionsInput) enableAirQuestionsInput.checked = config.enable_air_questions !== false;
+    if (enableAirQuestionsInput && typeof config.enable_air_questions === "boolean") {
+      enableAirQuestionsInput.checked = config.enable_air_questions;
+    }
     const roadQuestionsEnabled = config.enable_road_questions !== false;
     if (enableRoadQuestionsInput) enableRoadQuestionsInput.checked = roadQuestionsEnabled;
     if (enableSortingQuestionsInput) enableSortingQuestionsInput.checked = config.enable_sorting_questions !== false;

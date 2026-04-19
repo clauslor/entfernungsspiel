@@ -999,6 +999,7 @@ class WebSocketHandler:
                         "auto_advance_on_all_answers": game.config.auto_advance_on_all_answers,
                         "first_answer_ends_round": game.config.first_answer_ends_round,
                         "wrong_answer_points_others": game.config.wrong_answer_points_others,
+                        "enable_air_questions": game.config.enable_air_questions,
                         "enable_road_questions": game.config.enable_road_questions,
                         "road_question_ratio_percent": game.config.road_question_ratio_percent,
                         "enable_sorting_questions": game.config.enable_sorting_questions,
