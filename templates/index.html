@@ -141,6 +141,10 @@
                             </div>
                         </div>
                         <div id="lobbyControls">
+                            <div id="captchaStatusRow" class="captcha-status-row" aria-live="polite">
+                                <span id="captchaStatusBadge" class="captcha-status-badge" data-i18n="captcha.statusLazy">CAPTCHA wird nur bei Bedarf geprüft.</span>
+                                <button id="captchaVerifyBtn" type="button" class="btn btn-secondary captcha-inline-btn" onclick="showCaptchaModal()" data-i18n="captcha.verifyNow" hidden>Jetzt verifizieren</button>
+                            </div>
                             <div class="button-group">
                                 <button onclick="createGame()" class="btn btn-primary"
                                     data-i18n="lobbyControls.create">➕ Create Game</button>

@@ -5,6 +5,36 @@
 
 let captchaValidationToken = null;
 
+function updateCaptchaStatusUi(state) {
+    const badge = document.getElementById('captchaStatusBadge');
+    const verifyBtn = document.getElementById('captchaVerifyBtn');
+    if (!badge || !verifyBtn) return;
+
+    badge.classList.remove('is-required', 'is-ok');
+
+    if (state === 'required') {
+        badge.classList.add('is-required');
+        badge.setAttribute('data-i18n', 'captcha.statusRequired');
+        if (typeof t === 'function') {
+            badge.textContent = t('captcha.statusRequired');
+        }
+        verifyBtn.hidden = false;
+    } else if (state === 'ok') {
+        badge.classList.add('is-ok');
+        badge.setAttribute('data-i18n', 'captcha.statusReady');
+        if (typeof t === 'function') {
+            badge.textContent = t('captcha.statusReady');
+        }
+        verifyBtn.hidden = true;
+    } else {
+        badge.setAttribute('data-i18n', 'captcha.statusLazy');
+        if (typeof t === 'function') {
+            badge.textContent = t('captcha.statusLazy');
+        }
+        verifyBtn.hidden = true;
+    }
+}
+
 /**
  * Initialize hCaptcha on page load
  */
@@ -13,6 +43,9 @@ function initializeCaptcha() {
     const storedToken = localStorage.getItem('captchaToken');
     if (storedToken) {
         captchaValidationToken = storedToken;
+        updateCaptchaStatusUi('ok');
+    } else {
+        updateCaptchaStatusUi('lazy');
     }
 
     // Do not force modal on page load; only show when a protected action actually needs it.
@@ -23,11 +56,13 @@ function syncCaptchaRequirement(captchaRequired) {
     if (captchaRequired) {
         captchaValidationToken = null;
         localStorage.removeItem('captchaToken');
+        updateCaptchaStatusUi('required');
     } else {
         if (!captchaValidationToken) {
             captchaValidationToken = 'server_valid';
             localStorage.setItem('captchaToken', captchaValidationToken);
         }
+        updateCaptchaStatusUi('ok');
         hideCaptchaModal();
     }
 }
@@ -134,6 +169,7 @@ function handleCaptchaValidated() {
     
     // Hide modal
     hideCaptchaModal();
+    updateCaptchaStatusUi('ok');
     
     // Clear any error messages
     const errorDiv = document.getElementById('captchaError');
@@ -153,6 +189,7 @@ function clearCaptchaValidation() {
     if (typeof hcaptcha !== 'undefined') {
         hcaptcha.reset();
     }
+    updateCaptchaStatusUi('required');
     
     showCaptchaModal();
 }

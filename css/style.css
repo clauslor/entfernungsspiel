@@ -640,6 +640,37 @@ main.game-layout.lobby-mode .game-column {
     border-left: 4px solid var(--primary-color);
 }
 
+.captcha-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 8px 0 10px;
+    padding: 8px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.captcha-status-badge {
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.captcha-status-badge.is-required {
+    color: #991b1b;
+}
+
+.captcha-status-badge.is-ok {
+    color: #166534;
+}
+
+.captcha-inline-btn {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+}
+
 /* Player Setup for Tablet/Phone */
 @media (max-width: 768px) {
     .player-setup {
