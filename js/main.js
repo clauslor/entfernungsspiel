@@ -445,12 +445,12 @@ function prepareMapForGameplay() {
 
   // If no features yet, center map on default location
   if (gameMapFeatureSource.getFeatures().length === 0) {
-    const center25832 = ol.proj.transform(
+    const center3857 = ol.proj.transform(
       [DEFAULT_MAP_VIEW.center[1], DEFAULT_MAP_VIEW.center[0]],
       "EPSG:4326",
-      "EPSG:25832",
+      "EPSG:3857",
     );
-    map.getView().setCenter(center25832);
+    map.getView().setCenter(center3857);
     map.getView().setZoom(6);
   }
 }
@@ -940,41 +940,6 @@ function ensureLeafletMap() {
   attachLeafletResizeObserver(container);
 
   if (!gameMap) {
-    let projection25832;
-    try {
-      proj4.defs("EPSG:25832", "+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs");
-      const registerProj4 =
-        typeof window.olRegisterProj4 === "function"
-          ? window.olRegisterProj4
-          : (ol.proj.proj4 && typeof ol.proj.proj4.register === "function"
-            ? ol.proj.proj4.register
-            : null);
-      if (typeof registerProj4 === "function") {
-        registerProj4(proj4);
-      } else {
-        console.error("[Map] proj4 register helper is unavailable");
-        return null;
-      }
-
-      projection25832 = ol.proj.get("EPSG:25832");
-      if (!projection25832) {
-        projection25832 = new ol.proj.Projection({
-          code: "EPSG:25832",
-          units: "m",
-          extent: [200000, 5200000, 1000000, 6200000],
-        });
-        ol.proj.addProjection(projection25832);
-      }
-
-      if (!ol.proj.get("EPSG:25832")) {
-        console.error("[Map] EPSG:25832 projection registration failed");
-        return null;
-      }
-    } catch (err) {
-      console.error("[Map] Error setting up EPSG:25832 projection:", err);
-      return null;
-    }
-
     // Use OSM as default basemap for maximum reliability across hosts.
     gameMapBaseLayer = new ol.layer.Tile({
       source: new ol.source.OSM({
@@ -1028,11 +993,10 @@ function ensureLeafletMap() {
         }),
       ]),
       view: new ol.View({
-        projection: projection25832,
         center: ol.proj.transform(
           [DEFAULT_MAP_VIEW.center[1], DEFAULT_MAP_VIEW.center[0]],
           "EPSG:4326",
-          "EPSG:25832",
+          "EPSG:3857",
         ),
         zoom: 6,
         minZoom: 4,
@@ -1134,12 +1098,12 @@ function renderQuestionMap(coordinates) {
     const fromPoint = ol.proj.transform(
       [coordinates.from.lon, coordinates.from.lat],
       "EPSG:4326",
-      "EPSG:25832",
+      "EPSG:3857",
     );
     const toPoint = ol.proj.transform(
       [coordinates.to.lon, coordinates.to.lat],
       "EPSG:4326",
-      "EPSG:25832",
+      "EPSG:3857",
     );
 
     const fromFeature = new ol.Feature({ geometry: new ol.geom.Point(fromPoint) });
@@ -1156,7 +1120,7 @@ function renderQuestionMap(coordinates) {
           if (!pt || !Number.isFinite(Number(pt.lon)) || !Number.isFinite(Number(pt.lat))) {
             return null;
           }
-          return ol.proj.transform([Number(pt.lon), Number(pt.lat)], "EPSG:4326", "EPSG:25832");
+          return ol.proj.transform([Number(pt.lon), Number(pt.lat)], "EPSG:4326", "EPSG:3857");
         })
         .filter(Boolean);
       if (transformedRoute.length >= 2) {
