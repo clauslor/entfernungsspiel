@@ -96,6 +96,7 @@
     "autoAdvanceAllAnsweredLabel": "Wenn alle geantwortet haben, sofort nächste Frage starten",
     "firstAnswerEndsRoundLabel": "Erste Antwort beendet die Runde",
     "wrongAnswerPointsOthersLabel": "Falsche Antworten geben allen anderen je 1 Punkt",
+    "kickOnDisconnectLabel": "Spieler wird gekickt wenn er das Tab schließt (statt Pause)",
     "enableRoadQuestionsLabel": "Straßenentfernungsfragen aktivieren"
   },
   "players": {
@@ -109,6 +110,12 @@
     "rule2": "Standard: Wer am nächsten dran ist, bekommt 1 Punkt.",
     "rule3": "Der Host kann Sonderregeln aktivieren (z. B. erste Antwort beendet Runde).",
     "rule4": "Nach allen Runden gewinnt der Spieler mit den meisten Punkten.",
+    "scoringTitle": "Punktevergabe",
+    "score1": "Rundensieg: +1 Punkt für die beste Antwort.",
+    "score2": "Perfekttreffer-Bonus (nur Distanzfragen): +1 Punkt bei höchstens 20 km Fehler.",
+    "score3": "Streak-Bonus: Jeder 3. Rundensieg in Folge gibt +1 Zusatzpunkt.",
+    "score4": "Optionale Sonderregel: Falsche Antworten geben allen anderen je +1 Punkt (wenn vom Host aktiviert).",
+    "score5": "Sortierfragen: Die beste Reihenfolge gewinnt die Runde (+1 Punkt).",
     "uiTitle": "UI bedienen",
     "ui1": "Name setzen, dann Spiel erstellen oder über Code + PIN beitreten.",
     "ui2": "Host: Einstellungen prüfen/anpassen und ggf. sperren.",

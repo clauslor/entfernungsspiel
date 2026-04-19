@@ -482,7 +482,8 @@ class GameLogic:
                 await self.end_game(game_id)
                 return False
 
-            is_speed = self._should_use_speed_round(game.config)
+            # Never start a game with a speed round; allow it only from round 2 onward.
+            is_speed = game.current_round > 1 and self._should_use_speed_round(game.config)
             if is_speed:
                 question.speed_round = True
                 game.answer_time_remaining = game.config.speed_round_time_seconds

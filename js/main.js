@@ -182,7 +182,7 @@ function updateUILayout() {
     lobbyControls.style.display = inGame ? "none" : "block";
   }
   if (matchControls) {
-    matchControls.style.display = inGame ? "block" : "none";
+    matchControls.style.display = inGame && !roundActive ? "block" : "none";
   }
   if (lobbyGuideCard) {
     lobbyGuideCard.style.display = inGame ? "none" : "block";
@@ -192,7 +192,7 @@ function updateUILayout() {
     countdownCard.style.display = inGame ? "block" : "none";
   }
   if (rulesCard) {
-    rulesCard.style.display = inGame && !roundActive ? "block" : "none";
+    rulesCard.style.display = inGame ? "block" : "none";
   }
   if (playersCard) {
     playersCard.style.display = inGame ? "block" : "none";
@@ -1546,15 +1546,25 @@ function handleJsonMessage(msg) {
     if (city2El) city2El.textContent = (questionVariant === "sorting" || questionVariant === "air_map") ? "?" : cityTo;
     const questionTextEl = document.querySelector("#questionCard .question-text");
     if (questionTextEl) {
-      questionTextEl.textContent = questionVariant === "sorting"
-        ? (msg.sorting_prompt || `Sortiere die Zahlen ${msg.sorting_order === "desc" ? "von groß nach klein" : "von klein nach groß"}`)
-        : t(
+      if (questionVariant === "sorting") {
+        questionTextEl.textContent = msg.sorting_prompt || `Sortiere die Zahlen ${msg.sorting_order === "desc" ? "von groß nach klein" : "von klein nach groß"}`;
+      } else {
+        const promptText = t(
           questionVariant === "road"
             ? "question.askRoadDistance"
             : questionVariant === "air_map"
               ? "question.askAirMapDistance"
               : "question.askDistance",
         );
+
+        if (questionVariant === "road") {
+          questionTextEl.innerHTML = promptText
+            .replace("Straßenentfernung", '<span class="road-term-highlight">Straßenentfernung</span>')
+            .replace("road distance", '<span class="road-term-highlight">road distance</span>');
+        } else {
+          questionTextEl.textContent = promptText;
+        }
+      }
     }
 
     if (sortingPromptBannerEl) {
@@ -1946,10 +1956,18 @@ function updateGameSettings(game_id, config) {
     if (enableAirQuestionsInput && typeof config.enable_air_questions === "boolean") {
       enableAirQuestionsInput.checked = config.enable_air_questions;
     }
-    if (enableAirMapQuestionsInput) enableAirMapQuestionsInput.checked = config.enable_air_map_questions !== false;
-    if (enableRoadQuestionsInput) enableRoadQuestionsInput.checked = config.enable_road_questions !== false;
-    if (enableSortingQuestionsInput) enableSortingQuestionsInput.checked = config.enable_sorting_questions !== false;
-    if (enableSpeedRoundsInput) enableSpeedRoundsInput.checked = config.enable_speed_rounds !== false;
+    if (enableAirMapQuestionsInput && typeof config.enable_air_map_questions === "boolean") {
+      enableAirMapQuestionsInput.checked = config.enable_air_map_questions;
+    }
+    if (enableRoadQuestionsInput && typeof config.enable_road_questions === "boolean") {
+      enableRoadQuestionsInput.checked = config.enable_road_questions;
+    }
+    if (enableSortingQuestionsInput && typeof config.enable_sorting_questions === "boolean") {
+      enableSortingQuestionsInput.checked = config.enable_sorting_questions;
+    }
+    if (enableSpeedRoundsInput && typeof config.enable_speed_rounds === "boolean") {
+      enableSpeedRoundsInput.checked = config.enable_speed_rounds;
+    }
     // Handle no-time-limit flag (answer_time_seconds == 0)
     const noTimeLimit = config.answer_time_seconds === 0;
     const noTimeLimitInput = document.getElementById("settingNoTimeLimit");

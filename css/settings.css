@@ -16,6 +16,13 @@
     border: 1px solid var(--border-color);
 }
 
+.rules-quick-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
 /* ----------------------------------------
    Host Settings Editor
    ---------------------------------------- */
@@ -219,6 +226,10 @@
 @media (max-width: 760px) {
     .host-settings-grid {
         grid-template-columns: 1fr;
+    }
+
+    .rules-quick-actions .btn {
+        flex: 1 1 100%;
     }
 
     .question-type-tile {

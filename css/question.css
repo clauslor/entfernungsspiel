@@ -17,6 +17,11 @@
     margin-bottom: 20px;
 }
 
+.road-term-highlight {
+    font-weight: 800;
+    color: #b45309;
+}
+
 .city {
     flex: 1;
     max-width: 150px;

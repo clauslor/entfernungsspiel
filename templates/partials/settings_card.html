@@ -1,6 +1,14 @@
 <section class="card rules-card" id="rulesCard">
     <h2 class="card-title" data-i18n="settings.title">⚙️ Settings</h2>
     <p id="rulesText" class="settings-text" data-i18n="settings.waiting">Waiting for game settings...</p>
+    <div id="rulesQuickActions" class="rules-quick-actions">
+        <button id="warmupBtn" onclick="startWarmup()" class="btn btn-secondary"
+            data-i18n="matchControls.warmup">🔥 Warmup</button>
+        <button id="lockSettingsBtn" onclick="toggleLockSettings()" class="btn btn-secondary"
+            data-i18n="matchControls.lockSettings">🔒 Lock Settings</button>
+        <button id="rulesLeaveBtn" onclick="leaveGame()" class="btn btn-danger"
+            data-i18n="matchControls.leave">✕ Leave</button>
+    </div>
     <div id="hostSettingsEditor" class="host-settings-editor" aria-live="polite">
         <h3 class="host-settings-title" data-i18n="settings.editorTitle">Spiel-Einstellungen (Host)</h3>
         <div class="question-type-section">

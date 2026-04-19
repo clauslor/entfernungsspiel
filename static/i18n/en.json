@@ -96,6 +96,7 @@
     "autoAdvanceAllAnsweredLabel": "Start next question immediately when all players answered",
     "firstAnswerEndsRoundLabel": "First answer ends the round",
     "wrongAnswerPointsOthersLabel": "Wrong answers give every other player +1 point",
+    "kickOnDisconnectLabel": "Kick player when they close the tab (instead of pausing)",
     "enableRoadQuestionsLabel": "Enable road-distance questions"
   },
   "players": {
@@ -109,6 +110,12 @@
     "rule2": "Default: the closest guess earns 1 point.",
     "rule3": "The host can enable special rules (e.g. first answer ends the round).",
     "rule4": "After all rounds, the player with the most points wins.",
+    "scoringTitle": "Scoring",
+    "score1": "Round win: +1 point for the best answer.",
+    "score2": "Perfect-hit bonus (distance questions only): +1 point for an error of at most 20 km.",
+    "score3": "Streak bonus: every 3rd round win in a row gives +1 extra point.",
+    "score4": "Optional special rule: wrong answers give every other player +1 point (if enabled by host).",
+    "score5": "Sorting questions: the best ordering wins the round (+1 point).",
     "uiTitle": "How To Use The UI",
     "ui1": "Set your name, then create a game or join with code + PIN.",
     "ui2": "Host: review/adjust settings and lock them if needed.",
