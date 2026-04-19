@@ -6,6 +6,7 @@
 let captchaValidationToken = null;
 
 function updateCaptchaStatusUi(state) {
+    const statusRow = document.getElementById('captchaStatusRow');
     const badge = document.getElementById('captchaStatusBadge');
     const verifyBtn = document.getElementById('captchaVerifyBtn');
     if (!badge || !verifyBtn) return;
@@ -13,6 +14,9 @@ function updateCaptchaStatusUi(state) {
     badge.classList.remove('is-required', 'is-ok');
 
     if (state === 'required') {
+        if (statusRow) {
+            statusRow.hidden = false;
+        }
         badge.classList.add('is-required');
         badge.setAttribute('data-i18n', 'captcha.statusRequired');
         if (typeof t === 'function') {
@@ -20,6 +24,9 @@ function updateCaptchaStatusUi(state) {
         }
         verifyBtn.hidden = false;
     } else if (state === 'ok') {
+        if (statusRow) {
+            statusRow.hidden = true;
+        }
         badge.classList.add('is-ok');
         badge.setAttribute('data-i18n', 'captcha.statusReady');
         if (typeof t === 'function') {
@@ -27,6 +34,9 @@ function updateCaptchaStatusUi(state) {
         }
         verifyBtn.hidden = true;
     } else {
+        if (statusRow) {
+            statusRow.hidden = false;
+        }
         badge.setAttribute('data-i18n', 'captcha.statusLazy');
         if (typeof t === 'function') {
             badge.textContent = t('captcha.statusLazy');
@@ -39,14 +49,9 @@ function updateCaptchaStatusUi(state) {
  * Initialize hCaptcha on page load
  */
 function initializeCaptcha() {
-    // Check if we already have a valid captcha validation in localStorage
-    const storedToken = localStorage.getItem('captchaToken');
-    if (storedToken) {
-        captchaValidationToken = storedToken;
-        updateCaptchaStatusUi('ok');
-    } else {
-        updateCaptchaStatusUi('lazy');
-    }
+    // Wait for server lobby info before showing a required/verified status.
+    captchaValidationToken = localStorage.getItem('captchaToken');
+    updateCaptchaStatusUi('lazy');
 
     // Do not force modal on page load; only show when a protected action actually needs it.
     hideCaptchaModal();
@@ -58,11 +63,10 @@ function syncCaptchaRequirement(captchaRequired) {
         localStorage.removeItem('captchaToken');
         updateCaptchaStatusUi('required');
     } else {
-        if (!captchaValidationToken) {
-            captchaValidationToken = 'server_valid';
-            localStorage.setItem('captchaToken', captchaValidationToken);
-        }
-        updateCaptchaStatusUi('ok');
+        // If no verification is currently required, keep the UI in neutral mode.
+        captchaValidationToken = null;
+        localStorage.removeItem('captchaToken');
+        updateCaptchaStatusUi('lazy');
         hideCaptchaModal();
     }
 }

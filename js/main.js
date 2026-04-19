@@ -217,13 +217,7 @@ function updateUILayout() {
 
   if (roundActive) {
     setTimeout(() => focusAndSelect("guessInput"), 0);
-    const variantNeedsMap = currentQuestionVariant !== "sorting" && currentQuestionVariant !== "air";
-    if (variantNeedsMap) {
-      queueMapPreparation();
-    } else if (pendingMapPreparationTimeoutId) {
-      clearTimeout(pendingMapPreparationTimeoutId);
-      pendingMapPreparationTimeoutId = null;
-    }
+    queueMapPreparation();
   }
 
   updateMatchHud();
@@ -445,12 +439,12 @@ function prepareMapForGameplay() {
 
   // If no features yet, center map on default location
   if (gameMapFeatureSource.getFeatures().length === 0) {
-    const center3857 = ol.proj.transform(
+    const center25832 = ol.proj.transform(
       [DEFAULT_MAP_VIEW.center[1], DEFAULT_MAP_VIEW.center[0]],
       "EPSG:4326",
-      "EPSG:3857",
+      "EPSG:25832",
     );
-    map.getView().setCenter(center3857);
+    map.getView().setCenter(center25832);
     map.getView().setZoom(6);
   }
 }
@@ -672,12 +666,6 @@ function applyQuestionVariantUI(questionVariant) {
   if (ortsschildContainer) ortsschildContainer.style.display = (isSorting || isAirMap) ? "none" : "flex";
   // air (signs only): hide map; sorting: hide map; everything else: show map
   if (mapContainer) mapContainer.style.display = (isSorting || isAirSigns) ? "none" : "block";
-
-  // Stop queued map retries for variants that intentionally hide the map.
-  if ((isSorting || isAirSigns) && pendingMapPreparationTimeoutId) {
-    clearTimeout(pendingMapPreparationTimeoutId);
-    pendingMapPreparationTimeoutId = null;
-  }
 }
 
 function submitSortingAnswer() {
@@ -940,21 +928,55 @@ function ensureLeafletMap() {
   attachLeafletResizeObserver(container);
 
   if (!gameMap) {
-    // Use OSM as default basemap for maximum reliability across hosts.
+    let projection25832;
+    try {
+      proj4.defs("EPSG:25832", "+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs");
+      const registerProj4 =
+        typeof window.olRegisterProj4 === "function"
+          ? window.olRegisterProj4
+          : (ol.proj.proj4 && typeof ol.proj.proj4.register === "function"
+            ? ol.proj.proj4.register
+            : null);
+      if (typeof registerProj4 === "function") {
+        registerProj4(proj4);
+      } else {
+        console.error("[Map] proj4 register helper is unavailable");
+        return null;
+      }
+
+      projection25832 = ol.proj.get("EPSG:25832");
+      if (!projection25832) {
+        projection25832 = new ol.proj.Projection({
+          code: "EPSG:25832",
+          units: "m",
+          extent: [200000, 5200000, 1000000, 6200000],
+        });
+        ol.proj.addProjection(projection25832);
+      }
+
+      if (!ol.proj.get("EPSG:25832")) {
+        console.error("[Map] EPSG:25832 projection registration failed");
+        return null;
+      }
+    } catch (err) {
+      console.error("[Map] Error setting up EPSG:25832 projection:", err);
+      return null;
+    }
+
     gameMapBaseLayer = new ol.layer.Tile({
-      source: new ol.source.OSM({
-        attributions: "© OpenStreetMap contributors",
+      source: new ol.source.XYZ({
+        // basemap.de Web Raster with OSM fallback
+        url: "https://sgx.geodatenzentrum.de/wmts_basemapde/tile/1.0.0/de_basemapde_web_raster_farbe/default/GLOBAL_WEBMERCATOR/{z}/{y}/{x}.png",
+        attributions: "© basemap.de / BKG, © OpenStreetMap contributors",
         crossOrigin: "anonymous",
         imageSmoothing: true,
       }),
-      visible: true,
     });
 
-    // Optional secondary layer (basemap.de), kept as non-default fallback option.
+    // Add fallback layer (OSM) that will be used if basemap.de fails
     gameMapFallbackLayer = new ol.layer.Tile({
-      source: new ol.source.XYZ({
-        url: "https://sgx.geodatenzentrum.de/wmts_basemapde/tile/1.0.0/de_basemapde_web_raster_farbe/default/GLOBAL_WEBMERCATOR/{z}/{y}/{x}.png",
-        attributions: "© basemap.de / BKG",
+      source: new ol.source.OSM({
+        attributions: "© OpenStreetMap contributors",
         crossOrigin: "anonymous",
         imageSmoothing: true,
       }),
@@ -993,10 +1015,11 @@ function ensureLeafletMap() {
         }),
       ]),
       view: new ol.View({
+        projection: projection25832,
         center: ol.proj.transform(
           [DEFAULT_MAP_VIEW.center[1], DEFAULT_MAP_VIEW.center[0]],
           "EPSG:4326",
-          "EPSG:3857",
+          "EPSG:25832",
         ),
         zoom: 6,
         minZoom: 4,
@@ -1004,7 +1027,21 @@ function ensureLeafletMap() {
       }),
     });
 
-    // Keep old fallback switch logic disabled for now because OSM is already the stable default.
+    // Handle basemap.de tile load failure: switch to OSM fallback.
+    // Tile errors are emitted by the source, not by the layer itself.
+    const baseSource = gameMapBaseLayer.getSource();
+    let switchedToFallback = false;
+    if (baseSource) {
+      baseSource.on("tileloaderror", () => {
+        if (switchedToFallback || !gameMapFallbackLayer) {
+          return;
+        }
+        switchedToFallback = true;
+        gameMapBaseLayer.setVisible(false);
+        gameMapFallbackLayer.setVisible(true);
+        console.warn("[Map] basemap.de tiles failed to load, switched to OSM fallback");
+      });
+    }
 
   }
 
@@ -1098,12 +1135,12 @@ function renderQuestionMap(coordinates) {
     const fromPoint = ol.proj.transform(
       [coordinates.from.lon, coordinates.from.lat],
       "EPSG:4326",
-      "EPSG:3857",
+      "EPSG:25832",
     );
     const toPoint = ol.proj.transform(
       [coordinates.to.lon, coordinates.to.lat],
       "EPSG:4326",
-      "EPSG:3857",
+      "EPSG:25832",
     );
 
     const fromFeature = new ol.Feature({ geometry: new ol.geom.Point(fromPoint) });
@@ -1120,7 +1157,7 @@ function renderQuestionMap(coordinates) {
           if (!pt || !Number.isFinite(Number(pt.lon)) || !Number.isFinite(Number(pt.lat))) {
             return null;
           }
-          return ol.proj.transform([Number(pt.lon), Number(pt.lat)], "EPSG:4326", "EPSG:3857");
+          return ol.proj.transform([Number(pt.lon), Number(pt.lat)], "EPSG:4326", "EPSG:25832");
         })
         .filter(Boolean);
       if (transformedRoute.length >= 2) {
