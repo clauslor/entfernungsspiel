@@ -208,6 +208,7 @@
     "invalidUpdateSettingsRequest": "Invalid update settings request.",
     "onlyHostUpdateSettings": "Only the host can update settings.",
     "settingsOnlyBeforeCountdown": "Settings can only be changed before countdown.",
+    "joinOnlyBeforeCountdown": "Joining is only possible before countdown.",
     "settingsLocked": "Settings are currently locked.",
     "invalidSettingsValues": "Invalid settings values.",
     "atLeastOneQuestionType": "At least one question type must be enabled.",

@@ -208,6 +208,7 @@
     "invalidUpdateSettingsRequest": "Ungültige Anfrage zum Aktualisieren der Einstellungen.",
     "onlyHostUpdateSettings": "Nur der Host kann Einstellungen ändern.",
     "settingsOnlyBeforeCountdown": "Einstellungen können nur vor dem Countdown geändert werden.",
+    "joinOnlyBeforeCountdown": "Beitritt ist nur bis vor dem Countdown möglich.",
     "settingsLocked": "Einstellungen sind aktuell gesperrt.",
     "invalidSettingsValues": "Ungültige Einstellungswerte.",
     "atLeastOneQuestionType": "Mindestens ein Fragetyp muss aktiviert sein.",

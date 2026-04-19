@@ -55,6 +55,10 @@ let gameEndViewMode = localStorage.getItem(STORAGE_KEYS.GAME_END_VIEW_MODE) === 
 
 // Initialize i18n system on page load
 document.addEventListener("DOMContentLoaded", async () => {
+  // Identity/session moved to sessionStorage to avoid cross-window player-id collisions.
+  localStorage.removeItem(STORAGE_KEYS.PLAYER_ID);
+  localStorage.removeItem(STORAGE_KEYS.GAME_ID);
+
   await initializeI18n();
   updateUILanguage();
   applyGameEndViewMode(gameEndViewMode);
@@ -92,7 +96,7 @@ function connect() {
   }
 
   const base = window.location.pathname.replace(/\/$/, ""); // trailing slash entfernen
-  const storedPlayerId = localStorage.getItem(STORAGE_KEYS.PLAYER_ID);
+  const storedPlayerId = sessionStorage.getItem(STORAGE_KEYS.PLAYER_ID);
   const playerParam = storedPlayerId
     ? `?player_id=${encodeURIComponent(storedPlayerId)}`
     : "";
@@ -151,7 +155,7 @@ function captureJoinIntentFromUrl() {
 
   restorePendingJoinGameId = intent.gameId;
   restorePendingJoinPin = intent.pin;
-  localStorage.setItem(STORAGE_KEYS.GAME_ID, intent.gameId);
+  sessionStorage.setItem(STORAGE_KEYS.GAME_ID, intent.gameId);
 
   const gameIdInput = document.getElementById("gameIdInput");
   if (gameIdInput) {
@@ -425,6 +429,7 @@ function translateServerMessage(rawMessage) {
     "Settings are locked": "serverErrors.settingsLocked",
     "Invalid settings values": "serverErrors.invalidSettingsValues",
     "At least one question type must be enabled": "serverErrors.atLeastOneQuestionType",
+    "Join only possible before countdown": "serverErrors.joinOnlyBeforeCountdown",
     "Only host can start warmup": "serverErrors.onlyHostStartWarmup",
     "Warmup only available before countdown": "serverErrors.warmupOnlyBeforeCountdown",
     "Could not start warmup": "serverErrors.couldNotStartWarmup",
@@ -1674,7 +1679,7 @@ function handleJsonMessage(msg) {
       currentGameId
       || msg.game_id
       || restorePendingJoinGameId
-      || localStorage.getItem(STORAGE_KEYS.GAME_ID)
+      || sessionStorage.getItem(STORAGE_KEYS.GAME_ID)
       || "";
     if (inferredGameId && inferredGameId !== currentGameId) {
       currentGameId = inferredGameId;
@@ -1986,7 +1991,7 @@ function handleJsonMessage(msg) {
     playerName = msg.name || playerName;
     if (playerName) {
       localStorage.setItem(STORAGE_KEYS.PLAYER_NAME, playerName);
-      localStorage.setItem(STORAGE_KEYS.PLAYER_ID, currentPlayerId);
+      sessionStorage.setItem(STORAGE_KEYS.PLAYER_ID, currentPlayerId);
       syncPlayerNameUI(playerName);
       document.getElementById("setupPhase").style.display = "none";
       document.getElementById("gamePhase").style.display = "block";
@@ -1994,9 +1999,17 @@ function handleJsonMessage(msg) {
     if (msg.game_id) {
       currentGameId = msg.game_id;
       restorePendingJoinGameId = msg.game_id;
-      localStorage.setItem(STORAGE_KEYS.GAME_ID, msg.game_id);
+      sessionStorage.setItem(STORAGE_KEYS.GAME_ID, msg.game_id);
     }
     updateUILayout();
+  } else if (msg.type === "join_rejected") {
+    if (msg.reason === "countdown_started") {
+      appendMessage(`❌ ${t("serverErrors.joinOnlyBeforeCountdown")}`);
+      sessionStorage.removeItem(STORAGE_KEYS.GAME_ID);
+      restorePendingJoinGameId = "";
+      restorePendingJoinPin = "";
+      hideJoinGame();
+    }
   } else if (msg.type === "error") {
     const localizedServerMessage = translateServerMessage(msg.message);
     appendMessage(`❌ ${localizedServerMessage}`);
@@ -2091,7 +2104,7 @@ function handleJsonMessage(msg) {
   } else if (msg.type === "name_set") {
     currentPlayerId = msg.player_id;
     playerName = msg.name || playerName;
-    localStorage.setItem(STORAGE_KEYS.PLAYER_ID, currentPlayerId);
+    sessionStorage.setItem(STORAGE_KEYS.PLAYER_ID, currentPlayerId);
     localStorage.setItem(STORAGE_KEYS.PLAYER_NAME, playerName);
     syncPlayerNameUI(playerName);
     if (restorePendingJoinGameId && !currentGameId) {
@@ -2274,8 +2287,8 @@ function appendMessage(text) {
 
 function saveSessionToStorage() {
   if (playerName) localStorage.setItem(STORAGE_KEYS.PLAYER_NAME, playerName);
-  if (currentPlayerId) localStorage.setItem(STORAGE_KEYS.PLAYER_ID, currentPlayerId);
-  if (currentGameId) localStorage.setItem(STORAGE_KEYS.GAME_ID, currentGameId);
+  if (currentPlayerId) sessionStorage.setItem(STORAGE_KEYS.PLAYER_ID, currentPlayerId);
+  if (currentGameId) sessionStorage.setItem(STORAGE_KEYS.GAME_ID, currentGameId);
 }
 
 function clearStoredGame() {
@@ -2283,7 +2296,7 @@ function clearStoredGame() {
   currentGameStatus = "waiting";
   currentIsHost = false;
   currentSettingsLocked = false;
-  localStorage.removeItem(STORAGE_KEYS.GAME_ID);
+  sessionStorage.removeItem(STORAGE_KEYS.GAME_ID);
   updateGameShareLink("");
   updateUILayout();
 }
@@ -2536,7 +2549,7 @@ function updateGameShareLink(gameId) {
 
 function restoreSessionFromStorage() {
   const storedName = localStorage.getItem(STORAGE_KEYS.PLAYER_NAME) || "";
-  const storedGameId = localStorage.getItem(STORAGE_KEYS.GAME_ID) || "";
+  const storedGameId = sessionStorage.getItem(STORAGE_KEYS.GAME_ID) || "";
 
   if (!storedName) return;
 

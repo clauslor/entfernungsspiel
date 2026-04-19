@@ -454,12 +454,39 @@ class WebSocketHandler:
             if game.pin and join_msg.pin != game.pin:
                 await self.send_error(player_id, "Invalid PIN")
                 return
+
+            # Prevent late joins once the match has moved past the lobby waiting phase.
+            if game.status != GameStatus.WAITING:
+                await self.send_to_player(
+                    player_id,
+                    {
+                        "type": "join_rejected",
+                        "reason": "countdown_started",
+                        "game_id": game_id,
+                    },
+                )
+                await self.send_error(player_id, "Join only possible before countdown")
+                return
             
             if game.settings_locked:
                 await self.send_error(player_id, "Host has locked the lobby")
                 return
 
             player = self.game_room.players[player_id]
+
+            # Re-check right before mutating player/game state to avoid race with countdown start.
+            if game.status != GameStatus.WAITING:
+                await self.send_to_player(
+                    player_id,
+                    {
+                        "type": "join_rejected",
+                        "reason": "countdown_started",
+                        "game_id": game_id,
+                    },
+                )
+                await self.send_error(player_id, "Join only possible before countdown")
+                return
+
             success = self.game_room.add_player_to_game(player, game_id)
 
             if success:
