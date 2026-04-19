@@ -211,6 +211,10 @@ main.game-layout.lobby-mode .game-column {
         font-size: 0.95em;
     }
 
+    .header-content {
+        width: 100%;
+    }
+
     .question-text {
         font-size: 1em;
         margin-bottom: 15px;
@@ -236,7 +240,7 @@ main.game-layout.lobby-mode .game-column {
     }
 
     header.header {
-        padding: 20px 15px;
+        padding: 18px 12px;
         margin-bottom: 15px;
     }
 
@@ -275,6 +279,33 @@ main.game-layout.lobby-mode .game-column {
     .input-field,
     .btn {
         font-size: 16px;
+    }
+}
+
+@media (max-width: 920px) and (orientation: landscape) {
+    main.game-layout.in-game {
+        grid-template-columns: 1.25fr 0.95fr;
+        gap: 12px;
+        align-items: start;
+    }
+
+    main.game-layout.in-game .game-column,
+    main.game-layout.in-game .info-column {
+        grid-column: auto;
+    }
+
+    header.header {
+        padding: 16px 14px;
+        margin-bottom: 12px;
+    }
+
+    .header-content h1.title {
+        font-size: 1.35em;
+        margin-bottom: 4px;
+    }
+
+    .header-content p.subtitle {
+        font-size: 0.84em;
     }
 }
 

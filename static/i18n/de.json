@@ -115,7 +115,7 @@
     "score2": "Perfekttreffer-Bonus (nur Distanzfragen): +1 Punkt bei höchstens 20 km Fehler.",
     "score3": "Streak-Bonus: Jeder 3. Rundensieg in Folge gibt +1 Zusatzpunkt.",
     "score4": "Optionale Sonderregel: Falsche Antworten geben allen anderen je +1 Punkt (wenn vom Host aktiviert).",
-    "score5": "Sortierfragen: Die beste Reihenfolge gewinnt die Runde (+1 Punkt).",
+    "score5": "Sortierfragen: Teilpunkte in 0,5er-Schritten je nach Anzahl korrekter Positionen (beste Reihenfolge: +1).",
     "uiTitle": "UI bedienen",
     "ui1": "Name setzen, dann Spiel erstellen oder über Code + PIN beitreten.",
     "ui2": "Host: Einstellungen prüfen/anpassen und ggf. sperren.",
@@ -250,6 +250,8 @@
     "viewModeDetails": "Details"
   },
   "mapPlaceholder": "Karte wird für die aktuelle Frage geladen.",
+  "mapFallbackActive": "Fallback-Karte aktiv (Basisdienst nicht erreichbar).",
+  "mapUnavailable": "Karte konnte nicht geladen werden. Bitte nächste Runde versuchen.",
   "captcha": {
     "title": "🔒 Sicherheitsprüfung",
     "description": "Bitte bestätige, dass du ein Mensch bist:",

@@ -140,7 +140,7 @@ class DBHighScore(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     player_name = Column(String, index=True)
-    score = Column(Integer)
+    score = Column(Float)
     total_rounds = Column(Integer)
     average_accuracy = Column(Float)
     games_played = Column(Integer)
@@ -363,7 +363,7 @@ def get_high_scores(db, limit: int = 10) -> List[DBHighScore]:
     return db.query(DBHighScore).order_by(DBHighScore.score.desc()).limit(limit).all()
 
 
-def save_high_score(db, player_name: str, score: int, total_rounds: int, average_accuracy: float):
+def save_high_score(db, player_name: str, score: float, total_rounds: int, average_accuracy: float):
     """Save or update high score"""
     # Check if player already has a high score
     existing = db.query(DBHighScore).filter(DBHighScore.player_name == player_name).first()

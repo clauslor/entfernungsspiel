@@ -630,11 +630,18 @@ class WebSocketHandler:
         if not player:
             return
 
-        if player.tab_away:
-            player.tab_away = False
-            if player.game_id:
-                await self.game_logic.resume_after_player_return(player.game_id)
-                await self.broadcast_players_update(player.game_id)
+        was_away = player.tab_away
+        player.tab_away = False
+        if player.game_id:
+            await self.game_logic.resume_after_player_return(player.game_id)
+            await self.send_game_info(player_id, player.game_id)
+            await self.broadcast_players_update(player.game_id)
+            if was_away:
+                await self.broadcast_to_game(
+                    player.game_id,
+                    "player_tab_active",
+                    {"player_id": player_id, "name": player.name},
+                )
 
     async def handle_set_ready(self, player_id: str, data: Dict[str, Any]):
         """Handle player ready status change"""

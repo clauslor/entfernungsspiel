@@ -115,7 +115,7 @@
     "score2": "Perfect-hit bonus (distance questions only): +1 point for an error of at most 20 km.",
     "score3": "Streak bonus: every 3rd round win in a row gives +1 extra point.",
     "score4": "Optional special rule: wrong answers give every other player +1 point (if enabled by host).",
-    "score5": "Sorting questions: the best ordering wins the round (+1 point).",
+    "score5": "Sorting questions: partial points in 0.5 steps based on correct positions (best ordering: +1).",
     "uiTitle": "How To Use The UI",
     "ui1": "Set your name, then create a game or join with code + PIN.",
     "ui2": "Host: review/adjust settings and lock them if needed.",
@@ -250,6 +250,8 @@
     "viewModeDetails": "Details"
   },
   "mapPlaceholder": "Map is loading for the current question.",
+  "mapFallbackActive": "Fallback map active (primary tiles unavailable).",
+  "mapUnavailable": "Map could not be loaded. Please continue with the next round.",
   "captcha": {
     "title": "🔒 Security Verification",
     "description": "Please verify that you are human:",

@@ -43,7 +43,7 @@ class Player:
     id: str
     name: str
     ready: bool = False
-    score: int = 0
+    score: float = 0.0
     tab_away: bool = False
     suspicion_score: int = 0
     fast_answers: int = 0

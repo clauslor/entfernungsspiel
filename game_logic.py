@@ -849,7 +849,7 @@ class GameLogic:
         winner_id = min(diffs, key=diffs.get)
         winner = game.players[winner_id]
         winner_guess = game.answers[winner_id]
-        round_deltas: Dict[str, int] = {pid: 0 for pid in game.players.keys()}
+        round_deltas: Dict[str, float] = {pid: 0.0 for pid in game.players.keys()}
         bonus_events: List[Dict[str, Any]] = []
         winner_diff_value = sorting_difference(winner_guess) if is_sorting else abs(int(winner_guess) - correct_distance)
         closest_result: Dict[str, Any] = {
@@ -875,8 +875,25 @@ class GameLogic:
         precision_bonus_payload: Optional[Dict[str, Any]] = None
         comeback_payload: Optional[Dict[str, Any]] = None
         if not game.warmup_active:
-            winner.score += 1
-            round_deltas[winner_id] = 1
+            if is_sorting:
+                order_len = max(1, len(correct_order))
+
+                def round_to_half(value: float) -> float:
+                    return round(value * 2.0) / 2.0
+
+                for submitted_player_id, submitted_guess in game.answers.items():
+                    player = game.players.get(submitted_player_id)
+                    if not player:
+                        continue
+                    diff_positions = sorting_difference(submitted_guess)
+                    ratio = max(0.0, (order_len - diff_positions) / order_len)
+                    partial_points = round_to_half(ratio)
+                    if partial_points > 0:
+                        player.score += partial_points
+                        round_deltas[submitted_player_id] = round_deltas.get(submitted_player_id, 0.0) + partial_points
+            else:
+                winner.score += 1
+                round_deltas[winner_id] = round_deltas.get(winner_id, 0.0) + 1.0
 
             # Track winning streaks to reward momentum and keep rounds exciting.
             for player in game.players.values():
@@ -887,7 +904,7 @@ class GameLogic:
 
             if winner.win_streak > 0 and winner.win_streak % 3 == 0:
                 winner.score += 1
-                round_deltas[winner_id] = round_deltas.get(winner_id, 0) + 1
+                round_deltas[winner_id] = round_deltas.get(winner_id, 0.0) + 1.0
                 bonus_events.append(
                     {
                         "type": "streak_bonus",
@@ -902,7 +919,7 @@ class GameLogic:
                 winner_diff_km = winner_diff_value
                 if winner_diff_km <= 20:
                     winner.score += 1
-                    round_deltas[winner_id] = round_deltas.get(winner_id, 0) + 1
+                    round_deltas[winner_id] = round_deltas.get(winner_id, 0.0) + 1.0
                     precision_bonus_payload = {
                         "player_id": winner.id,
                         "player_name": winner.name,
@@ -916,7 +933,7 @@ class GameLogic:
                         }
                     )
 
-            if game.config.wrong_answer_points_others:
+            if game.config.wrong_answer_points_others and not is_sorting:
                 for submitted_player_id, submitted_guess in game.answers.items():
                     if submitted_guess == correct_distance:
                         continue
@@ -924,7 +941,7 @@ class GameLogic:
                         if other_player.id == submitted_player_id:
                             continue
                         other_player.score += 1
-                        round_deltas[other_player.id] = round_deltas.get(other_player.id, 0) + 1
+                        round_deltas[other_player.id] = round_deltas.get(other_player.id, 0.0) + 1.0
 
             updated_standings = sorted(
                 game.players.values(),
@@ -987,7 +1004,7 @@ class GameLogic:
         for player in game.players.values():
             submission_events = game.answer_submission_history.get(player.id, [])
             final_guess = game.answers.get(player.id)
-            points_earned = round_deltas.get(player.id, 0)
+            points_earned = float(round_deltas.get(player.id, 0.0))
 
             if final_guess is None:
                 accuracy_pct: Optional[float] = None
@@ -1002,18 +1019,32 @@ class GameLogic:
                 accuracy_pct = game.calculate_accuracy_percentage(int(final_guess), correct_distance)
 
             point_breakdown: List[Dict[str, Any]] = []
-            explained_points = 0
-            if not game.warmup_active and player.id == winner_id:
+            explained_points = 0.0
+
+            if not game.warmup_active and is_sorting and final_guess is not None and points_earned > 0:
+                guess_diff = sorting_difference(final_guess)
+                correct_positions = max(0, len(correct_order) - guess_diff)
+                base_sort_points = 1.0 if player.id == winner_id else points_earned
+                if base_sort_points > 0:
+                    point_breakdown.append({
+                        "type": "sorting_partial_points",
+                        "label": "Beste Sortierung" if player.id == winner_id else "Teilpunkte für Sortierung",
+                        "points": base_sort_points,
+                        "correct_positions": correct_positions,
+                        "total_positions": len(correct_order),
+                    })
+                    explained_points += base_sort_points
+            elif not game.warmup_active and player.id == winner_id:
                 point_breakdown.append({
                     "type": "winner_point",
                     "label": "Rundensieg",
-                    "points": 1,
+                    "points": 1.0,
                 })
-                explained_points += 1
+                explained_points += 1.0
 
             for event in bonus_events_by_player.get(player.id, []):
                 event_type = event.get("type")
-                points = int(event.get("points", 0))
+                points = float(event.get("points", 0))
                 if points <= 0:
                     continue
                 explained_points += points

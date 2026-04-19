@@ -18,6 +18,7 @@ let gameMapFeatureSource = null;
 let gameMapResizeObserver = null;
 let gameMapOverlays = [];
 let pendingMapPreparationTimeoutId = null;
+let mapLoadWatchdogTimerId = null;
 let pendingQuestionCoordinates = null;
 let countdownTimerId = null;
 let countdownEndTime = null;
@@ -32,6 +33,8 @@ let currentSortingOrder = "asc";
 let currentSortingPool = [];
 let currentSortingSelection = [];
 let sortingAutoSubmitTimerId = null;
+let tabLeavingNotifyTimerId = null;
+let tabAwayNotified = false;
 
 const DEFAULT_MAP_VIEW = {
   center: [51.1657, 10.4515],
@@ -115,6 +118,7 @@ function connect() {
 
   ws.onopen = () => {
     isConnected = true;
+    tabAwayNotified = false;
     appendMessage(`✅ ${t("messages.ready")}`);
     sendMessage({ type: "tab_active", data: {} });
     restoreSessionFromStorage();
@@ -265,6 +269,80 @@ function getCurrentPlayerScore() {
   return null;
 }
 
+function formatScoreValue(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return "0";
+  if (Math.abs(numeric - Math.round(numeric)) < 0.001) {
+    return String(Math.round(numeric));
+  }
+  return numeric.toFixed(1);
+}
+
+function formatScoreDelta(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || Math.abs(numeric) < 0.001) return "0";
+  const rendered = formatScoreValue(Math.abs(numeric));
+  return `${numeric > 0 ? "+" : "-"}${rendered}`;
+}
+
+function setMapContainerState(state = "idle", message = "") {
+  const container = document.getElementById("mapContainer");
+  const placeholder = document.getElementById("mapPlaceholder");
+  if (!container) return;
+
+  container.classList.remove("has-map", "map-loading", "map-fallback", "map-error");
+
+  if (placeholder) {
+    const fallbackText = typeof t === "function" ? t("mapPlaceholder") : "Karte wird für die aktuelle Frage geladen.";
+    placeholder.textContent = message || fallbackText;
+  }
+
+  if (state === "ready") {
+    container.classList.add("has-map");
+  } else if (state === "loading") {
+    container.classList.add("map-loading");
+  } else if (state === "fallback") {
+    container.classList.add("has-map", "map-fallback");
+  } else if (state === "error") {
+    container.classList.add("map-error");
+  }
+
+  if (state === "loading") {
+    if (mapLoadWatchdogTimerId) clearTimeout(mapLoadWatchdogTimerId);
+    mapLoadWatchdogTimerId = setTimeout(() => {
+      mapLoadWatchdogTimerId = null;
+      const stillLoading = container.classList.contains("map-loading");
+      if (!stillLoading || !gameMapFallbackLayer) return;
+      gameMapFallbackLayer.setVisible(true);
+      if (gameMapBaseLayer) gameMapBaseLayer.setVisible(false);
+      const fallbackMsg = typeof t === "function" ? t("mapFallbackActive") : "Fallback-Karte aktiv.";
+      setMapContainerState("fallback", fallbackMsg);
+    }, 4200);
+  } else if (mapLoadWatchdogTimerId) {
+    clearTimeout(mapLoadWatchdogTimerId);
+    mapLoadWatchdogTimerId = null;
+  }
+}
+
+function scheduleTabLeavingNotification() {
+  if (tabLeavingNotifyTimerId) {
+    clearTimeout(tabLeavingNotifyTimerId);
+  }
+  tabLeavingNotifyTimerId = setTimeout(() => {
+    tabLeavingNotifyTimerId = null;
+    if (document.visibilityState === "hidden") {
+      notifyTabLeaving();
+    }
+  }, 900);
+}
+
+function cancelTabLeavingNotification() {
+  if (tabLeavingNotifyTimerId) {
+    clearTimeout(tabLeavingNotifyTimerId);
+    tabLeavingNotifyTimerId = null;
+  }
+}
+
 function updateMatchHud() {
   const hud = document.getElementById("matchHud");
   if (!hud) return;
@@ -301,7 +379,7 @@ function updateMatchHud() {
   }
   if (pointsEl) {
     const score = getCurrentPlayerScore();
-    pointsEl.textContent = currentGameId && score !== null ? String(score) : "-";
+    pointsEl.textContent = currentGameId && score !== null ? formatScoreValue(score) : "-";
   }
   if (countdownEl) countdownEl.textContent = currentGameId ? countdownValue : "--:--";
 }
@@ -673,6 +751,9 @@ function applyQuestionVariantUI(questionVariant) {
   if (ortsschildContainer) ortsschildContainer.style.display = (isSorting || isAirMap) ? "none" : "flex";
   // air (signs only): hide map; sorting: hide map; everything else: show map
   if (mapContainer) mapContainer.style.display = (isSorting || isAirSigns) ? "none" : "block";
+  if (isSorting || isAirSigns) {
+    setMapContainerState("idle");
+  }
 }
 
 function submitSortingAnswer() {
@@ -888,7 +969,7 @@ function renderRoundHistory(roundHistory) {
       const pointsBadge = document.createElement("span");
       pointsBadge.className = "rr-badge rr-badge-points";
       pointsBadge.classList.add(points > 0 ? "is-positive" : points < 0 ? "is-negative" : "is-neutral");
-      pointsBadge.textContent = `Punkte ${points > 0 ? `+${points}` : points}`;
+      pointsBadge.textContent = `Punkte ${points > 0 ? `+${formatScoreValue(points)}` : formatScoreValue(points)}`;
 
       const accuracyBadge = document.createElement("span");
       accuracyBadge.className = "rr-badge rr-badge-accuracy";
@@ -917,11 +998,17 @@ function renderRoundHistory(roundHistory) {
 
           const pointsText = Number(entry.points || 0);
           if (entry.type === "perfect_hit_bonus" && typeof entry.distance_error_km === "number") {
-            reason.textContent = `${entry.label} +${pointsText} (±${entry.distance_error_km} km)`;
+            reason.textContent = `${entry.label} +${formatScoreValue(pointsText)} (±${entry.distance_error_km} km)`;
           } else if (entry.type === "streak_bonus" && typeof entry.streak === "number") {
-            reason.textContent = `${entry.label} +${pointsText} (${entry.streak} Siege)`;
+            reason.textContent = `${entry.label} +${formatScoreValue(pointsText)} (${entry.streak} Siege)`;
+          } else if (
+            entry.type === "sorting_partial_points"
+            && typeof entry.correct_positions === "number"
+            && typeof entry.total_positions === "number"
+          ) {
+            reason.textContent = `${entry.label} +${formatScoreValue(pointsText)} (${entry.correct_positions}/${entry.total_positions} korrekt)`;
           } else {
-            reason.textContent = `${entry.label} ${pointsText > 0 ? `+${pointsText}` : pointsText}`;
+            reason.textContent = `${entry.label} ${pointsText > 0 ? `+${formatScoreValue(pointsText)}` : formatScoreValue(pointsText)}`;
           }
 
           reasons.appendChild(reason);
@@ -1043,6 +1130,7 @@ function createOrtsschildOverlay(cityName, variant) {
 function ensureLeafletMap() {
   const container = document.getElementById("mapContainer");
   if (!container || typeof ol === "undefined" || typeof proj4 === "undefined") {
+    setMapContainerState("error", typeof t === "function" ? t("mapUnavailable") : "Karte ist derzeit nicht verfügbar.");
     return null;
   }
 
@@ -1155,8 +1243,12 @@ function ensureLeafletMap() {
     // Handle basemap.de tile load failure: switch to OSM fallback.
     // Tile errors are emitted by the source, not by the layer itself.
     const baseSource = gameMapBaseLayer.getSource();
+    const fallbackSource = gameMapFallbackLayer.getSource();
     let switchedToFallback = false;
     if (baseSource) {
+      baseSource.on("tileloadend", () => {
+        setMapContainerState(switchedToFallback ? "fallback" : "ready");
+      });
       baseSource.on("tileloaderror", () => {
         if (switchedToFallback || !gameMapFallbackLayer) {
           return;
@@ -1164,13 +1256,27 @@ function ensureLeafletMap() {
         switchedToFallback = true;
         gameMapBaseLayer.setVisible(false);
         gameMapFallbackLayer.setVisible(true);
+        setMapContainerState("fallback", typeof t === "function" ? t("mapFallbackActive") : "Fallback-Karte aktiv.");
         console.warn("[Map] basemap.de tiles failed to load, switched to OSM fallback");
+      });
+    }
+
+    if (fallbackSource) {
+      fallbackSource.on("tileloadend", () => {
+        if (switchedToFallback) {
+          setMapContainerState("fallback", typeof t === "function" ? t("mapFallbackActive") : "Fallback-Karte aktiv.");
+        }
+      });
+      fallbackSource.on("tileloaderror", () => {
+        if (switchedToFallback) {
+          setMapContainerState("error", typeof t === "function" ? t("mapUnavailable") : "Karte ist derzeit nicht verfügbar.");
+        }
       });
     }
 
   }
 
-  container.classList.add("has-map");
+  setMapContainerState("loading");
   scheduleLeafletResize();
 
   return gameMap;
@@ -1225,21 +1331,19 @@ function renderQuestionMap(coordinates) {
   if (!coordinates || !coordinates.from || !coordinates.to) {
     pendingQuestionCoordinates = null;
     clearMapOverlays();
-    if (container) {
-      container.classList.remove("has-map");
-    }
+    setMapContainerState("idle");
     return;
   }
 
   if (calculateGeoDistanceKm(coordinates.from, coordinates.to) < 5) {
     pendingQuestionCoordinates = null;
     clearMapOverlays();
-    if (container) {
-      container.classList.remove("has-map");
-    }
+    setMapContainerState("error", typeof t === "function" ? t("mapUnavailable") : "Karte ist derzeit nicht verfügbar.");
     console.warn("[Map] Skipped invalid near-zero distance coordinates for question", coordinates);
     return;
   }
+
+  setMapContainerState("loading");
 
   const map = ensureLeafletMap();
   if (!map || !gameMapFeatureSource) {
@@ -1327,9 +1431,7 @@ function renderQuestionMap(coordinates) {
     }, 160);
   } catch (err) {
     console.error("[Map] Error rendering question map:", err);
-    if (container) {
-      container.classList.remove("has-map");
-    }
+    setMapContainerState("error", typeof t === "function" ? t("mapUnavailable") : "Karte ist derzeit nicht verfügbar.");
   }
 }
 
@@ -1421,8 +1523,8 @@ function renderRoundHighlights(msg) {
         const li = document.createElement("li");
         li.className = "round-standings-item";
         const delta = Number(entry.delta || 0);
-        const deltaText = delta === 0 ? "" : ` (${delta > 0 ? "+" : ""}${delta})`;
-        li.textContent = `${index + 1}. ${entry.player_name}: ${entry.score}${deltaText}`;
+        const deltaText = delta === 0 ? "" : ` (${formatScoreDelta(delta)})`;
+        li.textContent = `${index + 1}. ${entry.player_name}: ${formatScoreValue(entry.score)}${deltaText}`;
         ol.appendChild(li);
       });
       value.appendChild(ol);
@@ -1757,7 +1859,7 @@ function handleJsonMessage(msg) {
     renderRoundHighlights(msg);
     const hasMultiplePlayers = Array.isArray(msg.standings) && msg.standings.length > 1;
     const summary = msg.standings
-      .map((s) => `${s.player_name}: ${s.score} (${s.delta >= 0 ? "+" : ""}${s.delta})`)
+      .map((s) => `${s.player_name}: ${formatScoreValue(s.score)} (${formatScoreDelta(s.delta)})`)
       .join(" | ");
     if (msg.question_variant === "sorting") {
       appendMessage(
@@ -1873,6 +1975,12 @@ function handleJsonMessage(msg) {
       updateGameList(currentGameId, currentPlayers);
     }
     appendMessage(t("messages.playerTabLeft", { playerName: msg.name || "-" }));
+  } else if (msg.type === "player_tab_active") {
+    const playerIndex = currentPlayers.findIndex((p) => p.id === msg.player_id);
+    if (playerIndex !== -1) {
+      currentPlayers[playerIndex].tab_away = false;
+      updateGameList(currentGameId, currentPlayers);
+    }
   } else if (msg.type === "session_restored") {
     currentPlayerId = msg.player_id;
     playerName = msg.name || playerName;
@@ -1930,7 +2038,7 @@ function handleJsonMessage(msg) {
         if (!el) return;
         if (sortedScores[index]) {
           const [name, stats] = sortedScores[index];
-          el.textContent = t(slot.key, { name, score: stats.score });
+          el.textContent = t(slot.key, { name, score: formatScoreValue(stats.score) });
           el.classList.add("visible");
         } else {
           el.textContent = "";
@@ -1953,7 +2061,7 @@ function handleJsonMessage(msg) {
           scoreIndex === 1 ? "#fffaeb" : "transparent";
         row.innerHTML = `
                             <td style="padding: 12px; text-align: left; color: #2d3748;"><strong>${medal} ${playerName}</strong></td>
-                            <td style="padding: 12px; text-align: center; color: #4f46e5; font-weight: 600;">${stats.score}</td>
+                  <td style="padding: 12px; text-align: center; color: #4f46e5; font-weight: 600;">${formatScoreValue(stats.score)}</td>
                             <td style="padding: 12px; text-align: center; color: #22c55e; font-weight: 600;">${stats.avg_accuracy}%</td>
                         `;
         scoresTableBody.appendChild(row);
@@ -2123,7 +2231,7 @@ function updateGameList(game_id, players) {
     const status = p.ready ? "✓ Ready" : "⏳ Waiting";
     const away = p.tab_away ? " ❗" : "";
     const item = document.createElement("li");
-    item.textContent = `${p.name}${away} - ${status} (Score: ${p.score || 0})`;
+    item.textContent = `${p.name}${away} - ${status} (Score: ${formatScoreValue(p.score || 0)})`;
     if (p.bot_flagged) {
       item.textContent += " 🤖";
     }
@@ -2500,9 +2608,11 @@ function joinGameById(gameId, pin = "") {
 }
 
 function notifyTabLeaving() {
+  if (tabAwayNotified) return;
   if (ws && ws.readyState === WebSocket.OPEN) {
     try {
       ws.send(JSON.stringify({ type: "tab_leaving", data: {} }));
+      tabAwayNotified = true;
     } catch (error) {
       console.error("Could not send tab_leaving", error);
     }
@@ -2510,8 +2620,10 @@ function notifyTabLeaving() {
 }
 
 function notifyTabActive() {
+  cancelTabLeavingNotification();
   if (ws && ws.readyState === WebSocket.OPEN) {
     sendMessage({ type: "tab_active", data: {} });
+    tabAwayNotified = false;
   }
 }
 
@@ -2840,7 +2952,7 @@ window.onload = () => {
 window.addEventListener("beforeunload", notifyTabLeaving);
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") {
-    notifyTabLeaving();
+    scheduleTabLeavingNotification();
   } else {
     notifyTabActive();
   }
