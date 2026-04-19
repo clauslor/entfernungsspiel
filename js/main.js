@@ -238,6 +238,19 @@ function getLocalizedPhaseLabel() {
   return t("hud.phases.waiting");
 }
 
+function getCurrentPlayerScore() {
+  if (!Array.isArray(currentPlayers) || currentPlayers.length === 0) return null;
+  const byId = currentPlayers.find((p) => p.id === currentPlayerId);
+  if (byId && Number.isFinite(Number(byId.score))) {
+    return Number(byId.score);
+  }
+  const byName = currentPlayers.find((p) => p.name === playerName);
+  if (byName && Number.isFinite(Number(byName.score))) {
+    return Number(byName.score);
+  }
+  return null;
+}
+
 function updateMatchHud() {
   const hud = document.getElementById("matchHud");
   if (!hud) return;
@@ -245,6 +258,7 @@ function updateMatchHud() {
   const phaseEl = document.getElementById("hudPhase");
   const gameEl = document.getElementById("hudGame");
   const roundEl = document.getElementById("hudRound");
+  const pointsEl = document.getElementById("hudPoints");
   const countdownEl = document.getElementById("hudCountdown");
 
   let countdownValue = "--:--";
@@ -259,6 +273,10 @@ function updateMatchHud() {
     roundEl.textContent = currentRoundNumber && currentMaxRounds
       ? `${currentRoundNumber}/${currentMaxRounds}`
       : "-";
+  }
+  if (pointsEl) {
+    const score = getCurrentPlayerScore();
+    pointsEl.textContent = currentGameId && score !== null ? String(score) : "-";
   }
   if (countdownEl) countdownEl.textContent = currentGameId ? countdownValue : "--:--";
 }

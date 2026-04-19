@@ -13,6 +13,7 @@
     "phase": "Phase",
     "game": "Spiel",
     "round": "Runde",
+    "points": "Punkte",
     "countdown": "Countdown",
     "players": "Spieler",
     "phases": {
