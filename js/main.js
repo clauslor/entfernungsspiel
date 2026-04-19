@@ -1731,6 +1731,7 @@ function toggleQuestionTypeTile(kind) {
       .filter((el) => el && el.checked)
       .length;
     if (enabledPrimaryCount <= 1) {
+      appendMessage(`❌ ${t("serverErrors.atLeastOneQuestionType")}`);
       return;
     }
   }
