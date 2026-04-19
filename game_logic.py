@@ -1,5 +1,6 @@
 import random
 import asyncio
+import math
 from typing import List, Dict, Tuple, Optional, Any
 from datetime import datetime
 import statistics
@@ -83,6 +84,44 @@ class GameLogic:
         # ~0.02 degrees are roughly ~2km in latitude; this is enough to catch bad imports
         # while keeping valid nearby-city questions.
         return not (abs(float(lat1) - float(lat2)) < 0.02 and abs(float(lon1) - float(lon2)) < 0.02)
+
+    def _estimate_air_distance_km(self, lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+        """Estimate great-circle distance in km (haversine)."""
+        lat1_rad = math.radians(float(lat1))
+        lon1_rad = math.radians(float(lon1))
+        lat2_rad = math.radians(float(lat2))
+        lon2_rad = math.radians(float(lon2))
+        d_lat = lat2_rad - lat1_rad
+        d_lon = lon2_rad - lon1_rad
+        a = (
+            math.sin(d_lat / 2.0) ** 2
+            + math.cos(lat1_rad) * math.cos(lat2_rad) * (math.sin(d_lon / 2.0) ** 2)
+        )
+        c = 2.0 * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
+        return 6371.0 * c
+
+    def _has_plausible_distance(self, db_city_pair) -> bool:
+        """Validate coordinates by checking if they roughly match stored air distance."""
+        try:
+            coord_km = self._estimate_air_distance_km(
+                db_city_pair.lat1,
+                db_city_pair.lon1,
+                db_city_pair.lat2,
+                db_city_pair.lon2,
+            )
+            stored_km = float(db_city_pair.distance or 0)
+        except Exception:
+            return False
+
+        # Reject near-identical points for clearly different city labels.
+        if coord_km < 5 and str(db_city_pair.city1).strip().lower() != str(db_city_pair.city2).strip().lower():
+            return False
+
+        if stored_km <= 0:
+            return False
+
+        tolerance_km = max(120.0, stored_km * 0.4)
+        return abs(coord_km - stored_km) <= tolerance_km
 
     def _build_sorting_question(self) -> CityPair:
         with SessionLocal() as db:
@@ -216,6 +255,16 @@ class GameLogic:
                 db_city_pair.city1,
                 db_city_pair.city2,
                 db_city_pair.id,
+            )
+            return None
+
+        if not self._has_plausible_distance(db_city_pair):
+            logger.warning(
+                "Skipping implausible city pair distance mismatch: %s -> %s (id=%s stored=%s)",
+                db_city_pair.city1,
+                db_city_pair.city2,
+                db_city_pair.id,
+                db_city_pair.distance,
             )
             return None
 
