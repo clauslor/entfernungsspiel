@@ -78,6 +78,12 @@ class GameLogic:
         ratio_pct = max(0, min(100, ratio_pct))
         return random.random() < (ratio_pct / 100.0)
 
+    def _has_distinct_coordinates(self, lat1: float, lon1: float, lat2: float, lon2: float) -> bool:
+        """Return False for obviously broken pairs where both cities share almost same coordinates."""
+        # ~0.02 degrees are roughly ~2km in latitude; this is enough to catch bad imports
+        # while keeping valid nearby-city questions.
+        return not (abs(float(lat1) - float(lat2)) < 0.02 and abs(float(lon1) - float(lon2)) < 0.02)
+
     def _build_sorting_question(self) -> CityPair:
         with SessionLocal() as db:
             quiz_rows = get_sorting_quiz_questions(db)
@@ -199,6 +205,20 @@ class GameLogic:
         }
 
     async def _build_question_from_db_pair(self, db_city_pair, game_config, preferred_variant: str = "air") -> Optional[CityPair]:
+        if not self._has_distinct_coordinates(
+            db_city_pair.lat1,
+            db_city_pair.lon1,
+            db_city_pair.lat2,
+            db_city_pair.lon2,
+        ):
+            logger.warning(
+                "Skipping invalid city pair with overlapping coordinates: %s -> %s (id=%s)",
+                db_city_pair.city1,
+                db_city_pair.city2,
+                db_city_pair.id,
+            )
+            return None
+
         question = CityPair(
             id=db_city_pair.id,
             city1=db_city_pair.city1,
