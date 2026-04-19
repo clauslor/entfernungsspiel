@@ -85,6 +85,15 @@ function t(key, substitutions = {}) {
   return result;
 }
 
+function normalizeI18nKey(rawKey) {
+  if (typeof rawKey !== "string") return "";
+  // Tolerate accidentally escaped/quoted attribute values like \"answer.shortcut\".
+  let key = rawKey.trim();
+  key = key.replace(/\\/g, "");
+  key = key.replace(/^"+|"+$/g, "");
+  return key;
+}
+
 /**
  * Get current language code
  */
@@ -123,7 +132,8 @@ function updateUILanguage() {
   
   // Update all data-i18n attributes
   document.querySelectorAll("[data-i18n]").forEach((el) => {
-    const key = el.getAttribute("data-i18n");
+    const key = normalizeI18nKey(el.getAttribute("data-i18n"));
+    if (!key) return;
     if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
       el.placeholder = t(key);
     } else {
@@ -132,7 +142,8 @@ function updateUILanguage() {
   });
   
   document.querySelectorAll("[data-i18n-html]").forEach((el) => {
-    const key = el.getAttribute("data-i18n-html");
+    const key = normalizeI18nKey(el.getAttribute("data-i18n-html"));
+    if (!key) return;
     el.innerHTML = t(key);
   });
   
