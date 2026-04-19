@@ -1198,6 +1198,9 @@ function handleJsonMessage(msg) {
       appendMessage(`❌ ${msg.message || t("messages.connectionError")}`);
     }
   } else if (msg.type === "lobby_info") {
+    if (typeof syncCaptchaRequirement === "function") {
+      syncCaptchaRequirement(!!msg.captcha_required);
+    }
     const startedGamesCounter = document.getElementById("startedGamesCounter");
     if (startedGamesCounter) {
       startedGamesCounter.textContent = String(msg.started_games_count || 0);
@@ -2363,13 +2366,6 @@ function setPlayerName(inputId = "playerName") {
 }
 
 function createGame() {
-  // Check if captcha is validated
-  if (!captchaValidationToken) {
-    showCaptchaError(t("captcha.invalidAnswer") || "Please complete CAPTCHA first");
-    showCaptchaModal();
-    return;
-  }
-
   const storedSettings = getStoredCreatorSettings();
   const sanitizedSettings = storedSettings && typeof storedSettings === "object"
     ? { ...storedSettings }
@@ -2400,13 +2396,6 @@ function hideJoinGame() {
 }
 
 function joinGame() {
-  // Check if captcha is validated
-  if (!captchaValidationToken) {
-    showCaptchaError(t("captcha.invalidAnswer") || "Please complete CAPTCHA first");
-    showCaptchaModal();
-    return;
-  }
-
   const gameId = document.getElementById("gameIdInput").value.trim();
   const pin = document.getElementById("gamePinInput").value.trim();
   if (!gameId) return alert(t("messages.enterGameId"));

@@ -13,9 +13,22 @@ function initializeCaptcha() {
     const storedToken = localStorage.getItem('captchaToken');
     if (storedToken) {
         captchaValidationToken = storedToken;
-        hideCaptchaModal();
+    }
+
+    // Do not force modal on page load; only show when a protected action actually needs it.
+    hideCaptchaModal();
+}
+
+function syncCaptchaRequirement(captchaRequired) {
+    if (captchaRequired) {
+        captchaValidationToken = null;
+        localStorage.removeItem('captchaToken');
     } else {
-        showCaptchaModal();
+        if (!captchaValidationToken) {
+            captchaValidationToken = 'server_valid';
+            localStorage.setItem('captchaToken', captchaValidationToken);
+        }
+        hideCaptchaModal();
     }
 }
 

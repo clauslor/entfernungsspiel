@@ -84,6 +84,15 @@ class WebSocketHandler:
         self.pending_disconnect_tasks: Dict[str, asyncio.Task] = {}
         self.disconnect_grace_seconds = 12
 
+    def _is_captcha_required(self, player_id: str) -> bool:
+        """Return True when CAPTCHA must be completed for this player_id."""
+        db = next(get_db())
+        try:
+            delete_expired_captcha_validations(db)
+            return not is_captcha_valid(db, player_id)
+        finally:
+            db.close()
+
     def _generate_friendly_game_id(self) -> str:
         """Create a short, memorable game code that is less technical than UUIDs."""
         adjectives = [
@@ -151,8 +160,11 @@ class WebSocketHandler:
 
             return player_id
 
-        # Generate unique player ID
-        player_id = f"player_{uuid.uuid4().hex[:8]}"
+        # Reuse known player_id even after server restarts so DB-backed CAPTCHA validation survives.
+        if requested_player_id and requested_player_id.startswith("player_"):
+            player_id = requested_player_id
+        else:
+            player_id = f"player_{uuid.uuid4().hex[:8]}"
         player = Player(
             id=player_id,
             name=f"Spieler_{player_id[-4:]}",
@@ -915,6 +927,7 @@ class WebSocketHandler:
             "active_games": self.game_room.list_active_games(),
             "started_games_count": self.game_room.started_games_count(),
             "player_name": player.name,
+            "captcha_required": self._is_captcha_required(player_id),
         }
         if player_id in self.active_connections:
             for websocket in self.active_connections[player_id]:
