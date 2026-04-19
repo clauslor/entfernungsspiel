@@ -2297,20 +2297,27 @@ main.game-layout.lobby-mode .messages-container {
 
 @media (max-width: 480px) {
     .match-hud {
-        gap: 5px;
+        gap: 4px;
     }
 
     .hud-pill {
-        min-width: 88px;
-        padding: 5px 7px;
+        min-width: 66px;
+        padding: 4px 6px;
+        border-radius: 8px;
     }
 
     .hud-label {
-        font-size: 0.52rem;
+        display: none;
     }
 
     .hud-value {
-        font-size: 0.8rem;
+        font-size: 0.76rem;
+        margin: 0;
+        line-height: 1.1;
+    }
+
+    .hud-value.is-countdown {
+        font-size: 0.82rem;
     }
 }
 
