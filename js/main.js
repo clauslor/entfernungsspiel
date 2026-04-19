@@ -299,6 +299,15 @@ function updateMatchHud() {
   if (countdownEl) countdownEl.textContent = currentGameId ? countdownValue : "--:--";
 }
 
+function updateReadyButtonVisibility() {
+  const readyBtn = document.getElementById("readyBtn");
+  if (!readyBtn) return;
+
+  const myPlayer = currentPlayers.find((p) => p.id === currentPlayerId);
+  const amReady = !!myPlayer?.ready;
+  readyBtn.style.display = amReady ? "none" : "inline-flex";
+}
+
 function translateServerMessage(rawMessage) {
   if (!rawMessage || typeof rawMessage !== "string") {
     return t("serverErrors.generic");
@@ -1926,6 +1935,8 @@ function updateGameList(game_id, players) {
     item.textContent = `${status}${away ? ` ${away}` : ""} ${p.name}`;
     inGameList.appendChild(item);
   });
+
+  updateReadyButtonVisibility();
 }
 
 function appendMessage(text) {
@@ -2479,6 +2490,7 @@ function setReady() {
     currentPlayers[playerIndex].ready = true;
     updateGameList(currentGameId, currentPlayers);
   }
+  updateReadyButtonVisibility();
   appendMessage(t("messages.youAreReady"));
 }
 
